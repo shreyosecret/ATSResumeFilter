@@ -1,0 +1,26 @@
+{
+  "embedding_backend": "lsa-fallback",
+  "n_personas": 16,
+  "pool_size": 16,
+  "n_layout_resumes": 128,
+  "layout_f1": {
+    "docx/single": 1.0,
+    "docx/table": 1.0,
+    "docx/textbox": 0.6334,
+    "docx/two_column": 1.0,
+    "pdf/single": 1.0,
+    "pdf/table": 0.3739,
+    "pdf/textbox": 0.6536,
+    "pdf/two_column": 0.6651
+  },
+  "layout_f1_drop_pct": {
+    "docx/single": 0.0,
+    "docx/table": 0.0,
+    "docx/textbox": 36.7,
+    "docx/two_column": 0.0,
+    "pdf/single": 0.0,
+    "pdf/table": 62.6,
+    "pdf/textbox": 34.6,
+    "pdf/two_column": 33.5
+  }
+}

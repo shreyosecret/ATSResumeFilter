@@ -1,0 +1,13 @@
+{
+  "id": "mechanical_design",
+  "title": "Mechanical Design Engineer",
+  "knockouts": {
+    "grad_window": ["2025-05", "2027-06"],
+    "min_gpa": 2.8,
+    "degree_fields": ["Mechanical Engineering", "Aerospace Engineering", "Mechatronics"],
+    "min_degree_level": "BS",
+    "require_work_authorization": true,
+    "no_sponsorship": false
+  },
+  "text": "Mechanical Design Engineer\n\nAbout the role\nDesign mechanical assemblies for industrial drive systems, from concept through production release.\n\nResponsibilities\n- Create 3D models and production drawings in CAD\n- Apply GD&T and run tolerance analysis on assemblies\n- Validate designs with FEA and physical testing\n- Build prototypes using 3D printing and machining\n\nMinimum qualifications\n- B.S. in Mechanical Engineering or Aerospace Engineering, graduating by June 2027\n- Proficiency in CAD, ideally SolidWorks\n- Working knowledge of GD&T\n- Experience with FEA\n\nNice to have\n- ANSYS\n- 3D printing and rapid prototyping\n- MATLAB or Python for analysis\n\nMust be authorized to work in the United States."
+}

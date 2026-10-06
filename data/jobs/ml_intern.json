@@ -1,0 +1,13 @@
+{
+  "id": "ml_intern",
+  "title": "Machine Learning Engineer Intern",
+  "knockouts": {
+    "grad_window": ["2026-12", "2028-06"],
+    "min_gpa": 3.0,
+    "degree_fields": ["Computer Science", "Data Science", "Software Engineering", "Mathematics", "Statistics", "Electrical Engineering"],
+    "min_degree_level": "BS",
+    "require_work_authorization": true,
+    "no_sponsorship": true
+  },
+  "text": "Machine Learning Engineer Intern (Summer 2027)\n\nAbout the role\nYou will join a small applied team that builds models for document understanding and customer analytics. You will train, evaluate and ship models used by internal teams.\n\nResponsibilities\n- Build and evaluate machine learning models on large tabular and text datasets\n- Write production-quality Python and SQL\n- Package models with Docker and deploy them to AWS\n- Communicate results to engineers and product managers\n\nRequired qualifications\n- Pursuing a B.S. or M.S. in Computer Science, Data Science, Mathematics, Statistics or a related field, graduating between December 2026 and June 2028\n- Strong Python programming skills\n- Coursework or project experience in machine learning\n- Experience with SQL\n- Familiarity with Git\n\nPreferred qualifications\n- Experience with PyTorch or TensorFlow\n- Experience with natural language processing\n- Exposure to AWS and Docker\n- Knowledge of statistics\n\nThis role requires work authorization in the United States; we are unable to sponsor visas for this internship."
+}

@@ -1,0 +1,5 @@
+format,layout,single_column_status,status,count
+pdf,table,PASS,REVIEW,9
+pdf,table,REJECT,REVIEW,34
+pdf,two_column,PASS,REVIEW,1
+pdf,two_column,REJECT,REVIEW,8

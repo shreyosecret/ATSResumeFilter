@@ -1,0 +1,229 @@
+{
+  "_comment": "Synthetic, fictional candidates written for this project. Every value here is the ground truth used to score the parser (the answer key). Names, schools, companies, emails and phone numbers are invented; 555 numbers and example.com addresses are reserved for fiction.",
+  "personas": [
+    {
+      "id": "p01", "intent": "strong fit: ML intern",
+      "name": "Priya Raman", "email": "priya.raman@example.com", "phone": "(555) 201-4432", "location": "Austin, TX",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Computer Science", "school": "Lakeshore State University", "location": "Chicago, IL", "grad_date": "2027-05", "gpa": 3.71},
+      "skills": ["Python", "PyTorch", "scikit-learn", "SQL", "Git", "Docker", "AWS", "machine learning", "natural language processing", "pandas"],
+      "experience": [
+        {"title": "Machine Learning Intern", "company": "Northwind Analytics", "location": "Chicago, IL", "start": "2026-06", "end": "2026-08",
+         "bullets": ["Trained a gradient-boosted churn model in Python on 2M customer records, lifting recall by 9 points", "Built a PyTorch text classifier for support tickets and deployed it on AWS with Docker", "Wrote SQL pipelines that cut feature refresh time from 6 hours to 40 minutes"]},
+        {"title": "Undergraduate Research Assistant", "company": "Lakeshore NLP Lab", "location": "Chicago, IL", "start": "2025-09", "end": "present",
+         "bullets": ["Fine-tuned transformer models for named entity recognition on clinical notes", "Maintained the lab's Git repository and evaluation scripts"]}
+      ],
+      "projects": [{"name": "Course Review Summarizer", "bullets": ["Summarized 40k student reviews with natural language processing and a scikit-learn topic model"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p02", "intent": "good fit: ML intern, writes 'ML' instead of 'machine learning'",
+      "name": "Marcus Oyelaran", "email": "m.oyelaran@example.com", "phone": "(555) 318-9020", "location": "Columbus, OH",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Data Science", "school": "Ridgeview University", "location": "Columbus, OH", "grad_date": "2026-12", "gpa": 3.42},
+      "skills": ["Python", "ML", "TensorFlow", "SQL", "Spark", "Git", "Tableau", "statistics"],
+      "experience": [
+        {"title": "Data Science Intern", "company": "Harborline Insurance", "location": "Columbus, OH", "start": "2025-06", "end": "2025-08",
+         "bullets": ["Built ML models in Python to flag fraudulent claims, saving an estimated $400k per year", "Queried claims data with SQL and Spark and presented results in Tableau"]},
+        {"title": "Teaching Assistant", "company": "Ridgeview University", "location": "Columbus, OH", "start": "2024-08", "end": "present",
+         "bullets": ["Led weekly labs on statistics and regression for 60 students"]}
+      ],
+      "projects": [{"name": "Bike Share Demand Forecasting", "bullets": ["Forecast hourly demand with TensorFlow and tracked experiments in Git"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p03", "intent": "strong skills, fails knockout: needs sponsorship",
+      "name": "Wei Zhang", "email": "wei.zhang@example.com", "phone": "(555) 774-1203", "location": "Pittsburgh, PA",
+      "education": {"degree": "M.S.", "degree_level": "MS", "field": "Computer Science", "school": "Allegheny Institute of Technology", "location": "Pittsburgh, PA", "grad_date": "2027-05", "gpa": 3.88},
+      "skills": ["Python", "C++", "PyTorch", "machine learning", "deep learning", "computer vision", "SQL", "Git", "Linux"],
+      "experience": [
+        {"title": "Computer Vision Research Intern", "company": "Brightfield Robotics", "location": "Pittsburgh, PA", "start": "2026-05", "end": "2026-08",
+         "bullets": ["Designed a PyTorch segmentation network that improved warehouse pick accuracy by 12%", "Optimized C++ inference code on Linux edge devices"]},
+        {"title": "Software Engineer", "company": "Kestrel Payments", "location": "Remote", "start": "2023-07", "end": "2025-07",
+         "bullets": ["Shipped payment reconciliation services and SQL reporting used by 300 merchants"]}
+      ],
+      "projects": [{"name": "Sign Language Recognition", "bullets": ["Applied deep learning and computer vision to classify 50 signs in real time"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": true}
+    },
+    {
+      "id": "p04", "intent": "partial fit: web developer applying to ML intern",
+      "name": "Sofia Delgado", "email": "sofia.delgado@example.com", "phone": "(555) 642-8811", "location": "Phoenix, AZ",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Software Engineering", "school": "Sonoran College", "location": "Phoenix, AZ", "grad_date": "2027-05", "gpa": 3.15},
+      "skills": ["JavaScript", "TypeScript", "React", "Python", "SQL", "Git", "AWS"],
+      "experience": [
+        {"title": "Front-End Developer Intern", "company": "Mesa Digital", "location": "Phoenix, AZ", "start": "2026-06", "end": "2026-08",
+         "bullets": ["Built React and TypeScript components for a booking app with 50k monthly users", "Wrote Python scripts to clean analytics exports"]},
+        {"title": "IT Help Desk Assistant", "company": "Sonoran College", "location": "Phoenix, AZ", "start": "2024-09", "end": "present",
+         "bullets": ["Resolved 30+ tickets per week and documented fixes for the team"]}
+      ],
+      "projects": [{"name": "Recipe Recommender", "bullets": ["Prototyped a simple recommender in Python with cosine similarity and a SQL backend"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p05", "intent": "fails knockout: GPA below minimum",
+      "name": "Jordan Ellis", "email": "jordan.ellis@example.com", "phone": "(555) 909-3321", "location": "Denver, CO",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Mathematics", "school": "Front Range University", "location": "Denver, CO", "grad_date": "2027-05", "gpa": 2.74},
+      "skills": ["Python", "R", "machine learning", "statistics", "SQL", "Excel"],
+      "experience": [
+        {"title": "Analytics Intern", "company": "Summit Health Partners", "location": "Denver, CO", "start": "2026-06", "end": "2026-08",
+         "bullets": ["Built machine learning models in Python and R to predict appointment no-shows", "Automated weekly SQL reports and Excel dashboards for clinic managers"]},
+        {"title": "Math Tutor", "company": "Front Range University", "location": "Denver, CO", "start": "2024-09", "end": "present",
+         "bullets": ["Tutored calculus and statistics for 15 students per week"]}
+      ],
+      "projects": [{"name": "Ski Resort Snowfall Model", "bullets": ["Fit Bayesian statistics models to 20 years of snowfall data"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p06", "intent": "off-domain: marketing graduate",
+      "name": "Hannah Brooks", "email": "hannah.brooks@example.com", "phone": "(555) 230-7765", "location": "Nashville, TN",
+      "education": {"degree": "B.A.", "degree_level": "BA", "field": "Marketing", "school": "Cumberland Valley College", "location": "Nashville, TN", "grad_date": "2026-05", "gpa": 3.55},
+      "skills": ["SEO", "Google Analytics", "content marketing", "Salesforce", "Adobe Photoshop", "Excel", "communication"],
+      "experience": [
+        {"title": "Marketing Coordinator", "company": "Bluebird Events", "location": "Nashville, TN", "start": "2026-06", "end": "present",
+         "bullets": ["Grew newsletter signups 35% through SEO and content marketing", "Tracked campaign performance in Google Analytics and Salesforce"]},
+        {"title": "Social Media Intern", "company": "Harmony Records", "location": "Nashville, TN", "start": "2025-05", "end": "2025-08",
+         "bullets": ["Designed 120 social posts in Adobe Photoshop for artist launches"]}
+      ],
+      "projects": [{"name": "Campus Brand Audit", "bullets": ["Surveyed 400 students and presented findings to the dean's office"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p07", "intent": "strong fit: process engineer",
+      "name": "Elena Petrova", "email": "elena.petrova@example.com", "phone": "(555) 415-2287", "location": "Raleigh, NC",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Chemical Engineering", "school": "Piedmont State University", "location": "Raleigh, NC", "grad_date": "2026-05", "gpa": 3.64},
+      "skills": ["GMP", "process validation", "CAPA", "Python", "MATLAB", "Aspen Plus", "Minitab", "HPLC", "bioreactor"],
+      "experience": [
+        {"title": "Process Engineering Co-op", "company": "Tarheel Biologics", "location": "Durham, NC", "start": "2025-01", "end": "2025-08",
+         "bullets": ["Supported process validation for a 2,000 L bioreactor line under GMP", "Wrote 6 SOPs and closed 4 CAPA investigations with the quality team", "Analyzed batch data in Python and Minitab to reduce titer variability by 8%"]},
+        {"title": "Associate Process Engineer", "company": "Tarheel Biologics", "location": "Durham, NC", "start": "2026-06", "end": "present",
+         "bullets": ["Own downstream chromatography step performance trending and deviation investigations"]}
+      ],
+      "projects": [{"name": "Senior Design: Insulin Purification Plant", "bullets": ["Modeled a purification train in Aspen Plus and sized HPLC polishing columns"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p08", "intent": "good fit: process engineer, writes 'good manufacturing practice' not 'GMP'",
+      "name": "Daniel Okafor", "email": "daniel.okafor@example.com", "phone": "(555) 562-0193", "location": "Indianapolis, IN",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Biomedical Engineering", "school": "Wabash River University", "location": "Indianapolis, IN", "grad_date": "2026-05", "gpa": 3.31},
+      "skills": ["good manufacturing practice", "standard operating procedures", "MATLAB", "cell culture", "chromatography", "Excel", "root cause analysis"],
+      "experience": [
+        {"title": "Manufacturing Science Intern", "company": "Crossroads Pharma", "location": "Indianapolis, IN", "start": "2025-05", "end": "2025-08",
+         "bullets": ["Followed good manufacturing practice while running cell culture and chromatography steps", "Revised standard operating procedures and led a root cause analysis on filter failures", "Trended yield data in MATLAB and Excel"]},
+        {"title": "Lab Technician", "company": "Wabash River University", "location": "Indianapolis, IN", "start": "2024-01", "end": "2025-04",
+         "bullets": ["Prepared media and maintained cell lines for a tissue engineering lab"]}
+      ],
+      "projects": [{"name": "Perfusion Bioreactor Controller", "bullets": ["Built a MATLAB model of oxygen transfer in a perfusion bioreactor"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p09", "intent": "fails knockout: graduates too late for process role",
+      "name": "Aisha Rahman", "email": "aisha.rahman@example.com", "phone": "(555) 811-6604", "location": "Boston, MA",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Chemical Engineering", "school": "Bay State Institute of Technology", "location": "Boston, MA", "grad_date": "2028-05", "gpa": 3.93},
+      "skills": ["Python", "MATLAB", "GMP", "HPLC", "Aspen Plus", "process simulation"],
+      "experience": [
+        {"title": "Process Development Intern", "company": "Charles River Therapeutics", "location": "Cambridge, MA", "start": "2026-06", "end": "2026-08",
+         "bullets": ["Ran HPLC assays and documented results under GMP for a gene therapy program", "Built a Python tool for process simulation of a tangential flow filtration step"]},
+        {"title": "Research Assistant", "company": "Bay State Institute of Technology", "location": "Boston, MA", "start": "2025-09", "end": "present",
+         "bullets": ["Simulated crystallizer kinetics in MATLAB and Aspen Plus"]}
+      ],
+      "projects": [{"name": "Green Solvent Screening", "bullets": ["Screened 30 solvents for a greener extraction route"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p10", "intent": "partial fit: chemistry major, lab skills, no GMP",
+      "name": "Lucas Moreau", "email": "lucas.moreau@example.com", "phone": "(555) 377-4419", "location": "Madison, WI",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Chemistry", "school": "Badger Lakes University", "location": "Madison, WI", "grad_date": "2026-05", "gpa": 3.22},
+      "skills": ["HPLC", "chromatography", "Excel", "statistics", "technical writing"],
+      "experience": [
+        {"title": "Quality Control Lab Intern", "company": "Driftless Dairy Co", "location": "Madison, WI", "start": "2025-06", "end": "2025-08",
+         "bullets": ["Ran HPLC and chromatography methods for vitamin assays", "Wrote technical writing summaries of out-of-spec results"]},
+        {"title": "Chemistry Stockroom Assistant", "company": "Badger Lakes University", "location": "Madison, WI", "start": "2023-09", "end": "2026-05",
+         "bullets": ["Managed reagent inventory for 12 teaching labs"]}
+      ],
+      "projects": [{"name": "Caffeine Extraction Study", "bullets": ["Compared extraction yields across four solvents with statistics in Excel"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p11", "intent": "no GPA listed: tests the missing-field policy",
+      "name": "Grace Kim", "email": "grace.kim@example.com", "phone": "(555) 948-2210", "location": "Seattle, WA",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Bioengineering", "school": "Puget Sound Polytechnic", "location": "Seattle, WA", "grad_date": "2026-06", "gpa": null},
+      "skills": ["GMP", "Python", "Six Sigma", "Minitab", "bioreactor", "cell culture", "SOP"],
+      "experience": [
+        {"title": "Upstream Process Intern", "company": "Cascade Biomanufacturing", "location": "Bothell, WA", "start": "2025-06", "end": "2025-09",
+         "bullets": ["Scaled a cell culture process from shake flask to 50 L bioreactor under GMP", "Applied Six Sigma DMAIC and Minitab to cut media prep errors by 40%", "Drafted SOP updates for single-use bioreactor setup"]},
+        {"title": "Peer Mentor", "company": "Puget Sound Polytechnic", "location": "Seattle, WA", "start": "2024-09", "end": "2026-06",
+         "bullets": ["Mentored 10 first-year engineering students"]}
+      ],
+      "projects": [{"name": "Python Batch Record Checker", "bullets": ["Parsed electronic batch records in Python to flag missing signatures"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p12", "intent": "strong fit: mechanical design",
+      "name": "Tomas Lindqvist", "email": "tomas.lindqvist@example.com", "phone": "(555) 120-5546", "location": "Detroit, MI",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Mechanical Engineering", "school": "Great Lakes Institute of Technology", "location": "Detroit, MI", "grad_date": "2026-05", "gpa": 3.58},
+      "skills": ["CAD", "SolidWorks", "GD&T", "FEA", "ANSYS", "3D printing", "MATLAB", "tolerance analysis"],
+      "experience": [
+        {"title": "Mechanical Design Intern", "company": "Motorline Components", "location": "Troy, MI", "start": "2025-05", "end": "2025-08",
+         "bullets": ["Designed brackets and housings in SolidWorks CAD with full GD&T drawings", "Ran FEA in ANSYS to cut bracket mass 18% while meeting fatigue targets", "Completed tolerance analysis for a 14-part gearbox assembly"]},
+        {"title": "Design Engineer I", "company": "Motorline Components", "location": "Troy, MI", "start": "2026-06", "end": "present",
+         "bullets": ["Release production drawings and support 3D printing of prototype fixtures"]}
+      ],
+      "projects": [{"name": "Formula SAE Upright", "bullets": ["Designed and FEA-validated a front upright, machined from 7075 aluminum"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p13", "intent": "good fit: mechanical design, uses Onshape instead of 'CAD'",
+      "name": "Nia Thompson", "email": "nia.thompson@example.com", "phone": "(555) 603-7718", "location": "Atlanta, GA",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Mechanical Engineering", "school": "Peachtree University", "location": "Atlanta, GA", "grad_date": "2026-12", "gpa": 3.47},
+      "skills": ["Onshape", "finite element analysis", "3D printing", "Python", "Arduino", "prototyping", "machining"],
+      "experience": [
+        {"title": "Product Design Intern", "company": "Kitewing Drones", "location": "Atlanta, GA", "start": "2025-06", "end": "2025-08",
+         "bullets": ["Modeled drone arms and motor mounts in Onshape and iterated 15 prototypes with 3D printing", "Used finite element analysis to predict crash loads on the frame"]},
+        {"title": "Makerspace Technician", "company": "Peachtree University", "location": "Atlanta, GA", "start": "2024-01", "end": "present",
+         "bullets": ["Trained 200 students on machining and laser cutting safety"]}
+      ],
+      "projects": [{"name": "Automated Plant Waterer", "bullets": ["Built an Arduino-controlled waterer with a Python dashboard"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p14", "intent": "fails knockout: degree field (Industrial Design)",
+      "name": "Rafael Souza", "email": "rafael.souza@example.com", "phone": "(555) 489-3375", "location": "San Diego, CA",
+      "education": {"degree": "B.A.", "degree_level": "BA", "field": "Industrial Design", "school": "Pacific Coast College of Art", "location": "San Diego, CA", "grad_date": "2026-05", "gpa": 3.61},
+      "skills": ["CAD", "SolidWorks", "Fusion 360", "3D printing", "Adobe Photoshop", "prototyping"],
+      "experience": [
+        {"title": "Industrial Design Intern", "company": "Tidewater Housewares", "location": "San Diego, CA", "start": "2025-06", "end": "2025-08",
+         "bullets": ["Created CAD models in SolidWorks and Fusion 360 for kitchen products", "Produced 3D printing prototypes and photorealistic renders for buyer reviews"]},
+        {"title": "Studio Assistant", "company": "Pacific Coast College of Art", "location": "San Diego, CA", "start": "2024-01", "end": "2026-05",
+         "bullets": ["Maintained wood shop and foam cutting equipment"]}
+      ],
+      "projects": [{"name": "Modular Lamp", "bullets": ["Designed a tool-free modular lamp with snap-fit joints"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p15", "intent": "partial fit: aerospace student, analysis-heavy",
+      "name": "Kenji Watanabe", "email": "kenji.watanabe@example.com", "phone": "(555) 254-9087", "location": "Wichita, KS",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Aerospace Engineering", "school": "Prairie Wind University", "location": "Wichita, KS", "grad_date": "2026-05", "gpa": 3.05},
+      "skills": ["MATLAB", "Simulink", "CATIA", "ANSYS", "LabVIEW", "Python"],
+      "experience": [
+        {"title": "Flight Test Intern", "company": "Heartland Aerostructures", "location": "Wichita, KS", "start": "2025-05", "end": "2025-08",
+         "bullets": ["Built LabVIEW data acquisition for wing load tests", "Post-processed strain data in MATLAB and compared it with ANSYS predictions"]},
+        {"title": "Undergraduate Researcher", "company": "Prairie Wind University", "location": "Wichita, KS", "start": "2024-09", "end": "2026-05",
+         "bullets": ["Modeled a quadrotor control loop in Simulink"]}
+      ],
+      "projects": [{"name": "Composite Wing Spar", "bullets": ["Designed a carbon spar in CATIA and tested it to failure"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    },
+    {
+      "id": "p16", "intent": "generalist: some skills across all three postings",
+      "name": "Olivia Chen", "email": "olivia.chen@example.com", "phone": "(555) 372-6650", "location": "Minneapolis, MN",
+      "education": {"degree": "B.S.", "degree_level": "BS", "field": "Industrial Engineering", "school": "North Star University", "location": "Minneapolis, MN", "grad_date": "2026-05", "gpa": 3.38},
+      "skills": ["Python", "SQL", "Excel", "Six Sigma", "Minitab", "statistics", "project management"],
+      "experience": [
+        {"title": "Operations Analyst Intern", "company": "Lakeland Medical Devices", "location": "Plymouth, MN", "start": "2025-06", "end": "2025-08",
+         "bullets": ["Used Six Sigma and Minitab to reduce packaging line scrap by 11%", "Built Python and SQL reports on line downtime"]},
+        {"title": "Student Project Manager", "company": "North Star Engineers Without Borders", "location": "Minneapolis, MN", "start": "2024-09", "end": "2026-05",
+         "bullets": ["Ran project management for a 12-person water filtration project"]}
+      ],
+      "projects": [{"name": "Warehouse Slotting Optimizer", "bullets": ["Applied statistics and a Python heuristic to cut picker travel 20%"]}],
+      "application": {"work_authorized": true, "needs_sponsorship": false}
+    }
+  ]
+}

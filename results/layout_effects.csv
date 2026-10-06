@@ -1,0 +1,9 @@
+format,layout,pairs,flips_review_policy,flips_reject_policy,newly_rejected_reject_policy,newly_passed_reject_policy,mean_keyword_change
+docx,single,48,0,0,0,0,0.0
+docx,table,48,0,0,0,0,0.0
+docx,textbox,48,0,0,0,0,-0.026488095238095238
+docx,two_column,48,0,0,0,0,0.0
+pdf,single,48,0,0,0,0,0.0
+pdf,table,48,43,9,9,0,0.0
+pdf,textbox,48,0,0,0,0,-0.003497023809523811
+pdf,two_column,48,9,1,1,0,-0.003497023809523811
