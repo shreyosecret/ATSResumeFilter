@@ -14,29 +14,37 @@ def load_personas(path: str | Path | None = None) -> list[dict]:
     return json.loads(Path(path).read_text())["personas"]
 
 
-def resume_path(persona_id: str, layout: str, fmt: str, root: Path = RESUME_DIR) -> Path:
-    return root / fmt / layout / f"{persona_id}.{fmt}"
+def resume_path(persona_id: str, layout: str, fmt: str, root: Path = RESUME_DIR, template: str = "classic") -> Path:
+    return root / template / fmt / layout / f"{persona_id}.{fmt}"
 
 
 def load_kaggle_resumes(csv_path: str | Path, text_column: str = "Resume_str", limit: int | None = None,
-                        category: str | None = None, category_column: str = "Category") -> list[tuple[str, str]]:
-    """Load plain-text resumes from a Kaggle CSV as (id, text) pairs.
+                        category: str | list[str] | None = None, category_column: str = "Category",
+                        seed: int = 0) -> list[tuple[str, str]]:
+    """Load plain-text resumes from a Kaggle-format CSV as (id, text) pairs.
 
-    Defaults match the public "Resume Dataset" (Resume.csv, columns ID,
-    Resume_str, Resume_html, Category). These have no layout and no answer
-    key, so they are only used as extra candidates in the ranking pool and as
-    background documents for TF-IDF, never for the layout experiment.
-    Check the dataset's license before redistributing anything derived from it.
+    Defaults match the public "Resume Dataset" (snehaanbhawal/resume-dataset,
+    CC0; Resume.csv with columns ID, Resume_str, Resume_html, Category).
+    `scripts/fetch_public_resumes.py` downloads it without a Kaggle account.
+    These resumes have no layout and no answer key, so they are only used as
+    extra candidates in ranking pools and as background documents for the
+    scorers, never for the layout experiment. With `category`, `limit` is a
+    per-category sample size (seeded, so runs are reproducible).
     """
     import pandas as pd
 
     df = pd.read_csv(csv_path)
     if category:
-        df = df[df[category_column].str.upper() == category.upper()]
-    if limit:
-        df = df.head(limit)
+        cats = [category] if isinstance(category, str) else list(category)
+        cats = [c.strip().upper() for c in cats]
+        df = df[df[category_column].str.upper().isin(cats)]
+        if limit:
+            df = (df.groupby(category_column, group_keys=False)
+                  .apply(lambda g: g.sample(min(limit, len(g)), random_state=seed)))
+    elif limit:
+        df = df.sample(min(limit, len(df)), random_state=seed)
     id_col = "ID" if "ID" in df.columns else None
     return [
-        (f"kaggle-{row[id_col] if id_col else i}", str(row[text_column]))
+        (f"public-{row[id_col] if id_col else i}", " ".join(str(row[text_column]).split()))
         for i, row in df.iterrows()
     ]

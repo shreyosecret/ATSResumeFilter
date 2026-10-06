@@ -1,6 +1,8 @@
-"""Run all four experiments and write CSVs, charts and a markdown summary to results/.
+"""Run all four experiments and write CSVs, charts and a markdown summary.
 
-    python scripts/run_experiments.py
+    python scripts/run_experiments.py                       # results/
+    python scripts/run_experiments.py --require-minilm      # fail instead of falling back to LSA
+    python scripts/run_experiments.py --public-pool data/kaggle/Resume.csv --out results/public_pool
 """
 from __future__ import annotations
 
@@ -20,7 +22,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ats_sim import experiments as ex  # noqa: E402
-from ats_sim.render import LAYOUTS  # noqa: E402
+from ats_sim.render import LAYOUTS, TEMPLATES  # noqa: E402
 
 OUT = ROOT / "results"
 
@@ -28,6 +30,7 @@ OUT = ROOT / "results"
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 SCORER_ORDER = ["keyword", "tfidf", "embedding", "keyword+taxonomy"]
+CELL_COLS = ["template", "parser", "format", "layout"]
 LAYOUT_LABELS = {"single": "Single column", "two_column": "Two column", "table": "Table", "textbox": "Text boxes"}
 
 
@@ -48,42 +51,86 @@ def scorer_label(name: str, backend: str) -> str:
     return name
 
 
-def grouped_bars(ax, categories, series: dict[str, list[float]], colors, fmt="{:.2f}", label_values=True):
+def grouped_bars(ax, categories, series: dict[str, list[float]], colors, fmt="{:.2f}", label_values=True,
+                 errors: dict[str, tuple[list[float], list[float]]] | None = None):
+    """Grouped bars; `errors` maps a series name to (lo, hi) interval bounds."""
     n = len(series)
     width = 0.8 / n
     x = np.arange(len(categories))
     for i, ((name, vals), c) in enumerate(zip(series.items(), colors)):
         pos = x - 0.4 + width * (i + 0.5)
         bars = ax.bar(pos, vals, width * 0.9, color=c, label=name, edgecolor=SURFACE, linewidth=1)
+        tops = list(vals)
+        if errors and name in errors:
+            lo, hi = (np.asarray(e, dtype=float) for e in errors[name])
+            v = np.asarray(vals, dtype=float)
+            ax.errorbar(pos, v, yerr=[np.clip(v - lo, 0, None), np.clip(hi - v, 0, None)], fmt="none",
+                        ecolor=INK2, elinewidth=1, capsize=2)
+            tops = list(np.maximum(v, hi))
         if label_values:
-            for b, v in zip(bars, vals):
+            for b, v, top in zip(bars, vals, tops):
                 if not np.isnan(v):
-                    ax.annotate(fmt.format(v), (b.get_x() + b.get_width() / 2, max(v, 0)), xytext=(0, 2),
+                    ax.annotate(fmt.format(v), (b.get_x() + b.get_width() / 2, max(top, 0)), xytext=(0, 2),
                                 textcoords="offset points", ha="center", va="bottom", fontsize=8, color=INK2)
     ax.set_xticks(x, categories)
     ax.grid(axis="x", visible=False)
 
 
 def chart_layout(overall: pd.DataFrame, path: Path):
+    """Headline: the classic template read by the naive parser, with 95% CIs."""
+    d = overall[(overall.template == "classic") & (overall.parser == "naive")]
     fig, ax = plt.subplots(figsize=(8, 4.2))
-    series = {}
+    series, errors = {}, {}
     for fmt, label in (("pdf", "PDF"), ("docx", "DOCX")):
-        s = overall[overall.format == fmt].set_index("layout").reindex(LAYOUTS)["f1"]
-        series[label] = s.tolist()
-    grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES[:2])
-    ax.set_ylim(0, 1.12)
+        s = d[d.format == fmt].set_index("layout").reindex(LAYOUTS)
+        series[label] = s["f1"].tolist()
+        errors[label] = (s["f1_lo"].tolist(), s["f1_hi"].tolist())
+    grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES[:2], errors=errors)
+    ax.set_ylim(0, 1.15)
     ax.set_ylabel("Field extraction F1 (micro)")
     ax.set_title("Same content, different layout: what the naive parser recovers")
     ax.legend(loc="upper right", ncols=2)
+    ax.text(0, -0.16, "Classic template, naive parser. Whiskers: 95% bootstrap CI over the 16 personas.",
+            transform=ax.transAxes, fontsize=8, color=INK2)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
 
-def chart_field_heatmap(per_field: pd.DataFrame, fmt: str, path: Path):
+def chart_layout_parsers(overall: pd.DataFrame, path: Path):
+    """Both templates x both parser modes, small multiples by template."""
+    combos = [("pdf", "naive", "PDF, naive"), ("pdf", "layout_aware", "PDF, layout-aware"),
+              ("docx", "naive", "DOCX, naive"), ("docx", "layout_aware", "DOCX, layout-aware")]
+    fig, axes = plt.subplots(1, 2, figsize=(13, 4.4), sharey=True)
+    titles = {"classic": "Classic template (parser developed on it)", "modern": "Modern template (held out)"}
+    for ax, template in zip(axes, TEMPLATES):
+        d = overall[overall.template == template]
+        series, errors = {}, {}
+        for fmt, parser, label in combos:
+            s = d[(d.format == fmt) & (d.parser == parser)].set_index("layout").reindex(LAYOUTS)
+            series[label] = s["f1"].tolist()
+            errors[label] = (s["f1_lo"].tolist(), s["f1_hi"].tolist())
+        grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES, errors=errors, fmt="{:.2f}")
+        ax.set_title(titles[template], fontsize=11)
+        ax.set_ylim(0, 1.15)
+        ax.tick_params(axis="x", labelsize=9)
+    for a in axes[1:]:
+        for t in a.texts:
+            t.set_fontsize(6.5)
+    for t in axes[0].texts:
+        t.set_fontsize(6.5)
+    axes[0].set_ylabel("Field extraction F1 (micro)")
+    fig.legend(*axes[0].get_legend_handles_labels(), loc="upper right", ncols=4)
+    fig.suptitle("Layout x template x parser", x=0.01, ha="left", fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def chart_field_heatmap(per_field: pd.DataFrame, template: str, fmt: str, path: Path):
     from matplotlib.colors import LinearSegmentedColormap
 
-    data = per_field.loc[fmt][list(LAYOUTS)]
+    data = per_field.xs((template, fmt), level=[0, 1])[list(LAYOUTS)]
     cmap = LinearSegmentedColormap.from_list("blue", ["#f0efec", "#86b6ef", "#2a78d6", "#104281"])
     fig, ax = plt.subplots(figsize=(6.4, 4.6))
     im = ax.imshow(data.values, cmap=cmap, vmin=0, vmax=1, aspect="auto")
@@ -95,7 +142,7 @@ def chart_field_heatmap(per_field: pd.DataFrame, fmt: str, path: Path):
             v = data.values[i, j]
             ax.text(j, i, "n/a" if np.isnan(v) else f"{v:.2f}", ha="center", va="center", fontsize=8,
                     color="#ffffff" if v > 0.6 else INK)
-    ax.set_title(f"Per-field F1 by layout ({fmt.upper()})")
+    ax.set_title(f"Per-field F1 by layout ({template} template, {fmt.upper()}, naive parser)", fontsize=10)
     fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02, label="F1")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -130,7 +177,7 @@ def chart_synonyms(df: pd.DataFrame, backend: str, path: Path):
     plt.close(fig)
 
 
-def chart_stuffing(df: pd.DataFrame, backend: str, path: Path):
+def chart_stuffing(df: pd.DataFrame, backend: str, path: Path, pool_n: int):
     outside = df[df.was_outside_top_k]
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.2), sharey=True)
     for ax, defense, title in ((axes[0], "none", "Default parser"),
@@ -144,20 +191,21 @@ def chart_stuffing(df: pd.DataFrame, backend: str, path: Path):
         ax.set_ylim(0, 112)
     axes[0].set_ylabel("% that outrank the best unstuffed resume")
     fig.legend(*axes[0].get_legend_handles_labels(), loc="upper right", ncols=3)
-    fig.suptitle("Keyword-stuffing audit: which scorers are fooled", x=0.01, ha="left", fontweight="bold")
+    fig.suptitle(f"Keyword-stuffing audit: which scorers are fooled (pool of {pool_n} resumes)",
+                 x=0.01, ha="left", fontweight="bold")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
 
-def chart_stability(df: pd.DataFrame, backend: str, path: Path):
+def chart_stability(df: pd.DataFrame, backend: str, path: Path, pool_n: int):
     g = df.groupby(["edit", "scorer"])["abs_rank_change"].mean().reset_index()
     fig, ax = plt.subplots(figsize=(9, 4.2))
     series = {scorer_label(s, backend): g[g.scorer == s].set_index("edit").reindex(ex.EDITS)["abs_rank_change"].tolist()
               for s in SCORER_ORDER[:3]}
     grouped_bars(ax, [e.replace("_", " ") for e in ex.EDITS], series, SERIES[:3])
     ax.set_ylabel("Mean |rank change| (positions)")
-    ax.set_title("Ranking stability: movement after small wording edits to one resume")
+    ax.set_title(f"Ranking stability: movement after small edits to one resume (pool of {pool_n})")
     ax.legend(loc="upper left")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -168,62 +216,85 @@ def md_table(df: pd.DataFrame, floatfmt: str = ".3f") -> str:
     return df.to_markdown(index=False, floatfmt=floatfmt)
 
 
+def ci_cols(df: pd.DataFrame, group: list[str], col: str, n_boot: int) -> pd.DataFrame:
+    rows = []
+    for key, g in df.groupby(group):
+        lo, hi = ex.bootstrap_mean(g[col].astype(float), n_boot)
+        rows.append(dict(zip(group, key if isinstance(key, tuple) else (key,)), **{f"{col}_lo": lo, f"{col}_hi": hi}))
+    return pd.DataFrame(rows)
+
+
 def main():
     import argparse
 
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--kaggle-csv", help="Optional Kaggle resume CSV whose rows join the ranking pool as distractors")
-    ap.add_argument("--kaggle-column", default="Resume_str")
-    ap.add_argument("--kaggle-category", help="Only rows with this Category (e.g. ENGINEERING)")
-    ap.add_argument("--kaggle-limit", type=int, default=200)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--out", default=str(OUT), help="output directory (default: results/)")
+    ap.add_argument("--public-pool", "--kaggle-csv", dest="public_pool",
+                    help="Resume CSV (Kaggle 'Resume Dataset' format) whose rows join every ranking pool as distractors")
+    ap.add_argument("--public-column", default="Resume_str")
+    ap.add_argument("--public-categories", default="ENGINEERING,INFORMATION-TECHNOLOGY,AVIATION,AUTOMOBILE",
+                    help="comma-separated Category values to sample from")
+    ap.add_argument("--public-per-category", type=int, default=50)
+    ap.add_argument("--require-minilm", action="store_true",
+                    help="fail if all-MiniLM-L6-v2 cannot be loaded instead of using the LSA fallback")
+    ap.add_argument("--n-boot", type=int, default=2000)
     args = ap.parse_args()
 
+    import os
+
+    if args.require_minilm:
+        os.environ["ATS_SIM_EMBEDDING_BACKEND"] = "minilm"
+    out = Path(args.out)
     warnings.filterwarnings("ignore", category=FutureWarning)
-    OUT.mkdir(exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     style()
     extra = None
-    if args.kaggle_csv:
+    if args.public_pool:
         from ats_sim.data import load_kaggle_resumes
 
-        extra = load_kaggle_resumes(args.kaggle_csv, args.kaggle_column, args.kaggle_limit, args.kaggle_category)
-        print(f"added {len(extra)} Kaggle resumes to the ranking pool")
-    ctx = ex.build_context(OUT / "_tmp", extra_pool=extra)
+        extra = load_kaggle_resumes(args.public_pool, args.public_column, args.public_per_category,
+                                    args.public_categories.split(","))
+        print(f"added {len(extra)} public resumes to the ranking pool")
+    ctx = ex.build_context(ROOT / "results" / "_tmp", extra_pool=extra)
     backend = ctx.embedding_backend
     print(f"embedding backend: {backend}")
 
     print("1/4 layout robustness")
     counts, downstream = ex.layout_robustness(ctx)
-    lay = ex.summarize_layout(counts, downstream)
-    counts.to_csv(OUT / "layout_field_counts.csv", index=False)
-    downstream.to_csv(OUT / "layout_downstream.csv", index=False)
-    lay["overall"].to_csv(OUT / "layout_summary.csv", index=False)
-    lay["per_field"].to_csv(OUT / "layout_per_field.csv")
-    lay["effects"].to_csv(OUT / "layout_effects.csv", index=False)
-    lay["transitions"].to_csv(OUT / "layout_knockout_transitions.csv", index=False)
-    chart_layout(lay["overall"], OUT / "layout_f1.png")
-    chart_field_heatmap(lay["per_field"], "pdf", OUT / "layout_fields_pdf.png")
-    chart_field_heatmap(lay["per_field"], "docx", OUT / "layout_fields_docx.png")
+    lay = ex.summarize_layout(counts, downstream, args.n_boot)
+    counts.to_csv(out / "layout_field_counts.csv", index=False)
+    downstream.to_csv(out / "layout_downstream.csv", index=False)
+    lay["overall"].to_csv(out / "layout_summary.csv", index=False)
+    lay["per_field"].to_csv(out / "layout_per_field.csv")
+    lay["effects"].to_csv(out / "layout_effects.csv", index=False)
+    lay["transitions"].to_csv(out / "layout_knockout_transitions.csv", index=False)
+    chart_layout(lay["overall"], out / "layout_f1.png")
+    chart_layout_parsers(lay["overall"], out / "layout_parsers.png")
+    for template in TEMPLATES:
+        for fmt in ("pdf", "docx"):
+            chart_field_heatmap(lay["per_field"], template, fmt, out / f"layout_fields_{template}_{fmt}.png")
 
     print("2/4 synonym sensitivity")
     syn = ex.synonym_sensitivity(ctx)
-    syn.to_csv(OUT / "synonyms.csv", index=False)
-    chart_synonyms(syn, backend, OUT / "synonyms.png")
+    syn.to_csv(out / "synonyms.csv", index=False)
+    chart_synonyms(syn, backend, out / "synonyms.png")
 
     print("3/4 keyword stuffing")
     stuff = ex.keyword_stuffing(ctx)
-    stuff.to_csv(OUT / "stuffing.csv", index=False)
-    chart_stuffing(stuff, backend, OUT / "stuffing.png")
+    stuff.to_csv(out / "stuffing.csv", index=False)
+    chart_stuffing(stuff, backend, out / "stuffing.png", len(ctx.base_text))
 
     print("4/4 ranking stability")
     stab = ex.ranking_stability(ctx)
-    stab.to_csv(OUT / "stability.csv", index=False)
-    chart_stability(stab, backend, OUT / "stability.png")
+    stab.to_csv(out / "stability.csv", index=False)
+    chart_stability(stab, backend, out / "stability.png", len(ctx.base_text))
 
     # ----------------------------------------------------------- summary
     syn_s = (syn.groupby("scorer").agg(cases=("delta", "size"), mean_rel_delta=("rel_delta", "mean"),
                                        mean_rank_change=("rank_change", "mean"),
                                        share_dropped=("rank_change", lambda s: (s > 0).mean()))
              .reindex([s for s in SCORER_ORDER if s in set(syn.scorer)]).reset_index())
+    syn_s = syn_s.merge(ci_cols(syn, ["scorer"], "rel_delta", args.n_boot), on="scorer")
     out_k = stuff[stuff.was_outside_top_k]
     stuff_s = (out_k.groupby(["attack", "defense", "scorer"])
                .agg(candidates=("entered_top_k", "size"), entered_top_k=("entered_top_k", "mean"),
@@ -231,33 +302,48 @@ def main():
                     median_score_vs_best=("score_vs_best_genuine", "median"),
                     mean_rank_gain=("rank_gain", "mean"))
                .reset_index())
+    stuff_s = stuff_s.merge(ci_cols(out_k, ["attack", "defense", "scorer"], "beats_best_genuine", args.n_boot),
+                            on=["attack", "defense", "scorer"])
     stab_s = (stab.groupby(["scorer", "edit"]).agg(mean_abs_rank_change=("abs_rank_change", "mean"),
                                                    max_abs_rank_change=("abs_rank_change", "max"),
-                                                   top_k_flips=("top_k_flip", "sum")).reset_index())
-    syn_s.to_csv(OUT / "synonyms_summary.csv", index=False)
-    stuff_s.to_csv(OUT / "stuffing_summary.csv", index=False)
-    stab_s.to_csv(OUT / "stability_summary.csv", index=False)
+                                                   top_k_flips=("top_k_flip", "sum"),
+                                                   cases=("top_k_flip", "size")).reset_index())
+    syn_s.to_csv(out / "synonyms_summary.csv", index=False)
+    stuff_s.to_csv(out / "stuffing_summary.csv", index=False)
+    stab_s.to_csv(out / "stability_summary.csv", index=False)
 
-    n_resumes = counts.groupby(["persona", "format", "layout"]).ngroups
+    ov = lay["overall"]
+    n_resumes = counts.groupby(["persona", "template", "format", "layout"]).ngroups
     summary = {
         "embedding_backend": backend,
         "n_personas": len(ctx.personas),
         "pool_size": len(ctx.base_text),
         "n_layout_resumes": n_resumes,
-        "layout_f1": {f"{r.format}/{r.layout}": round(r.f1, 4) for r in lay["overall"].itertuples()},
-        "layout_f1_drop_pct": {f"{r.format}/{r.layout}": round(r.f1_drop_vs_single_pct, 1)
-                               for r in lay["overall"].itertuples()},
+        "layout": {f"{r.template}/{r.parser}/{r.format}/{r.layout}": {
+            "f1": round(r.f1, 4), "f1_ci": [round(r.f1_lo, 4), round(r.f1_hi, 4)],
+            "drop_pct": round(r.f1_drop_vs_single_pct, 1), "drop_ci": [round(r.drop_lo, 1), round(r.drop_hi, 1)],
+        } for r in ov.itertuples()},
     }
-    (OUT / "summary.json").write_text(json.dumps(summary, indent=2))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+
+    def per_field_md(template):
+        return (lay["per_field"].loc[template].reset_index()
+                .rename(columns={"level_0": "format", "level_1": "field"}).to_markdown(index=False, floatfmt=".2f"))
 
     md = [
         "# Experiment results",
         "",
-        f"Generated by `scripts/run_experiments.py`. Embedding backend: **{backend}**.",
+        f"Generated by `scripts/run_experiments.py`. Embedding backend: **{backend}**. "
+        f"Ranking pool: {len(ctx.base_text)} resumes. Intervals are 95% bootstrap CIs ({args.n_boot} resamples).",
         "",
         "## 1. Layout robustness (field extraction F1)",
         "",
-        md_table(lay["overall"]),
+        f"{n_resumes} rendered resumes (16 personas x 2 templates x 2 formats x 4 layouts), each read by both "
+        "parser modes. `drop` is relative to single column in the same template, parser and format; its CI is "
+        "a paired bootstrap over personas.",
+        "",
+        md_table(ov[CELL_COLS + ["precision", "recall", "f1", "f1_lo", "f1_hi",
+                                 "f1_drop_vs_single_pct", "drop_lo", "drop_hi"]]),
         "",
         "Downstream effect vs the single-column version of the same resume. Each row covers "
         "16 personas x 3 postings. Under the review policy a missing field sends the candidate to a human; "
@@ -269,21 +355,26 @@ def main():
         "",
         md_table(lay["transitions"]),
         "",
-        "Per-field F1:",
+        "Per-field F1, naive parser, classic template:",
         "",
-        lay["per_field"].reset_index().rename(columns={"level_0": "format", "level_1": "field"})
-        .to_markdown(index=False, floatfmt=".2f"),
+        per_field_md("classic"),
+        "",
+        "Per-field F1, naive parser, modern (held-out) template:",
+        "",
+        per_field_md("modern"),
         "",
         "## 2. Synonym sensitivity",
         "",
-        "`rank_change` > 0 means the resume dropped when it used the alternative wording.",
+        "`rank_change` > 0 means the resume dropped when it used the alternative wording. "
+        "`rel_delta_lo/hi`: 95% CI for the mean relative score change.",
         "",
         md_table(syn_s),
         "",
         "## 3. Keyword stuffing (candidates that started outside the top 5)",
         "",
         "`entered_top_k`: share pushed into the top 5. `beats_best_genuine`: share whose stuffed score beats "
-        "every unstuffed resume in the pool. `median_score_vs_best`: stuffed score / best unstuffed score.",
+        "every unstuffed resume in the pool (with 95% CI). `median_score_vs_best`: stuffed score / best "
+        "unstuffed score.",
         "",
         md_table(stuff_s),
         "",
@@ -292,8 +383,8 @@ def main():
         md_table(stab_s),
         "",
     ]
-    (OUT / "RESULTS.md").write_text("\n".join(md))
-    print(json.dumps(summary, indent=2))
+    (out / "RESULTS.md").write_text("\n".join(md))
+    print(json.dumps({k: v for k, v in summary.items() if k != "layout"}, indent=2))
 
 
 if __name__ == "__main__":

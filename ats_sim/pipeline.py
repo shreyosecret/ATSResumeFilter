@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .data import load_personas, resume_path
+from .data import RESUME_DIR, load_personas, resume_path
 from .jd import analyze_job
 from .knockout import REJECT, KnockoutResult, apply_knockouts
 from .models import JobAnalysis, JobPosting, ParsedResume
@@ -25,12 +25,13 @@ class Candidate:
 
 
 def candidates_from_personas(layout: str = "single", fmt: str = "pdf", personas: list[dict] | None = None,
-                             root: Path | None = None) -> list[Candidate]:
+                             root: Path | None = None, template: str = "classic",
+                             layout_aware: bool = False) -> list[Candidate]:
     personas = personas or load_personas()
     out = []
     for p in personas:
-        path = resume_path(p["id"], layout, fmt, root) if root else resume_path(p["id"], layout, fmt)
-        out.append(Candidate(p["id"], parse_resume(path), p.get("application", {})))
+        path = resume_path(p["id"], layout, fmt, root or RESUME_DIR, template)
+        out.append(Candidate(p["id"], parse_resume(path, layout_aware=layout_aware), p.get("application", {})))
     return out
 
 

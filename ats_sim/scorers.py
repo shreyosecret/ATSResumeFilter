@@ -121,12 +121,21 @@ class TfidfScorer:
         return ScoreDetail(self.score(text, analysis), matched=top)
 
 
-def chunk_text(text: str, min_words: int = 4) -> list[str]:
-    """Split into lines and merge short fragments so each chunk has some context."""
+def chunk_text(text: str, min_words: int = 4, max_words: int = 40) -> list[str]:
+    """Split into lines, merge short fragments so each chunk has some context,
+    and window long lines (plain-text resumes are often one huge line) so no
+    chunk exceeds the embedding model's input limit."""
     chunks, buf = [], ""
     for line in text.splitlines():
         line = re.sub(r"^\W+", "", line).strip()
         if not line:
+            continue
+        words = line.split()
+        if len(words) > max_words:
+            if buf:
+                chunks.append(buf)
+                buf = ""
+            chunks += [" ".join(words[i:i + max_words]) for i in range(0, len(words), max_words)]
             continue
         buf = f"{buf} {line}".strip()
         if len(buf.split()) >= min_words:
@@ -151,7 +160,7 @@ class EmbeddingScorer:
     SVD fit on the corpus). The fallback is NOT a semantic model. It is there
     so the pipeline still runs, and `self.backend` records which one was used
     so results are never mislabeled. Set ATS_SIM_EMBEDDING_BACKEND=lsa to
-    force the fallback.
+    force the fallback, or =minilm to make a failed model load an error.
     """
 
     name = "embedding"
@@ -162,6 +171,8 @@ class EmbeddingScorer:
         self.backend = None
         self._cache: dict[str, np.ndarray] = {}
         forced = os.environ.get("ATS_SIM_EMBEDDING_BACKEND", "").lower()
+        if forced == "minilm":
+            allow_fallback = False
         if forced != "lsa":
             try:
                 from sentence_transformers import SentenceTransformer

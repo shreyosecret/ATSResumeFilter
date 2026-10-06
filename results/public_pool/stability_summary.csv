@@ -1,0 +1,16 @@
+scorer,edit,mean_abs_rank_change,max_abs_rank_change,top_k_flips,cases
+embedding,add_teamwork_bullet,12.145833333333334,30,2,48
+embedding,all_edits,12.9375,34,2,48
+embedding,date_format,2.5416666666666665,19,2,48
+embedding,reorder_bullets,0.0,0,0,48
+embedding,verb_swap,2.6458333333333335,10,1,48
+keyword,add_teamwork_bullet,0.0,0,0,48
+keyword,all_edits,0.0,0,0,48
+keyword,date_format,0.0,0,0,48
+keyword,reorder_bullets,0.0,0,0,48
+keyword,verb_swap,0.0,0,0,48
+tfidf,add_teamwork_bullet,3.8958333333333335,19,1,48
+tfidf,all_edits,2.9375,20,1,48
+tfidf,date_format,1.25,7,1,48
+tfidf,reorder_bullets,0.4375,3,0,48
+tfidf,verb_swap,1.0625,5,1,48

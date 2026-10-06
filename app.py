@@ -14,7 +14,7 @@ from ats_sim.data import RESUME_DIR, load_personas, resume_path
 from ats_sim.jd import analyze_job, load_jobs
 from ats_sim.pipeline import Candidate, candidates_from_personas, screen
 from ats_sim.parser import parse_resume
-from ats_sim.render import FORMATS, LAYOUTS
+from ats_sim.render import FORMATS, LAYOUTS, TEMPLATES
 from ats_sim.scorers import EmbeddingScorer, KeywordScorer, TfidfScorer
 from ats_sim.search import QueryError, search
 
@@ -31,7 +31,7 @@ st.caption(
 
 @st.cache_resource(show_spinner="Rendering resumes...")
 def ensure_corpus() -> bool:
-    if not resume_path("p01", "single", "pdf").exists():
+    if not resume_path("p01", "single", "pdf", template="modern").exists():
         from scripts.build_corpus import main as build
 
         build(RESUME_DIR)
@@ -39,8 +39,8 @@ def ensure_corpus() -> bool:
 
 
 @st.cache_resource(show_spinner="Parsing resumes...")
-def load_candidates(layout: str, fmt: str) -> list[Candidate]:
-    return candidates_from_personas(layout, fmt)
+def load_candidates(layout: str, fmt: str, template: str, layout_aware: bool) -> list[Candidate]:
+    return candidates_from_personas(layout, fmt, template=template, layout_aware=layout_aware)
 
 
 @st.cache_resource(show_spinner="Loading scorers (first run downloads all-MiniLM-L6-v2)...")
@@ -58,6 +58,10 @@ with st.sidebar:
     job_id = st.selectbox("Job posting", list(jobs), format_func=lambda j: jobs[j].title)
     layout = st.selectbox("Resume layout (all candidates)", LAYOUTS, help="Same content, different visual layout.")
     fmt = st.selectbox("File format", FORMATS)
+    template = st.selectbox("Template", TEMPLATES,
+                            help="classic: the template the parser was developed on. modern: held out.")
+    layout_aware = st.toggle("Layout-aware parser", value=False,
+                             help="Detect tables, boxes and columns before reading. Field rules are unchanged.")
     missing_policy = st.radio("If a knockout field can't be parsed", ["review", "reject", "pass"],
                               help="Real systems differ; 'review' sends the candidate to a human.")
     primary = st.selectbox("Rank by", ["keyword", "tfidf", "embedding"], index=1)
@@ -71,11 +75,12 @@ if emb.backend != "all-MiniLM-L6-v2":
     st.warning(f"Embedding scorer is using **{emb.backend}** because all-MiniLM-L6-v2 could not be loaded. "
                "Embedding scores here are not sentence-embedding results.")
 
-candidates = list(load_candidates(layout, fmt))
+candidates = list(load_candidates(layout, fmt, template, layout_aware))
 if upload is not None:
     with tempfile.NamedTemporaryFile(suffix=Path(upload.name).suffix, delete=False) as fh:
         fh.write(upload.getvalue())
-    candidates.append(Candidate("upload", parse_resume(fh.name), {}))
+    candidates.append(Candidate("upload", parse_resume(fh.name, layout_aware=layout_aware), {}))
+    Path(fh.name).unlink(missing_ok=True)
 by_id = {c.id: c for c in candidates}
 
 tab_screen, tab_search, tab_job, tab_exp = st.tabs(["Screening", "Recruiter search", "Job analysis", "Experiments"])
@@ -139,7 +144,9 @@ with tab_exp:
     else:
         for png, caption in [
             ("layout_f1.png", "1. Layout robustness"),
-            ("layout_fields_pdf.png", "Per-field F1 (PDF)"),
+            ("layout_parsers.png", "Layout x template x parser"),
+            ("layout_fields_classic_pdf.png", "Per-field F1 (classic template, PDF)"),
+            ("layout_fields_modern_pdf.png", "Per-field F1 (modern template, PDF)"),
             ("synonyms.png", "2. Synonym sensitivity"),
             ("stuffing.png", "3. Keyword stuffing audit"),
             ("stability.png", "4. Ranking stability"),

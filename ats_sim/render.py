@@ -11,6 +11,15 @@ Layouts:
   table      the whole resume in a two-column table: section label | content
   textbox    single body column with contact details and skills placed in
              floating text boxes
+
+Templates (the wording and formatting inside a layout):
+  classic    the template the parser was developed against: ALL-CAPS headings,
+             "B.S. in Field", "Title | Company | dates" on one line
+  modern     a held-out template written after the parser was frozen and never
+             used to tune it: title-case headings (one outside the parser's
+             heading list), a profile summary, icon glyphs in the contact line,
+             "Bachelor of Science, Field", right-aligned dates, skills grouped
+             under category labels, experience before education
 """
 from __future__ import annotations
 
@@ -21,6 +30,7 @@ from pathlib import Path
 
 LAYOUTS = ("single", "two_column", "table", "textbox")
 FORMATS = ("pdf", "docx")
+TEMPLATES = ("classic", "modern")
 REFERENCE_DATE = "2026-10"  # "today" for the synthetic data set; later grad dates are "Expected"
 
 _MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -31,6 +41,7 @@ class RenderOptions:
     date_style: str = "short"  # "short" -> Jun 2025, "numeric" -> 06/2025
     extra_sections: list[tuple[str, str]] = field(default_factory=list)  # visible (heading, body)
     hidden_text: str | None = None  # white text, invisible to a human reader
+    template: str = "classic"
 
 
 def fmt_date(iso: str, style: str = "short") -> str:
@@ -43,9 +54,23 @@ def fmt_date(iso: str, style: str = "short") -> str:
 
 
 # --------------------------------------------------------------- content model
+#
+# A section is a list of (kind, text) lines. Kinds:
+#   text, bold, bullet   plain lines
+#   split                "left\tright": left text with a right-aligned part (dates)
+#   icon                 "glyph\tvalue": a contact line with a leading icon
 
-def blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
-    """Lines per section as (kind, text); kind is 'text', 'bold' or 'bullet'."""
+DEGREE_LONG = {"BS": "Bachelor of Science", "BA": "Bachelor of Arts", "MS": "Master of Science",
+               "PHD": "Doctor of Philosophy"}
+SKILL_GROUP_LABELS = {
+    "programming": "Languages", "software": "Tools", "data": "Data & ML", "bioprocess": "Bioprocess",
+    "quality": "Quality", "mechanical": "Design & Manufacturing", "marketing": "Marketing", "general": "Other",
+}
+# (ZapfDingbats character for PDF, Unicode character for DOCX)
+CONTACT_ICONS = {"email": (")", "\u2709"), "phone": ("%", "\u260e"), "location": ("u", "\u25c6")}
+
+
+def _classic_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
     e = p["education"]
     grad = fmt_date(e["grad_date"], opts.date_style)
     grad = f"Expected {grad}" if e["grad_date"] > REFERENCE_DATE else grad
@@ -68,24 +93,95 @@ def blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
     for pr in p.get("projects", []):
         out["projects"].append(("bold", pr["name"]))
         out["projects"] += [("bullet", b) for b in pr["bullets"]]
+    return out
+
+
+def _skill_groups(skills: list[str]) -> list[tuple[str, list[str]]]:
+    from .skills import default_taxonomy
+
+    tax = default_taxonomy()
+    groups: dict[str, list[str]] = {}
+    for s in skills:
+        canon = tax.canonical(s)
+        cat = tax.get(canon).category if canon else "general"
+        groups.setdefault(SKILL_GROUP_LABELS.get(cat, "Other"), []).append(s)
+    return list(groups.items())
+
+
+def _modern_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
+    e = p["education"]
+    grad = fmt_date(e["grad_date"], opts.date_style)
+    grad = f"Expected {grad}" if e["grad_date"] > REFERENCE_DATE else grad
+    top = p["skills"][:3]
+    summary = (f"{e['field']} {'student' if e['grad_date'] > REFERENCE_DATE else 'graduate'} with hands-on "
+               f"experience in {', '.join(top[:-1])} and {top[-1]}.")
+    out: dict[str, list[tuple[str, str]]] = {
+        "contact": [("icon", f"{k}\t{p[k]}") for k in ("email", "phone", "location")],
+        "summary": [("text", summary)],
+        "experience": [],
+        "education": [
+            ("split", f"{e['school']}\t{e['location']}"),
+            ("split", f"{DEGREE_LONG[e['degree_level']]}, {e['field']}\t{grad}"),
+        ],
+        "projects": [],
+        "skills": [("text", f"{label}: {', '.join(items)}") for label, items in _skill_groups(p["skills"])],
+    }
+    if e.get("gpa") is not None:
+        out["education"].append(("text", f"Cumulative GPA {e['gpa']:.2f}/4.00"))
+    for x in p["experience"]:
+        dates = f"{fmt_date(x['start'], opts.date_style)} – {fmt_date(x['end'], opts.date_style)}"
+        out["experience"].append(("split", f"{x['title']}, {x['company']}\t{dates}"))
+        out["experience"] += [("bullet", b) for b in x["bullets"]]
+    for pr in p.get("projects", []):
+        out["projects"].append(("bold", pr["name"]))
+        out["projects"] += [("bullet", b) for b in pr["bullets"]]
+    return out
+
+
+def blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
+    """Lines per section as (kind, text), in the template's section order."""
+    if opts.template == "classic":
+        out = _classic_blocks(p, opts)
+    elif opts.template == "modern":
+        out = _modern_blocks(p, opts)
+    else:
+        raise ValueError(f"unknown template {opts.template!r}")
     for heading, body in opts.extra_sections:
         out[heading.lower()] = [("text", body)]
     return out
 
 
 HEADINGS = {
-    "contact": "CONTACT", "education": "EDUCATION", "experience": "EXPERIENCE",
-    "projects": "PROJECTS", "skills": "SKILLS",
+    "classic": {"contact": "CONTACT", "education": "EDUCATION", "experience": "EXPERIENCE",
+                "projects": "PROJECTS", "skills": "SKILLS"},
+    # "Skills & Certifications" is deliberately one the naive parser does not know.
+    "modern": {"contact": "Get in Touch", "summary": "Profile", "education": "Education",
+               "experience": "Work History", "projects": "Selected Projects", "skills": "Skills & Certifications"},
 }
+SIDEBAR = ("contact", "education", "skills")
 
 
-def heading_for(key: str) -> str:
-    return HEADINGS.get(key, key.upper())
+def heading_for(key: str, template: str = "classic") -> str:
+    return HEADINGS[template].get(key, key.upper() if template == "classic" else key.title())
 
 
 def section_order(b: dict) -> list[str]:
-    base = ["education", "experience", "projects", "skills"]
-    return base + [k for k in b if k not in base and k != "contact"]
+    """Every section except contact, in the order the template built them."""
+    return [k for k in b if k != "contact"]
+
+
+def line_text(kind: str, text: str, unicode_icons: bool = True) -> str:
+    if kind == "split":
+        return text.replace("\t", "  ")
+    if kind == "icon":
+        key, value = text.split("\t")
+        return f"{CONTACT_ICONS[key][1]} {value}" if unicode_icons else value
+    return text
+
+
+def contact_line(b: dict) -> str:
+    return "  ·  ".join(line_text(k, t) for k, t in b["contact"]) if b["contact"][0][0] == "icon" \
+        else " | ".join(t for _, t in b["contact"])
 
 
 # ------------------------------------------------------------------- PDF
@@ -101,26 +197,51 @@ def _pdf_styles():
         "text": ParagraphStyle("text", parent=ss["Normal"], fontSize=9.5, leading=12),
         "bold": ParagraphStyle("bold", parent=ss["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=12, spaceBefore=3),
         "bullet": ParagraphStyle("bullet", parent=ss["Normal"], fontSize=9.5, leading=12, leftIndent=10, bulletIndent=2),
+        "right": ParagraphStyle("right", parent=ss["Normal"], fontSize=9.5, leading=12, alignment=2, spaceBefore=3),
     }
 
 
-def _flow(lines, st):
-    from reportlab.platypus import Paragraph
+def _flow(lines, st, width: float):
+    from reportlab.platypus import Paragraph, Table, TableStyle
 
     out = []
     for kind, text in lines:
-        t = html.escape(text)
         if kind == "bullet":
-            out.append(Paragraph(t, st["bullet"], bulletText="•"))
+            out.append(Paragraph(html.escape(text), st["bullet"], bulletText="•"))
+        elif kind == "split":
+            left, right = (html.escape(t) for t in text.split("\t"))
+            t = Table([[Paragraph(left, st["bold"]), Paragraph(right, st["right"])]],
+                      colWidths=[width * 0.66, width * 0.34])
+            t.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                                   ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                                   ("VALIGN", (0, 0), (-1, -1), "BOTTOM")]))
+            out.append(t)
+        elif kind == "icon":
+            key, value = text.split("\t")
+            glyph = CONTACT_ICONS[key][0]
+            out.append(Paragraph(f'<font name="ZapfDingbats">{html.escape(glyph)}</font> {html.escape(value)}',
+                                 st["text"]))
         else:
-            out.append(Paragraph(t, st[kind]))
+            out.append(Paragraph(html.escape(text), st[kind]))
     return out
 
 
-def _section_flow(key, b, st):
+def _contact_flow(b, st):
     from reportlab.platypus import Paragraph
 
-    return [Paragraph(heading_for(key), st["heading"]), *_flow(b[key], st)]
+    if b["contact"][0][0] != "icon":
+        return Paragraph(html.escape(contact_line(b)), st["contact"])
+    parts = []
+    for _, text in b["contact"]:
+        key, value = text.split("\t")
+        parts.append(f'<font name="ZapfDingbats">{html.escape(CONTACT_ICONS[key][0])}</font> {html.escape(value)}')
+    return Paragraph("&nbsp;&nbsp;·&nbsp;&nbsp;".join(parts), st["contact"])
+
+
+def _section_flow(key, b, st, width, template):
+    from reportlab.platypus import Paragraph
+
+    return [Paragraph(html.escape(heading_for(key, template)), st["heading"]), *_flow(b[key], st, width)]
 
 
 def _hidden_painter(opts: RenderOptions):
@@ -158,21 +279,23 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
     )
 
     opts = opts or RenderOptions()
+    tpl = opts.template
     st = _pdf_styles()
     b = blocks(p, opts)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     W, H = letter
     margin = 0.6 * inch
+    body_w = W - 2 * margin
     hidden = _hidden_painter(opts)
-    contact_line = " | ".join(t for _, t in b["contact"])
+    name = Paragraph(html.escape(p["name"]), st["name"])
 
     if layout == "single":
         doc = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=margin, rightMargin=margin,
                                 topMargin=margin, bottomMargin=margin)
-        story = [Paragraph(html.escape(p["name"]), st["name"]), Paragraph(html.escape(contact_line), st["contact"])]
+        story = [name, _contact_flow(b, st)]
         for key in section_order(b):
-            story += _section_flow(key, b, st)
+            story += _section_flow(key, b, st, body_w, tpl)
         doc.build(story, onFirstPage=hidden, onLaterPages=hidden)
 
     elif layout == "two_column":
@@ -182,29 +305,31 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
         body_top = H - margin - header_h
         side_w = 2.2 * inch
         gap = 0.25 * inch
+        main_w = body_w - side_w - gap
         frames = [
-            Frame(margin, body_top, W - 2 * margin, header_h, id="header", showBoundary=0),
+            Frame(margin, body_top, body_w, header_h, id="header", showBoundary=0),
             Frame(margin, margin, side_w, body_top - margin, id="side"),
-            Frame(margin + side_w + gap, margin, W - 2 * margin - side_w - gap, body_top - margin, id="main"),
+            Frame(margin + side_w + gap, margin, main_w, body_top - margin, id="main"),
         ]
         doc.addPageTemplates([PageTemplate(id="two", frames=frames, onPage=hidden)])
-        story = [Paragraph(html.escape(p["name"]), st["name"]), FrameBreak()]
-        for key in ("contact", "education", "skills"):
-            story += _section_flow(key, b, st)
+        story = [name, FrameBreak()]
+        for key in SIDEBAR:
+            story += _section_flow(key, b, st, side_w - 12, tpl)
         story.append(FrameBreak())
-        for key in [k for k in section_order(b) if k not in ("education", "skills")]:
-            story += _section_flow(key, b, st)
+        for key in [k for k in section_order(b) if k not in SIDEBAR]:
+            story += _section_flow(key, b, st, main_w - 12, tpl)
         doc.build(story)
 
     elif layout == "table":
         doc = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=margin, rightMargin=margin,
                                 topMargin=margin, bottomMargin=margin)
         label_w = 1.3 * inch
-        rows = [[Paragraph(html.escape(p["name"]), st["name"]), ""],
-                [Paragraph("CONTACT", st["bold"]), Paragraph(html.escape(contact_line), st["text"])]]
+        content_w = body_w - label_w - 12
+        rows = [[name, ""],
+                [Paragraph(html.escape(heading_for("contact", tpl)), st["bold"]), _contact_flow(b, st)]]
         for key in section_order(b):
-            rows.append([Paragraph(heading_for(key), st["bold"]), _flow(b[key], st)])
-        t = Table(rows, colWidths=[label_w, W - 2 * margin - label_w])
+            rows.append([Paragraph(html.escape(heading_for(key, tpl)), st["bold"]), _flow(b[key], st, content_w)])
+        t = Table(rows, colWidths=[label_w, body_w - label_w])
         t.setStyle(TableStyle([
             ("SPAN", (0, 0), (1, 0)),
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -219,13 +344,13 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
                               topMargin=margin, bottomMargin=margin)
         box_w = 2.3 * inch
         gap = 0.25 * inch
-        main_w = W - 2 * margin - box_w - gap
+        main_w = body_w - box_w - gap
         box_x = margin + main_w + gap
 
-        def draw_box(canvas, x, top, title, lines):
+        def draw_box(canvas, x, top, key):
             from reportlab.platypus import Frame as F
 
-            items = [Paragraph(title, st["bold"]), *_flow(lines, st)]
+            items = [Paragraph(html.escape(heading_for(key, tpl)), st["bold"]), *_flow(b[key], st, box_w - 12)]
             h = sum(i.wrap(box_w - 12, H)[1] + i.getSpaceBefore() for i in items) + 14
             canvas.setStrokeColor(colors.grey)
             canvas.setFillColor(colors.HexColor("#F2F4F7"))
@@ -234,15 +359,15 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
 
         def on_page(canvas, doc_):
             if canvas.getPageNumber() == 1:
-                draw_box(canvas, box_x, H - margin, "CONTACT", b["contact"])
-                draw_box(canvas, box_x, H - margin - 2.0 * inch, "SKILLS", b["skills"])
+                draw_box(canvas, box_x, H - margin, "contact")
+                draw_box(canvas, box_x, H - margin - 2.0 * inch, "skills")
             hidden(canvas, doc_)
 
         frame = Frame(margin, margin, main_w, H - 2 * margin, id="main")
         doc.addPageTemplates([PageTemplate(id="tb", frames=[frame], onPage=on_page)])
-        story = [Paragraph(html.escape(p["name"]), st["name"])]
+        story = [name]
         for key in [k for k in section_order(b) if k != "skills"]:
-            story += _section_flow(key, b, st)
+            story += _section_flow(key, b, st, main_w - 12, tpl)
         doc.build(story)
     else:
         raise ValueError(f"unknown layout {layout!r}")
@@ -277,25 +402,32 @@ def _add_textbox(paragraph, lines: list[str], x_pt: float, y_pt: float, w_pt: fl
     paragraph._p.append(parse_xml(xml))
 
 
-def _docx_lines(container, lines):
-    from docx.shared import Pt
+def _docx_lines(container, lines, width_in: float = 7.3):
+    from docx.enum.text import WD_TAB_ALIGNMENT
+    from docx.shared import Inches, Pt
 
     for kind, text in lines:
         if kind == "bullet":
             para = container.add_paragraph(f"• {text}")
             para.paragraph_format.left_indent = Pt(10)
+        elif kind == "split":
+            left, right = text.split("\t")
+            para = container.add_paragraph()
+            para.paragraph_format.tab_stops.add_tab_stop(Inches(width_in), WD_TAB_ALIGNMENT.RIGHT)
+            para.add_run(left).bold = True
+            para.add_run("\t" + right)
         else:
             para = container.add_paragraph()
-            run = para.add_run(text)
+            run = para.add_run(line_text(kind, text))
             run.bold = kind == "bold"
         para.paragraph_format.space_after = Pt(1)
 
 
-def _docx_heading(container, key):
+def _docx_heading(container, key, template):
     from docx.shared import Pt
 
     para = container.add_paragraph()
-    run = para.add_run(heading_for(key))
+    run = para.add_run(heading_for(key, template))
     run.bold = True
     run.font.size = Pt(12)
     para.paragraph_format.space_before = Pt(6)
@@ -310,6 +442,7 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
     from docx.shared import Inches, Pt, RGBColor
 
     opts = opts or RenderOptions()
+    tpl = opts.template
     b = blocks(p, opts)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -317,7 +450,6 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
     for s in d.sections:
         s.left_margin = s.right_margin = s.top_margin = s.bottom_margin = Inches(0.6)
     d.styles["Normal"].font.size = Pt(10)
-    contact_line = " | ".join(t for _, t in b["contact"])
 
     name_para = d.add_paragraph()
     name_run = name_para.add_run(p["name"])
@@ -325,9 +457,9 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
     name_run.font.size = Pt(18)
 
     if layout == "single":
-        d.add_paragraph(contact_line)
+        d.add_paragraph(contact_line(b))
         for key in section_order(b):
-            _docx_heading(d, key)
+            _docx_heading(d, key, tpl)
             _docx_lines(d, b[key])
 
     elif layout == "two_column":
@@ -337,12 +469,12 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
         for col, w in zip(t.columns, (Inches(2.3), Inches(5.0))):
             col.width = w
         left.width, right.width = Inches(2.3), Inches(5.0)
-        for cell, keys in ((left, ("contact", "education", "skills")),
-                           (right, [k for k in section_order(b) if k not in ("education", "skills")])):
+        for cell, keys, w in ((left, SIDEBAR, 2.1),
+                              (right, [k for k in section_order(b) if k not in SIDEBAR], 4.8)):
             cell._tc.remove(_first_para(cell)._p)
             for key in keys:
-                _docx_heading(cell, key)
-                _docx_lines(cell, b[key])
+                _docx_heading(cell, key, tpl)
+                _docx_lines(cell, b[key], w)
 
     elif layout == "table":
         t = d.add_table(rows=0, cols=2)
@@ -350,24 +482,26 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
         t.autofit = False
         for col, w in zip(t.columns, (Inches(1.4), Inches(5.9))):
             col.width = w
-        rows = [("contact", [("text", contact_line)])] + [(k, b[k]) for k in section_order(b)]
+        rows = [("contact", [("text", contact_line(b))])] + [(k, b[k]) for k in section_order(b)]
         for key, lines in rows:
             label, content = t.add_row().cells
             label.width, content.width = Inches(1.4), Inches(5.9)
-            _first_para(label).add_run(heading_for(key)).bold = True
+            _first_para(label).add_run(heading_for(key, tpl)).bold = True
             content._tc.remove(_first_para(content)._p)
-            _docx_lines(content, lines)
+            _docx_lines(content, lines, 5.7)
 
     elif layout == "textbox":
-        _add_textbox(name_para, ["CONTACT", *[t for _, t in b["contact"]]], 330, 0, 190, 90, 1)
+        contact = [heading_for("contact", tpl), *[line_text(k, t) for k, t in b["contact"]]]
+        _add_textbox(name_para, contact, 330, 0, 190, 90, 1)
         d.add_paragraph()
         for key in [k for k in section_order(b) if k != "skills"]:
             if key == "experience":
                 anchor = d.add_paragraph()
-                _add_textbox(anchor, ["SKILLS", b["skills"][0][1]], 0, 0, 520, 60, 2)
-                for _ in range(3):
+                skills = [heading_for("skills", tpl), *[t for _, t in b["skills"]]]
+                _add_textbox(anchor, skills, 0, 0, 520, 30 + 14 * len(b["skills"]), 2)
+                for _ in range(2 + len(b["skills"])):
                     d.add_paragraph()
-            _docx_heading(d, key)
+            _docx_heading(d, key, tpl)
             _docx_lines(d, b[key])
     else:
         raise ValueError(f"unknown layout {layout!r}")
@@ -392,10 +526,10 @@ def plain_text(p: dict, opts: RenderOptions | None = None) -> str:
     """Single-column text with no file round trip (used for fast scorer-only checks)."""
     opts = opts or RenderOptions()
     b = blocks(p, opts)
-    lines = [p["name"], " | ".join(t for _, t in b["contact"])]
+    lines = [p["name"], contact_line(b)]
     for key in section_order(b):
-        lines.append(heading_for(key))
-        lines += [("• " + t) if k == "bullet" else t for k, t in b[key]]
+        lines.append(heading_for(key, opts.template))
+        lines += [("• " + t) if k == "bullet" else line_text(k, t) for k, t in b[key]]
     if opts.hidden_text:
         lines.append(opts.hidden_text)
     return "\n".join(lines)

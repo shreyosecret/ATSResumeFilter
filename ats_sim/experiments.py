@@ -19,7 +19,7 @@ from .evaluate import ALL_FIELDS, Counts, micro, score_resume
 from .jd import analyze_job, load_jobs
 from .knockout import apply_knockouts
 from .parser import parse_resume
-from .render import FORMATS, LAYOUTS, RenderOptions, clone, render
+from .render import FORMATS, LAYOUTS, TEMPLATES, RenderOptions, clone, render
 from .scorers import EmbeddingScorer, KeywordScorer, TfidfScorer
 
 TOP_K = 5
@@ -82,54 +82,105 @@ def _pool_scores(ctx: Context, analysis, scorer) -> dict[str, float]:
 
 # --------------------------------------------------------------------- 1
 
+PARSERS = {"naive": False, "layout_aware": True}
+CELL = ["template", "parser", "format", "layout"]
+
+
 def layout_robustness(ctx: Context) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Field extraction accuracy per layout and format, plus downstream effects.
+    """Field extraction accuracy per template, parser mode, format and layout.
 
     Returns (field_counts, downstream). field_counts has one row per
-    persona x format x layout x field with tp/fp/fn. downstream has one row per
-    persona x format x layout x job with the knockout status and keyword score,
-    so layout-induced knockout flips can be counted.
+    persona x template x parser x format x layout x field with tp/fp/fn.
+    downstream has one row per persona x template x parser x format x layout x
+    job with knockout status and keyword score, so layout-induced knockout
+    flips can be counted.
     """
     rows, down = [], []
     kw = ctx.scorers[0]
     for p in ctx.personas:
-        for fmt in FORMATS:
-            for layout in LAYOUTS:
-                path = resume_path(p["id"], layout, fmt)
-                if not path.exists():
-                    render(p, layout, fmt, path)
-                parsed = parse_resume(path)
-                for f, c in score_resume(p, parsed).items():
-                    rows.append(dict(persona=p["id"], format=fmt, layout=layout, field=f, tp=c.tp, fp=c.fp, fn=c.fn))
-                for a in ctx.analyses:
-                    rules, app = a.job.knockouts, p.get("application")
-                    down.append(dict(
-                        persona=p["id"], format=fmt, layout=layout, job=a.job.id,
-                        knockout=apply_knockouts(parsed, rules, app, "review").status,
-                        knockout_strict=apply_knockouts(parsed, rules, app, "reject").status,
-                        keyword=kw.score(parsed.raw_text, a),
-                    ))
+        for template in TEMPLATES:
+            for fmt in FORMATS:
+                for layout in LAYOUTS:
+                    path = resume_path(p["id"], layout, fmt, template=template)
+                    if not path.exists():
+                        render(p, layout, fmt, path, RenderOptions(template=template))
+                    for parser, aware in PARSERS.items():
+                        parsed = parse_resume(path, layout_aware=aware)
+                        key = dict(persona=p["id"], template=template, parser=parser, format=fmt, layout=layout)
+                        for f, c in score_resume(p, parsed).items():
+                            rows.append(dict(key, field=f, tp=c.tp, fp=c.fp, fn=c.fn))
+                        for a in ctx.analyses:
+                            rules, app = a.job.knockouts, p.get("application")
+                            down.append(dict(
+                                key, job=a.job.id,
+                                knockout=apply_knockouts(parsed, rules, app, "review").status,
+                                knockout_strict=apply_knockouts(parsed, rules, app, "reject").status,
+                                keyword=kw.score(parsed.raw_text, a),
+                            ))
     return pd.DataFrame(rows), pd.DataFrame(down)
 
 
-def summarize_layout(field_counts: pd.DataFrame, downstream: pd.DataFrame) -> dict[str, pd.DataFrame]:
+def _f1(tp, fp, fn):
+    import numpy as np
+
+    p = np.divide(tp, tp + fp, out=np.zeros_like(tp, dtype=float), where=(tp + fp) > 0)
+    r = np.divide(tp, tp + fn, out=np.zeros_like(tp, dtype=float), where=(tp + fn) > 0)
+    return np.divide(2 * p * r, p + r, out=np.zeros_like(p), where=(p + r) > 0)
+
+
+def bootstrap_layout(field_counts: pd.DataFrame, n_boot: int = 2000, seed: int = 0) -> pd.DataFrame:
+    """95% percentile intervals for F1 and for the drop vs single column.
+
+    Personas are resampled with replacement, and the same resample is used
+    for every cell, so each layout's drop is compared with its own
+    single-column baseline on the same people (a paired bootstrap).
+    """
+    import numpy as np
+
+    per = field_counts.groupby(CELL + ["persona"])[["tp", "fp", "fn"]].sum()
+    cells = per.index.droplevel("persona").unique()
+    personas = sorted(field_counts.persona.unique())
+    arr = np.stack([per.loc[c].reindex(personas).to_numpy() for c in cells])  # cells x personas x 3
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(personas), size=(n_boot, len(personas)))
+    sums = arr[:, idx, :].sum(axis=2)  # cells x boot x 3
+    f1 = _f1(sums[..., 0], sums[..., 1], sums[..., 2])
+    cell_list = list(cells)
+    base_idx = [cell_list.index((t, pa, fm, "single")) for t, pa, fm, _ in cell_list]
+    base = f1[base_idx]
+    drop = 100 * np.divide(base - f1, base, out=np.full_like(f1, np.nan), where=base > 0)
+    out = pd.DataFrame(cell_list, columns=CELL)
+    out["f1_lo"], out["f1_hi"] = np.percentile(f1, 2.5, axis=1), np.percentile(f1, 97.5, axis=1)
+    out["drop_lo"], out["drop_hi"] = np.nanpercentile(drop, 2.5, axis=1), np.nanpercentile(drop, 97.5, axis=1)
+    return out
+
+
+def summarize_layout(field_counts: pd.DataFrame, downstream: pd.DataFrame, n_boot: int = 2000) -> dict[str, pd.DataFrame]:
     def f1(g):
         c = Counts(int(g.tp.sum()), int(g.fp.sum()), int(g.fn.sum()))
         return pd.Series({"precision": c.precision, "recall": c.recall, "f1": c.f1})
 
-    overall = field_counts.groupby(["format", "layout"]).apply(f1, include_groups=False).reset_index()
-    per_field = (field_counts.groupby(["format", "layout", "field"]).apply(f1, include_groups=False)
-                 .reset_index().pivot_table(index=["format", "field"], columns="layout", values="f1")
-                 [list(LAYOUTS)].reindex(pd.MultiIndex.from_product([list(FORMATS), list(ALL_FIELDS)])))
-    base = downstream[downstream.layout == "single"].set_index(["persona", "format", "job"])
-    d = downstream.join(base[["knockout", "knockout_strict", "keyword"]], on=["persona", "format", "job"],
-                        rsuffix="_single")
+    overall = field_counts.groupby(CELL).apply(f1, include_groups=False).reset_index()
+    single = overall[overall.layout == "single"].set_index(["template", "parser", "format"])["f1"]
+    overall["f1_drop_vs_single_pct"] = overall.apply(
+        lambda r: 100 * (single[(r.template, r.parser, r.format)] - r.f1) / single[(r.template, r.parser, r.format)],
+        axis=1)
+    overall = overall.merge(bootstrap_layout(field_counts, n_boot), on=CELL)
+    per_field = (field_counts[field_counts.parser == "naive"]
+                 .groupby(["template", "format", "layout", "field"]).apply(f1, include_groups=False)
+                 .reset_index().pivot_table(index=["template", "format", "field"], columns="layout", values="f1")
+                 [list(LAYOUTS)]
+                 .reindex(pd.MultiIndex.from_product([list(TEMPLATES), list(FORMATS), list(ALL_FIELDS)])))
+
+    keys = ["persona", "template", "parser", "format", "job"]
+    base = downstream[downstream.layout == "single"].set_index(keys)
+    d = downstream.join(base[["knockout", "knockout_strict", "keyword"]], on=keys, rsuffix="_single")
     d["keyword_change"] = d.keyword - d.keyword_single
     for col in ("knockout", "knockout_strict"):
         d[f"{col}_flip"] = d[col] != d[f"{col}_single"]
     d["wrongly_rejected"] = (d.knockout_strict == "REJECT") & (d.knockout_strict_single != "REJECT")
     d["wrongly_passed"] = (d.knockout_strict != "REJECT") & (d.knockout_strict_single == "REJECT")
-    effects = (d.groupby(["format", "layout"])
+    effects = (d.groupby(CELL)
                .agg(pairs=("knockout_flip", "size"),
                     flips_review_policy=("knockout_flip", "sum"),
                     flips_reject_policy=("knockout_strict_flip", "sum"),
@@ -137,13 +188,21 @@ def summarize_layout(field_counts: pd.DataFrame, downstream: pd.DataFrame) -> di
                     newly_passed_reject_policy=("wrongly_passed", "sum"),
                     mean_keyword_change=("keyword_change", "mean"))
                .reset_index())
-    transitions = (d[d.knockout_flip].groupby(["format", "layout", "knockout_single", "knockout"])
+    transitions = (d[d.knockout_flip].groupby(CELL + ["knockout_single", "knockout"])
                    .size().rename("count").reset_index()
                    .rename(columns={"knockout_single": "single_column_status", "knockout": "status"}))
-    single = overall[overall.layout == "single"].set_index("format")["f1"]
-    overall["f1_drop_vs_single_pct"] = overall.apply(
-        lambda r: 100 * (single[r.format] - r.f1) / single[r.format] if single[r.format] else float("nan"), axis=1)
     return {"overall": overall, "per_field": per_field, "effects": effects, "transitions": transitions}
+
+
+def bootstrap_mean(values, n_boot: int = 2000, seed: int = 0) -> tuple[float, float]:
+    """95% percentile interval for a mean."""
+    import numpy as np
+
+    v = np.asarray([x for x in values if x == x], dtype=float)
+    if len(v) == 0:
+        return float("nan"), float("nan")
+    means = v[np.random.default_rng(seed).integers(0, len(v), size=(n_boot, len(v)))].mean(axis=1)
+    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
 # --------------------------------------------------------------------- 2

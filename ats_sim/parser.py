@@ -92,12 +92,14 @@ def _is_visible_char(obj: dict) -> bool:
     return True
 
 
-def extract_text_pdf(path: str | Path, drop_invisible: bool = False) -> str:
+def extract_text_pdf(path: str | Path, drop_invisible: bool = False, layout_aware: bool = False) -> str:
     """Page-by-page text in the order pdfplumber reads it (top-to-bottom, left-to-right).
 
     `drop_invisible` is a defense used only in the keyword-stuffing audit: it
     discards tiny or white characters before extraction. The default parser
     does not do this, matching common parser behavior.
+
+    `layout_aware` switches to the reading order in `_layout_aware_page_text`.
     """
     import pdfplumber
 
@@ -106,15 +108,143 @@ def extract_text_pdf(path: str | Path, drop_invisible: bool = False) -> str:
         for page in pdf.pages:
             if drop_invisible:
                 page = page.filter(_is_visible_char)
-            pages.append(page.extract_text() or "")
+            pages.append(_layout_aware_page_text(page) if layout_aware else (page.extract_text() or ""))
     return "\n".join(pages)
 
 
-def extract_text_docx(path: str | Path) -> str:
+# ------------------------------------------------- layout-aware reading order
+
+def _inside(obj: dict, bbox: tuple) -> bool:
+    x0, top, x1, bottom = bbox
+    cx, cy = (obj["x0"] + obj["x1"]) / 2, (obj["top"] + obj["bottom"]) / 2
+    return x0 <= cx <= x1 and top <= cy <= bottom
+
+
+def find_gutter(words: list[dict], page_width: float, pad: float = 4.0, min_side: float = 0.15) -> float | None:
+    """x position of a vertical gutter that splits the words into two columns.
+
+    A gutter is a vertical line that no word crosses (allowing 1% noise) and
+    that has at least `min_side` of the words on each side. Single-column text
+    always has lines that run across the middle, so it has no gutter.
+    """
+    if len(words) < 20:
+        return None
+    best, best_cross = None, None
+    for i in range(int(page_width * 0.15), int(page_width * 0.85), 2):
+        x = float(i)
+        cross = sum(1 for w in words if w["x0"] - pad < x < w["x1"] + pad)
+        left = sum(1 for w in words if w["x1"] <= x)
+        if min(left, len(words) - left - cross) < min_side * len(words):
+            continue
+        if best_cross is None or cross < best_cross:
+            best, best_cross = x, cross
+    if best is None or best_cross > 0.01 * len(words):
+        return None
+    return best
+
+
+def _region_text(page, bbox) -> str:
+    return page.within_bbox(bbox).extract_text() or ""
+
+
+def _table_text(table) -> str:
+    lines = []
+    for row in table.extract():
+        for cell in row:
+            if cell:
+                lines.append(cell)
+    return "\n".join(lines)
+
+
+def _box_regions(page, taken: list[tuple]) -> list[tuple]:
+    """Bordered or shaded rectangles big enough to hold text (text boxes)."""
+    boxes = []
+    for r in page.rects:
+        w, h = r["x1"] - r["x0"], r["bottom"] - r["top"]
+        if w < 40 or h < 20 or w > page.width * 0.9:
+            continue
+        bbox = (r["x0"], r["top"], r["x1"], r["bottom"])
+        if any(_inside({"x0": bbox[0], "x1": bbox[2], "top": bbox[1], "bottom": bbox[3]}, t) for t in taken):
+            continue
+        boxes.append(bbox)
+    return boxes
+
+
+def _layout_aware_page_text(page) -> str:
+    """Reading order that understands tables, boxes and columns.
+
+    1. Ruled tables (found from the page's lines) are read cell by cell, row
+       by row; bordered or shaded boxes are read as one block each.
+    2. Remaining text is checked for a column gutter; if there is one, the
+       left column is read before the right column.
+    3. Blocks that sit beside the main text (a floating box in the margin)
+       are read after the main text; blocks inside its span are read in
+       vertical order.
+
+    This is roughly what layout-analysis parsers do. It is still heuristic:
+    one gutter per page, no nested columns, no reading of images.
+    """
+    W, H = page.width, page.height
+    blocks = [(t.bbox, _table_text(t)) for t in page.find_tables()]
+    blocks += [(b, _region_text(page, b)) for b in _box_regions(page, [b for b, _ in blocks])]
+    regions = [b for b, _ in blocks]
+    free = page.filter(lambda o: not any(_inside(o, r) for r in regions)) if regions else page
+    words = free.extract_words()
+    if words:
+        main_x0, main_x1 = min(w["x0"] for w in words), max(w["x1"] for w in words)
+    else:
+        main_x0, main_x1 = 0, W
+
+    inline, sidebar = [], []
+    for bbox, text in sorted(blocks, key=lambda b: b[0][1]):
+        beside = bbox[0] >= main_x1 - 2 or bbox[2] <= main_x0 + 2
+        (sidebar if beside and words else inline).append((bbox, text))
+
+    gutter = find_gutter(words, W)
+
+    def free_band(top: float, bottom: float) -> str:
+        if bottom - top < 1:
+            return ""
+        if gutter is None:
+            return _region_text(free, (0, top, W, bottom))
+        return "\n".join(filter(None, (_region_text(free, (0, top, gutter, bottom)),
+                                       _region_text(free, (gutter, top, W, bottom)))))
+
+    parts, cursor = [], 0.0
+    for bbox, text in inline:
+        parts.append(free_band(cursor, bbox[1]))
+        parts.append(text)
+        cursor = max(cursor, bbox[3])
+    parts.append(free_band(cursor, H))
+    parts += [text for _, text in sidebar]
+    return "\n".join(p for p in parts if p.strip())
+
+
+def _textbox_lines(p_element, parent) -> list[str]:
+    """Paragraphs inside text boxes anchored to this paragraph (skipping the
+    duplicate copy Word stores under mc:Fallback)."""
+    from docx.oxml.ns import qn
+    from docx.text.paragraph import Paragraph
+
+    out = []
+    for box in p_element.iter(qn("w:txbxContent")):
+        anc, fallback = box.getparent(), False
+        while anc is not None and anc is not p_element:
+            if anc.tag.endswith("}Fallback"):
+                fallback = True
+                break
+            anc = anc.getparent()
+        if not fallback:
+            out += [Paragraph(p, parent).text for p in box.iter(qn("w:p"))]
+    return out
+
+
+def extract_text_docx(path: str | Path, layout_aware: bool = False) -> str:
     """Body paragraphs and table cells in document order.
 
     Like many simple DOCX readers built on python-docx, this does not descend
-    into text boxes, headers or footers.
+    into text boxes, headers or footers. With `layout_aware`, text-box content
+    is read right after the paragraph it is anchored to.
     """
     import docx
     from docx.table import Table
@@ -141,17 +271,19 @@ def extract_text_docx(path: str | Path) -> str:
         tag = block.tag.rsplit("}", 1)[-1]
         if tag == "p":
             lines.append(Paragraph(block, doc).text)
+            if layout_aware:
+                lines += _textbox_lines(block, doc)
         elif tag == "tbl":
             walk_table(Table(block, doc))
     return "\n".join(lines)
 
 
-def extract_text(path: str | Path, drop_invisible: bool = False) -> str:
+def extract_text(path: str | Path, drop_invisible: bool = False, layout_aware: bool = False) -> str:
     suffix = Path(path).suffix.lower()
     if suffix == ".pdf":
-        return extract_text_pdf(path, drop_invisible=drop_invisible)
+        return extract_text_pdf(path, drop_invisible=drop_invisible, layout_aware=layout_aware)
     if suffix == ".docx":
-        return extract_text_docx(path)
+        return extract_text_docx(path, layout_aware=layout_aware)
     if suffix in {".txt", ".md"}:
         return Path(path).read_text()
     raise ValueError(f"Unsupported resume format: {suffix}")
@@ -276,5 +408,8 @@ def parse_text(text: str, source: str = "<text>") -> ParsedResume:
     )
 
 
-def parse_resume(path: str | Path, drop_invisible: bool = False) -> ParsedResume:
-    return parse_text(extract_text(path, drop_invisible=drop_invisible), source=str(path))
+def parse_resume(path: str | Path, drop_invisible: bool = False, layout_aware: bool = False) -> ParsedResume:
+    """Parse a resume file. `layout_aware` changes only the reading order;
+    section detection and field rules are identical in both modes."""
+    text = extract_text(path, drop_invisible=drop_invisible, layout_aware=layout_aware)
+    return parse_text(text, source=str(path))

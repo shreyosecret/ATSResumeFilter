@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    env:
+      # Tests use the LSA fallback so CI never downloads the embedding model.
+      ATS_SIM_EMBEDDING_BACKEND: lsa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        # sentence-transformers (and its torch dependency) is skipped: the tests do not need it.
+        run: |
+          grep -v sentence-transformers requirements.txt > requirements-ci.txt
+          pip install -r requirements-ci.txt
+          python -m spacy download en_core_web_sm
+      - name: Run tests
+        run: pytest -q
