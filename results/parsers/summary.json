@@ -1,0 +1,10 @@
+{
+  "engines": [
+    "naive",
+    "layout_aware",
+    "openresume",
+    "pyresparser",
+    "ensemble"
+  ],
+  "skipped": []
+}

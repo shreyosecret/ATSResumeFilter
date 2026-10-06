@@ -1,0 +1,14 @@
+{
+  "id": "biostatistics_intern",
+  "title": "Biostatistics Research Intern",
+  "_comment": "Synthetic posting used by scripts/check_resume.py (not by the experiments).",
+  "knockouts": {
+    "grad_window": ["2027-05", "2030-12"],
+    "min_gpa": 3.0,
+    "degree_fields": ["Biostatistics", "Statistics", "Mathematics", "Biomedical Engineering", "Bioengineering", "Data Science", "Public Health"],
+    "min_degree_level": "BS",
+    "require_work_authorization": true,
+    "no_sponsorship": false
+  },
+  "text": "Biostatistics Research Intern (Summer)\n\nAbout the role\nJoin a clinical research biostatistics group supporting cardiovascular and oncology studies.\n\nResponsibilities\n- Clean and analyze clinical trial and registry data in R\n- Fit regression, survival analysis and mixed models and report results\n- Build reproducible analysis pipelines with Git\n- Help draft statistical sections of manuscripts\n\nRequired qualifications\n- Pursuing a B.S. in Statistics, Biostatistics, Mathematics, Biomedical Engineering or a related field, graduating between May 2027 and December 2030\n- Coursework or research experience in statistics\n- Proficiency in R\n- Experience with regression modeling\n\nPreferred qualifications\n- Experience with survival analysis or clinical trial design\n- Familiarity with Python or SAS\n- Experience with Shiny or data visualization\n- Peer-reviewed publications or scientific writing\n\nCandidates must be authorized to work in the United States."
+}

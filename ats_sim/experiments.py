@@ -39,7 +39,8 @@ class Context:
         return next(s.backend for s in self.scorers if s.name == "embedding")
 
 
-def build_context(workdir: Path | None = None, extra_pool: list[tuple[str, str]] | None = None) -> Context:
+def build_context(workdir: Path | None = None, extra_pool: list[tuple[str, str]] | None = None,
+                  extra_scorers: list | None = None) -> Context:
     """Parse the single-column PDFs and fit the scorers.
 
     `extra_pool` adds (id, text) candidates, e.g. Kaggle resumes, to every
@@ -57,6 +58,7 @@ def build_context(workdir: Path | None = None, extra_pool: list[tuple[str, str]]
         base_text[cid] = text
     corpus = list(base_text.values()) + [a.job.text for a in analyses]
     scorers = [KeywordScorer().fit(corpus), TfidfScorer().fit(corpus), EmbeddingScorer().fit(corpus)]
+    scorers += [s.fit(corpus) for s in extra_scorers or []]
     reference = [KeywordScorer(use_taxonomy=True)]
     workdir = Path(workdir or tempfile.mkdtemp(prefix="ats_sim_"))
     workdir.mkdir(parents=True, exist_ok=True)

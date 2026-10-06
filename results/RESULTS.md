@@ -353,6 +353,7 @@ Per-field F1, naive parser, hybrid template:
 | keyword          |      21 |           -0.198 |              0.571 |           0.476 |         -0.242 |         -0.156 |
 | tfidf            |      21 |           -0.156 |              0.333 |           0.238 |         -0.231 |         -0.092 |
 | embedding        |      21 |           -0.003 |              0.095 |           0.095 |         -0.013 |          0.006 |
+| skillner         |      21 |           -0.104 |              0.048 |           0.048 |         -0.152 |         -0.060 |
 | keyword+taxonomy |      21 |            0.000 |              0.000 |           0.000 |          0.000 |          0.000 |
 
 ## 3. Keyword stuffing (candidates that started outside the top 5)
@@ -363,18 +364,23 @@ Per-field F1, naive parser, hybrid template:
 |:----------------|:---------------|:----------|-------------:|----------------:|---------------------:|-----------------------:|-----------------:|------------------------:|------------------------:|
 | hidden_jd       | drop_invisible | embedding |           33 |           0.000 |                0.000 |                  0.573 |            0.000 |                   0.000 |                   0.000 |
 | hidden_jd       | drop_invisible | keyword   |           24 |           0.000 |                0.000 |                  0.148 |            0.000 |                   0.000 |                   0.000 |
+| hidden_jd       | drop_invisible | skillner  |           30 |           0.000 |                0.000 |                  0.134 |            0.000 |                   0.000 |                   0.000 |
 | hidden_jd       | drop_invisible | tfidf     |           33 |           0.000 |                0.000 |                  0.067 |            0.000 |                   0.000 |                   0.000 |
 | hidden_jd       | none           | embedding |           33 |           1.000 |                0.424 |                  0.989 |            9.242 |                   0.273 |                   0.606 |
 | hidden_jd       | none           | keyword   |           24 |           1.000 |                1.000 |                  1.217 |            8.125 |                   1.000 |                   1.000 |
+| hidden_jd       | none           | skillner  |           30 |           1.000 |                1.000 |                  2.000 |            7.767 |                   1.000 |                   1.000 |
 | hidden_jd       | none           | tfidf     |           33 |           1.000 |                1.000 |                  2.820 |           10.000 |                   1.000 |                   1.000 |
 | hidden_keywords | drop_invisible | embedding |           33 |           0.000 |                0.000 |                  0.573 |            0.000 |                   0.000 |                   0.000 |
 | hidden_keywords | drop_invisible | keyword   |           24 |           0.000 |                0.000 |                  0.148 |            0.000 |                   0.000 |                   0.000 |
+| hidden_keywords | drop_invisible | skillner  |           30 |           0.000 |                0.000 |                  0.134 |            0.000 |                   0.000 |                   0.000 |
 | hidden_keywords | drop_invisible | tfidf     |           33 |           0.000 |                0.000 |                  0.067 |            0.000 |                   0.000 |                   0.000 |
 | hidden_keywords | none           | embedding |           33 |           0.788 |                0.000 |                  0.805 |            6.303 |                   0.000 |                   0.000 |
 | hidden_keywords | none           | keyword   |           24 |           1.000 |                1.000 |                  1.130 |            8.125 |                   1.000 |                   1.000 |
+| hidden_keywords | none           | skillner  |           30 |           1.000 |                1.000 |                  1.250 |            7.767 |                   1.000 |                   1.000 |
 | hidden_keywords | none           | tfidf     |           33 |           1.000 |                0.879 |                  1.314 |            9.879 |                   0.758 |                   0.970 |
 | visible_repeat  | none           | embedding |           33 |           0.848 |                0.000 |                  0.833 |            7.030 |                   0.000 |                   0.000 |
 | visible_repeat  | none           | keyword   |           24 |           1.000 |                1.000 |                  1.130 |            8.125 |                   1.000 |                   1.000 |
+| visible_repeat  | none           | skillner  |           30 |           1.000 |                1.000 |                  1.250 |            7.767 |                   1.000 |                   1.000 |
 | visible_repeat  | none           | tfidf     |           33 |           1.000 |                0.879 |                  1.314 |            9.879 |                   0.758 |                   0.970 |
 
 ## 4. Ranking stability
@@ -391,6 +397,11 @@ Per-field F1, naive parser, hybrid template:
 | keyword   | date_format         |                  0.000 |                     0 |             0 |      48 |
 | keyword   | reorder_bullets     |                  0.000 |                     0 |             0 |      48 |
 | keyword   | verb_swap           |                  0.000 |                     0 |             0 |      48 |
+| skillner  | add_teamwork_bullet |                  0.000 |                     0 |             0 |      48 |
+| skillner  | all_edits           |                  0.000 |                     0 |             0 |      48 |
+| skillner  | date_format         |                  0.000 |                     0 |             0 |      48 |
+| skillner  | reorder_bullets     |                  0.000 |                     0 |             0 |      48 |
+| skillner  | verb_swap           |                  0.000 |                     0 |             0 |      48 |
 | tfidf     | add_teamwork_bullet |                  0.729 |                     7 |             0 |      48 |
 | tfidf     | all_edits           |                  0.729 |                     7 |             0 |      48 |
 | tfidf     | date_format         |                  0.062 |                     1 |             0 |      48 |

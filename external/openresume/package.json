@@ -1,0 +1,11 @@
+{
+  "name": "ats-sim-openresume-runner",
+  "private": true,
+  "description": "Runs OpenResume's resume parser (AGPL-3.0, separate checkout) on local files. No OpenResume code is stored in this repo.",
+  "type": "module",
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.9.5",
+    "esbuild": "^0.23.0",
+    "pdfjs-dist": "3.7.107"
+  }
+}

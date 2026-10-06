@@ -1,0 +1,14 @@
+{
+  "id": "patent_analyst_intern",
+  "title": "Technical Specialist Intern, Patent Analytics",
+  "_comment": "Synthetic posting used by scripts/check_resume.py (not by the experiments).",
+  "knockouts": {
+    "grad_window": ["2027-05", "2030-12"],
+    "min_gpa": 3.2,
+    "degree_fields": ["Biomedical Engineering", "Bioengineering", "Chemical Engineering", "Mechanical Engineering", "Electrical Engineering", "Computer Science", "Biology", "Chemistry"],
+    "min_degree_level": "BS",
+    "require_work_authorization": true,
+    "no_sponsorship": false
+  },
+  "text": "Technical Specialist Intern, Patent Analytics\n\nAbout the role\nSupport an intellectual property team with patent landscape and portfolio analytics for life-science clients.\n\nResponsibilities\n- Perform prior-art searches and technical landscape reviews\n- Analyze USPTO data to track patent maintenance and lapse risk\n- Summarize technical documents for attorneys\n\nRequired qualifications\n- Pursuing a B.S. in a science or engineering discipline, graduating between May 2027 and December 2030\n- Strong technical writing skills\n- Data analysis experience in R, Python or Excel\n\nPreferred qualifications\n- Familiarity with patent law or intellectual property\n- Experience with USPTO data\n- Research or laboratory experience in the life sciences\n\nCandidates must be authorized to work in the United States."
+}

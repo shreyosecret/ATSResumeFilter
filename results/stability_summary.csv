@@ -9,6 +9,11 @@ keyword,all_edits,0.0,0,0,48
 keyword,date_format,0.0,0,0,48
 keyword,reorder_bullets,0.0,0,0,48
 keyword,verb_swap,0.0,0,0,48
+skillner,add_teamwork_bullet,0.0,0,0,48
+skillner,all_edits,0.0,0,0,48
+skillner,date_format,0.0,0,0,48
+skillner,reorder_bullets,0.0,0,0,48
+skillner,verb_swap,0.0,0,0,48
 tfidf,add_teamwork_bullet,0.7291666666666666,7,0,48
 tfidf,all_edits,0.7291666666666666,7,0,48
 tfidf,date_format,0.0625,1,0,48

@@ -29,11 +29,17 @@ python -m spacy download en_core_web_sm
 python scripts/build_corpus.py                 # 16 personas x 5 templates x 2 formats x 4 layouts = 640 resumes
 python scripts/run_experiments.py --require-minilm      # results/ (fails rather than falling back to LSA)
 streamlit run app.py                           # dashboard
-pytest                                         # 44 tests (also run by GitHub Actions on every push)
+pytest                                         # 52 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
 python scripts/fetch_public_resumes.py         # CC0 dataset, no Kaggle account needed
 python scripts/run_experiments.py --require-minilm --public-pool data/kaggle/Resume.csv --out results/public_pool
+
+# optional: open-source engines (OpenResume, pyresparser, SkillNer), then benchmark and check a resume
+bash scripts/setup_external.sh                 # prints OPENRESUME_DIR and PYRESPARSER_PYTHON to export
+python scripts/benchmark_parsers.py            # results/parsers/
+python scripts/run_experiments.py --require-minilm --with-skillner
+python scripts/check_resume.py my_resume.pdf   # report in private/ (gitignored)
 ```
 
 The first run downloads `all-MiniLM-L6-v2` (about 90 MB). Without `--require-minilm`, a failed download falls back to an LSA embedding with a warning, and every chart and table is labeled with the backend actually used. All committed results use MiniLM.
@@ -188,6 +194,57 @@ Each of 16 resumes got small wording edits (verb synonyms, reordered bullets, `J
 - **The scorer that best resists synonyms and keyword lists is the least stable ranker.** Mean-pooled embeddings shift with every sentence, so one generic bullet moved MiniLM rankings by 12 positions on average in a realistic pool. That would have been invisible in the 16-resume pool, where the same edit moved resumes less than one position.
 - There is no free lunch: exact matching is stable but blind to synonyms; embeddings understand synonyms but react to filler.
 
+## Open-source engines, mixed in
+
+Three open-source projects are run alongside this project's own code. None of their code is stored in this repo: `scripts/setup_external.sh` downloads them, and small adapters in `ats_sim/engines.py` and `external/` run them and map their output into the same schema, using this project's own degree and date normalizers so every engine is scored by the same rules.
+
+| Engine | License | What it is | How it runs here |
+|---|---|---|---|
+| [OpenResume](https://github.com/xitanggg/open-resume) | AGPL-3.0 | Resume builder whose parser students use to test "ATS readability". Groups text by font features (bold, capitals) rather than a heading list; documented as single-column only | Unmodified source, bundled at run time under Node by `external/openresume/run.mjs` |
+| [pyresparser](https://github.com/OmkarPathak/pyresparser) | GPL-3.0 | The most widely used Python resume parser; spaCy 2 + NLTK + a keyword skills list | Isolated Python 3.8 environment, called as a subprocess (`external/pyresparser/run.py`) |
+| [SkillNer](https://github.com/AnasAito/SkillNER) | MIT | Skill extraction against the EMSI/Lightcast open skills database (31,278 skills) | Imported directly; used as a fourth scorer |
+
+### Parser benchmark
+
+`scripts/benchmark_parsers.py` runs every parser on all 640 labeled resumes. Because engines format fields differently, scoring is lenient (a school with ", Raleigh, NC" still counts), and fields an engine never attempts are excluded rather than counted as misses (pyresparser has no graduation date or GPA field). The table uses only fields all engines attempt.
+
+![Parser benchmark](results/parsers/parsers.png)
+
+| PDF, all templates | ours, naive | ours, layout-aware | OpenResume | pyresparser | ensemble |
+|---|---|---|---|---|---|
+| Single column | 0.81 | 0.81 | 0.85 | 0.53 | **0.90** |
+| Two column | 0.60 | 0.77 | 0.71 | 0.48 | **0.80** |
+| Table | 0.33 | 0.75 | 0.42 | 0.51 | **0.82** |
+| Text boxes | 0.53 | 0.80 | 0.68 | 0.51 | **0.81** |
+
+- **OpenResume is the best single parser on clean single-column PDFs**, mainly because it finds experience entries (0.87 vs 0.44 for ours): it detects headings by formatting, so unfamiliar headings and line conventions in the held-out templates hurt it less (hybrid: 0.59 vs 0.33).
+- **It breaks on tables (0.42) and degrades on two columns and text boxes**, as its own documentation warns. It also put a sidebar heading ("CONTACT") in the name field on two-column resumes, and glued the contact-icon glyph onto every modern-template email address ("npriya.raman@example.com").
+- **pyresparser is weak on this corpus.** It dropped the area code from every phone number, returned no school for any of the 640 resumes, scored 0.03 F1 on experience entries, and its whole-text skill matching returns words like "Design" and "Process". Its reading order handles columns well (it uses pdfminer's layout analysis), which keeps it flat across layouts.
+- **Mixing them works.** A field-by-field majority vote across our layout-aware parser, OpenResume and pyresparser (`engines.vote`) is the best or tied-best result in every layout. It keeps OpenResume's experience and skills, and falls back to our reading order where OpenResume breaks. The vote rule is generic, but it was written after seeing these results, so treat the ensemble numbers as in-sample.
+
+Full tables, including per-template and per-field results: `results/parsers/PARSERS.md`.
+
+### SkillNer as a fourth scorer
+
+`run_experiments.py --with-skillner` scores resumes by the share of the posting's SkillNer skills that SkillNer also finds in the resume.
+
+| | Keyword (64 curated skills) | SkillNer (31k skills) | Embedding (MiniLM) |
+|---|---|---|---|
+| Synonym penalty | -20% | -10% [-15, -6] | -0.3% |
+| Fooled by a keyword list (beats best genuine resume) | 100% | 100% | 0% |
+| Wording edits that changed rank | 0 | 0 | some |
+
+A big taxonomy halves the synonym penalty (it maps "finite element analysis" to FEA and "SOPs" to SOP) but still misses "ML", "NLP", "GMP" spelled out, "RCA" and "additive manufacturing". It also brings noise: "B.S." matched "B (Programming Language)" and "Co-op" matched "Component Object Model". Being presence-based, it is as easy to stuff as exact matching and as stable under rewording.
+
+## Check your own resume
+
+```bash
+python scripts/check_resume.py my_resume.pdf --authorized yes --public-pool data/kaggle/Resume.csv
+python scripts/check_resume.py my_resume.pdf --gold my_resume.gold.json   # adds per-parser accuracy
+```
+
+The report (written to `private/`, which is gitignored) shows what each parser extracted side by side, parsing risks (headings a heading-list parser will miss, glyphs that do not map to text, hidden text, detected columns or tables), skills found by the curated list and by SkillNer, the knockout result under each parse, and the resume's score and rank against each posting, including two extra postings in `data/jobs_extra/`. An optional answer key in the `data/personas.json` format adds per-parser accuracy. Nothing is uploaded anywhere.
+
 ## Limitations
 
 - **Five templates, written by one person who knew the parser.** They cover common real conventions, but they are a convenience sample, not a random draw from real resumes. The pooled intervals resample only four held-out templates, so they understate how much real designs vary.
@@ -195,6 +252,7 @@ Each of 16 resumes got small wording edits (verb synonyms, reordered bullets, `J
 - **Small synthetic answer key.** 16 personas and 3 postings. The public resumes add realism to the ranking pools but have no labels, and they are plain text, so they never test parsing.
 - **The answer key and the resumes come from the same source**, so there is no human labeling error. That keeps the F1 numbers clean, but messy real-world inputs (scanned PDFs, ligatures, headers and footers, varied PDF generators) are not tested.
 - **Experiments 2 to 4 use the classic single-column PDF** so the scorer is the only moving part; scoring results on other templates may differ.
+- **Third-party engines are run, not reimplemented, but through adapters.** The mapping into this project's schema (and the lenient scoring) is a choice; another mapping could move their numbers a few points. Each engine's raw output is cached under `results/_tmp/engine_cache/` for inspection.
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
 
@@ -211,7 +269,10 @@ Do not quote "two-column cuts accuracy by 33%". That number came from the develo
 ```
 ats_sim/        parser, jd analyzer, knockouts, scorers, search, pipeline, renderer, experiments
 data/           personas (answer key), jobs, skills list, sample PDFs (full corpus is generated)
-scripts/        build_corpus.py, run_experiments.py, fetch_public_resumes.py
+scripts/        build_corpus.py, run_experiments.py, fetch_public_resumes.py,
+                benchmark_parsers.py, check_resume.py, setup_external.sh
+external/       runners for OpenResume (Node) and pyresparser (Python 3.8); no third-party code
+results/parsers/      parser benchmark (ours vs OpenResume vs pyresparser vs ensemble)
 results/        16-resume pool: CSVs, charts, RESULTS.md, summary.json
 results/public_pool/  same experiments with 186 public distractor resumes
 tests/          pytest suite (forces the LSA backend so it runs offline)

@@ -112,3 +112,77 @@ def micro(counts: list[dict[str, Counts]], fields=ALL_FIELDS) -> Counts:
         for f in fields:
             total += c[f]
     return total
+
+
+# ----------------------------------------------------------------- lenient mode
+#
+# Used to compare different parsers fairly. Engines format fields differently
+# (one keeps ", Raleigh, NC" after the school name, another returns job titles
+# without companies), so strict string equality would mostly measure
+# formatting. Lenient matching credits a field when the gold tokens are all
+# present and little else is.
+
+LENIENT_FIELDS = ALL_FIELDS + ("job_titles",)
+_MAX_EXTRA_TOKENS = 3
+
+
+def _tokens(s) -> list[str]:
+    s = re.sub(r"\([^)]*\)", " ", str(s or "").lower())
+    return re.findall(r"[a-z0-9+#&]+", s)
+
+
+def _close(gold, pred) -> bool:
+    g, p = _tokens(gold), _tokens(pred)
+    if not g or not p:
+        return False
+    return set(g) <= set(p) and len(p) - len(g) <= _MAX_EXTRA_TOKENS
+
+
+def _match_sets(gold: list[str], pred: list[str], close=_close) -> Counts:
+    """Greedy one-to-one matching of gold items to predicted items."""
+    unused = list(pred)
+    tp = 0
+    for g in gold:
+        for i, p in enumerate(unused):
+            if close(g, p):
+                tp += 1
+                del unused[i]
+                break
+    return Counts(tp=tp, fp=len(unused), fn=len(gold) - tp)
+
+
+def _scalar(gold, pred, close) -> Counts:
+    if gold is None and pred is None:
+        return Counts()
+    if gold is None:
+        return Counts(fp=1)
+    if pred is None:
+        return Counts(fn=1)
+    return Counts(tp=1) if close(gold, pred) else Counts(fp=1, fn=1)
+
+
+def score_resume_lenient(persona: dict, parsed: ParsedResume) -> dict[str, Counts]:
+    e = persona["education"]
+    exact = lambda a, b: a == b  # noqa: E731
+    entries = [" ".join(filter(None, (x.title, x.company))) for x in parsed.experience]
+    titles = [x.title or x.company for x in parsed.experience if (x.title or x.company)]
+
+    def entry_close(gold_pair, pred_text):
+        title, company = gold_pair
+        return set(_tokens(title)) | set(_tokens(company)) <= set(_tokens(pred_text))
+
+    return {
+        "name": _scalar(persona["name"], parsed.name, _close),
+        "email": _scalar(_norm(persona["email"]), _norm(parsed.email), exact),
+        "phone": _scalar(_norm_phone(persona["phone"]), _norm_phone(parsed.phone), exact),
+        "degree_level": _scalar(e["degree_level"], parsed.degree_level, exact),
+        "field_of_study": _scalar(e["field"], parsed.field_of_study, _close),
+        "school": _scalar(e["school"], parsed.school, _close),
+        "grad_date": _scalar(e["grad_date"], parsed.grad_date, exact),
+        "gpa": _scalar(_norm_gpa(e.get("gpa")), _norm_gpa(parsed.gpa), exact),
+        "skills": _match_sets(persona["skills"], [s for s in parsed.skills if s.strip()]),
+        "experience": _match_sets([(x["title"], x["company"]) for x in persona["experience"]], entries,
+                                  close=entry_close),
+        "job_titles": _match_sets([x["title"] for x in persona["experience"]], titles,
+                                  close=lambda g, p: _close(g, p) or set(_tokens(g)) <= set(_tokens(p))),
+    }

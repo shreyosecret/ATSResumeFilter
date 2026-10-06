@@ -5,3 +5,8 @@ __pycache__/
 data/kaggle/
 results/_tmp/
 data/resumes/
+private/
+external/openresume/node_modules/
+# SkillNer downloads its skills database into the working directory
+skill_db_relax_20.json
+token_dist.json

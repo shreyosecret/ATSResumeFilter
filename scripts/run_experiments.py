@@ -30,7 +30,11 @@ OUT = ROOT / "results"
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 SERIES_5 = SERIES + ["#e87ba4"]
-SCORER_ORDER = ["keyword", "tfidf", "embedding", "keyword+taxonomy"]
+SCORER_ORDER = ["keyword", "tfidf", "embedding", "skillner", "keyword+taxonomy"]
+# Color follows the scorer, never its position, so adding SkillNer repaints nothing.
+SCORER_COLORS = {"keyword": "#2a78d6", "tfidf": "#eb6834", "embedding": "#1baf7a", "keyword+taxonomy": "#eda100",
+                 "skillner": "#e87ba4"}
+RANKERS = ["keyword", "tfidf", "embedding", "skillner"]
 CELL_COLS = ["template", "parser", "format", "layout"]
 LAYOUT_LABELS = {"single": "Single column", "two_column": "Two column", "table": "Table", "textbox": "Text boxes"}
 
@@ -163,7 +167,8 @@ def chart_synonyms(df: pd.DataFrame, backend: str, path: Path):
     fig, ax = plt.subplots(figsize=(9, 0.42 * len(pairs) * len(scorers) / 2 + 1.8))
     height = 0.8 / len(scorers)
     y = np.arange(len(pairs))
-    for i, (sc, c) in enumerate(zip(scorers, SERIES)):
+    for i, sc in enumerate(scorers):
+        c = SCORER_COLORS[sc]
         vals = 100 * g[g.scorer == sc].set_index("pair").reindex(pairs)["rel_delta"].to_numpy()
         pos = y - 0.4 + height * (i + 0.5)
         ax.barh(pos, vals, height * 0.9, color=c, label=scorer_label(sc, backend), edgecolor=SURFACE)
@@ -190,9 +195,11 @@ def chart_stuffing(df: pd.DataFrame, backend: str, path: Path, pool_n: int):
                                (axes[1], "drop_invisible", "Parser drops white/tiny text")):
         d = outside[outside.defense == defense]
         attacks = [a for a in ex.STUFFING_ATTACKS if a in set(d.attack)]
+        present = [s for s in RANKERS if s in set(d.scorer)]
         series = {scorer_label(s, backend): [100 * d[(d.attack == a) & (d.scorer == s)].beats_best_genuine.mean()
-                                             for a in attacks] for s in SCORER_ORDER[:3]}
-        grouped_bars(ax, [a.replace("_", " ") for a in attacks], series, SERIES[:3], fmt="{:.0f}%")
+                                             for a in attacks] for s in present}
+        grouped_bars(ax, [a.replace("_", " ") for a in attacks], series, [SCORER_COLORS[s] for s in present],
+                     fmt="{:.0f}%")
         ax.set_title(title, fontsize=11)
         ax.set_ylim(0, 112)
     axes[0].set_ylabel("% that outrank the best unstuffed resume")
@@ -207,9 +214,10 @@ def chart_stuffing(df: pd.DataFrame, backend: str, path: Path, pool_n: int):
 def chart_stability(df: pd.DataFrame, backend: str, path: Path, pool_n: int):
     g = df.groupby(["edit", "scorer"])["abs_rank_change"].mean().reset_index()
     fig, ax = plt.subplots(figsize=(9, 4.2))
+    present = [s for s in RANKERS if s in set(g.scorer)]
     series = {scorer_label(s, backend): g[g.scorer == s].set_index("edit").reindex(ex.EDITS)["abs_rank_change"].tolist()
-              for s in SCORER_ORDER[:3]}
-    grouped_bars(ax, [e.replace("_", " ") for e in ex.EDITS], series, SERIES[:3])
+              for s in present}
+    grouped_bars(ax, [e.replace("_", " ") for e in ex.EDITS], series, [SCORER_COLORS[s] for s in present])
     ax.set_ylabel("Mean |rank change| (positions)")
     ax.set_title(f"Ranking stability: movement after small edits to one resume (pool of {pool_n})")
     ax.legend(loc="upper left")
@@ -244,6 +252,8 @@ def main():
     ap.add_argument("--require-minilm", action="store_true",
                     help="fail if all-MiniLM-L6-v2 cannot be loaded instead of using the LSA fallback")
     ap.add_argument("--n-boot", type=int, default=2000)
+    ap.add_argument("--with-skillner", action="store_true",
+                    help="add SkillNer (EMSI/Lightcast taxonomy) as a fourth scorer; needs skillNer + a spaCy model")
     args = ap.parse_args()
 
     import os
@@ -261,7 +271,14 @@ def main():
         extra = load_kaggle_resumes(args.public_pool, args.public_column, args.public_per_category,
                                     args.public_categories.split(","))
         print(f"added {len(extra)} public resumes to the ranking pool")
-    ctx = ex.build_context(ROOT / "results" / "_tmp", extra_pool=extra)
+    extra_scorers = []
+    if args.with_skillner:
+        from ats_sim.engines import SkillNerScorer, skillner_available
+
+        if not skillner_available():
+            raise SystemExit("--with-skillner: pip install skillNer ipython && python -m spacy download en_core_web_lg")
+        extra_scorers.append(SkillNerScorer())
+    ctx = ex.build_context(ROOT / "results" / "_tmp", extra_pool=extra, extra_scorers=extra_scorers)
     backend = ctx.embedding_backend
     print(f"embedding backend: {backend}")
 
