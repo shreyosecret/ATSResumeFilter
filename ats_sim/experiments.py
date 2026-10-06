@@ -19,7 +19,7 @@ from .evaluate import ALL_FIELDS, Counts, micro, score_resume
 from .jd import analyze_job, load_jobs
 from .knockout import apply_knockouts
 from .parser import parse_resume
-from .render import FORMATS, LAYOUTS, TEMPLATES, RenderOptions, clone, render
+from .render import FORMATS, HELD_OUT_TEMPLATES, LAYOUTS, TEMPLATES, RenderOptions, clone, render
 from .scorers import EmbeddingScorer, KeywordScorer, TfidfScorer
 
 TOP_K = 5
@@ -155,6 +155,48 @@ def bootstrap_layout(field_counts: pd.DataFrame, n_boot: int = 2000, seed: int =
     return out
 
 
+POOLED = "held_out_pooled"
+
+
+def bootstrap_pooled(field_counts: pd.DataFrame, templates=HELD_OUT_TEMPLATES, n_boot: int = 2000,
+                     seed: int = 0) -> pd.DataFrame:
+    """F1 and drop for all held-out templates pooled, with a two-level
+    bootstrap: each resample draws templates with replacement, then personas
+    with replacement, so the interval reflects both sources of variation.
+    With only a handful of templates the template level is coarse; treat the
+    interval as a lower bound on the real uncertainty.
+    """
+    import numpy as np
+
+    fc = field_counts[field_counts.template.isin(templates)]
+    cells = sorted(fc.groupby(["parser", "format", "layout"]).groups)
+    personas = sorted(fc.persona.unique())
+    per = fc.groupby(["template", "parser", "format", "layout", "persona"])[["tp", "fp", "fn"]].sum()
+    arr = np.zeros((len(templates), len(personas), len(cells), 3))
+    for ti, t in enumerate(templates):
+        for ci, c in enumerate(cells):
+            arr[ti, :, ci, :] = per.loc[(t, *c)].reindex(personas).to_numpy()
+    rng = np.random.default_rng(seed)
+    ti = rng.integers(0, len(templates), size=(n_boot, len(templates)))
+    pi = rng.integers(0, len(personas), size=(n_boot, len(personas)))
+    sums = np.stack([arr[ti[b]][:, pi[b]].sum(axis=(0, 1)) for b in range(n_boot)])  # boot x cells x 3
+    f1 = _f1(sums[..., 0], sums[..., 1], sums[..., 2])
+    point_sums = arr.sum(axis=(0, 1))
+    point = _f1(point_sums[:, 0], point_sums[:, 1], point_sums[:, 2])
+    base_idx = [cells.index((pa, fm, "single")) for pa, fm, _ in cells]
+    drop = 100 * np.divide(f1[:, base_idx] - f1, f1[:, base_idx], out=np.full_like(f1, np.nan),
+                           where=f1[:, base_idx] > 0)
+    point_drop = 100 * (point[base_idx] - point) / point[base_idx]
+    out = pd.DataFrame(cells, columns=["parser", "format", "layout"])
+    out.insert(0, "template", POOLED)
+    tp, fp, fn = point_sums[:, 0], point_sums[:, 1], point_sums[:, 2]
+    out["precision"], out["recall"], out["f1"] = tp / np.maximum(tp + fp, 1), tp / np.maximum(tp + fn, 1), point
+    out["f1_drop_vs_single_pct"] = point_drop
+    out["f1_lo"], out["f1_hi"] = np.percentile(f1, 2.5, axis=0), np.percentile(f1, 97.5, axis=0)
+    out["drop_lo"], out["drop_hi"] = np.nanpercentile(drop, 2.5, axis=0), np.nanpercentile(drop, 97.5, axis=0)
+    return out
+
+
 def summarize_layout(field_counts: pd.DataFrame, downstream: pd.DataFrame, n_boot: int = 2000) -> dict[str, pd.DataFrame]:
     def f1(g):
         c = Counts(int(g.tp.sum()), int(g.fp.sum()), int(g.fn.sum()))
@@ -166,6 +208,8 @@ def summarize_layout(field_counts: pd.DataFrame, downstream: pd.DataFrame, n_boo
         lambda r: 100 * (single[(r.template, r.parser, r.format)] - r.f1) / single[(r.template, r.parser, r.format)],
         axis=1)
     overall = overall.merge(bootstrap_layout(field_counts, n_boot), on=CELL)
+    if set(HELD_OUT_TEMPLATES) <= set(field_counts.template):
+        overall = pd.concat([overall, bootstrap_pooled(field_counts, n_boot=n_boot)], ignore_index=True)
     per_field = (field_counts[field_counts.parser == "naive"]
                  .groupby(["template", "format", "layout", "field"]).apply(f1, include_groups=False)
                  .reset_index().pivot_table(index=["template", "format", "field"], columns="layout", values="f1")

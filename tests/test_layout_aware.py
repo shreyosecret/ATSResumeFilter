@@ -111,3 +111,12 @@ def test_public_loader_samples_per_category(tmp_path):
     out = load_kaggle_resumes(csv, limit=2, category=["engineering"])
     assert len(out) == 2 and all(i.startswith("public-") for i, _ in out)
     assert out[0][1].startswith("text ")  # whitespace normalized
+
+
+@pytest.mark.parametrize("template", ["classic", "modern", "latex", "career_center", "hybrid"])
+def test_layout_aware_matches_naive_on_single_column_for_every_template(tmp_path, template):
+    """Column detection must not fire on single-column pages, whatever the
+    template does with right-aligned dates or long wrapped lines."""
+    for p in PERSONAS[:6]:
+        path = render(p, "single", "pdf", tmp_path / f"{p['id']}.pdf", RenderOptions(template=template))
+        assert parse_resume(path, layout_aware=True).fields() == parse_resume(path).fields()

@@ -2,8 +2,200 @@
   "embedding_backend": "all-MiniLM-L6-v2",
   "n_personas": 16,
   "pool_size": 202,
-  "n_layout_resumes": 256,
+  "n_layout_resumes": 640,
   "layout": {
+    "career_center/layout_aware/docx/single": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/docx/table": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/docx/textbox": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/docx/two_column": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/pdf/single": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/pdf/table": {
+      "f1": 0.5276,
+      "f1_ci": [
+        0.5082,
+        0.5437
+      ],
+      "drop_pct": 34.8,
+      "drop_ci": [
+        32.3,
+        37.4
+      ]
+    },
+    "career_center/layout_aware/pdf/textbox": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/layout_aware/pdf/two_column": {
+      "f1": 0.7769,
+      "f1_ci": [
+        0.7623,
+        0.791
+      ],
+      "drop_pct": 4.0,
+      "drop_ci": [
+        3.1,
+        4.7
+      ]
+    },
+    "career_center/naive/docx/single": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/naive/docx/table": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/naive/docx/textbox": {
+      "f1": 0.4052,
+      "f1_ci": [
+        0.3844,
+        0.4211
+      ],
+      "drop_pct": 50.0,
+      "drop_ci": [
+        47.7,
+        52.6
+      ]
+    },
+    "career_center/naive/docx/two_column": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/naive/pdf/single": {
+      "f1": 0.8097,
+      "f1_ci": [
+        0.7962,
+        0.8233
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "career_center/naive/pdf/table": {
+      "f1": 0.3739,
+      "f1_ci": [
+        0.3609,
+        0.3863
+      ],
+      "drop_pct": 53.8,
+      "drop_ci": [
+        51.9,
+        55.7
+      ]
+    },
+    "career_center/naive/pdf/textbox": {
+      "f1": 0.6041,
+      "f1_ci": [
+        0.5687,
+        0.6333
+      ],
+      "drop_pct": 25.4,
+      "drop_ci": [
+        21.9,
+        29.4
+      ]
+    },
+    "career_center/naive/pdf/two_column": {
+      "f1": 0.7394,
+      "f1_ci": [
+        0.7134,
+        0.7645
+      ],
+      "drop_pct": 8.7,
+      "drop_ci": [
+        5.3,
+        11.8
+      ]
+    },
     "classic/layout_aware/docx/single": {
       "f1": 1.0,
       "f1_ci": [
@@ -196,6 +388,390 @@
         39.8
       ]
     },
+    "hybrid/layout_aware/docx/single": {
+      "f1": 0.7876,
+      "f1_ci": [
+        0.7778,
+        0.7966
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/layout_aware/docx/table": {
+      "f1": 0.7876,
+      "f1_ci": [
+        0.7778,
+        0.7966
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/layout_aware/docx/textbox": {
+      "f1": 0.7876,
+      "f1_ci": [
+        0.7778,
+        0.7966
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/layout_aware/docx/two_column": {
+      "f1": 0.6694,
+      "f1_ci": [
+        0.6552,
+        0.6825
+      ],
+      "drop_pct": 15.0,
+      "drop_ci": [
+        14.3,
+        15.8
+      ]
+    },
+    "hybrid/layout_aware/pdf/single": {
+      "f1": 0.3569,
+      "f1_ci": [
+        0.3446,
+        0.368
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/layout_aware/pdf/table": {
+      "f1": 0.3739,
+      "f1_ci": [
+        0.3609,
+        0.3863
+      ],
+      "drop_pct": -4.7,
+      "drop_ci": [
+        -4.9,
+        -4.6
+      ]
+    },
+    "hybrid/layout_aware/pdf/textbox": {
+      "f1": 0.3569,
+      "f1_ci": [
+        0.3446,
+        0.368
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/layout_aware/pdf/two_column": {
+      "f1": 0.4935,
+      "f1_ci": [
+        0.4798,
+        0.5066
+      ],
+      "drop_pct": -38.3,
+      "drop_ci": [
+        -39.8,
+        -37.4
+      ]
+    },
+    "hybrid/naive/docx/single": {
+      "f1": 0.7876,
+      "f1_ci": [
+        0.7778,
+        0.7966
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/naive/docx/table": {
+      "f1": 0.7876,
+      "f1_ci": [
+        0.7778,
+        0.7966
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/naive/docx/textbox": {
+      "f1": 0.2033,
+      "f1_ci": [
+        0.1902,
+        0.2133
+      ],
+      "drop_pct": 74.2,
+      "drop_ci": [
+        72.7,
+        75.9
+      ]
+    },
+    "hybrid/naive/docx/two_column": {
+      "f1": 0.6694,
+      "f1_ci": [
+        0.6552,
+        0.6825
+      ],
+      "drop_pct": 15.0,
+      "drop_ci": [
+        14.3,
+        15.8
+      ]
+    },
+    "hybrid/naive/pdf/single": {
+      "f1": 0.3569,
+      "f1_ci": [
+        0.3446,
+        0.368
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "hybrid/naive/pdf/table": {
+      "f1": 0.3739,
+      "f1_ci": [
+        0.3609,
+        0.3863
+      ],
+      "drop_pct": -4.7,
+      "drop_ci": [
+        -4.9,
+        -4.6
+      ]
+    },
+    "hybrid/naive/pdf/textbox": {
+      "f1": 0.2374,
+      "f1_ci": [
+        0.2256,
+        0.2468
+      ],
+      "drop_pct": 33.5,
+      "drop_ci": [
+        32.4,
+        34.8
+      ]
+    },
+    "hybrid/naive/pdf/two_column": {
+      "f1": 0.3324,
+      "f1_ci": [
+        0.3175,
+        0.3469
+      ],
+      "drop_pct": 6.9,
+      "drop_ci": [
+        4.2,
+        10.1
+      ]
+    },
+    "latex/layout_aware/docx/single": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/docx/table": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/docx/textbox": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/docx/two_column": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/pdf/single": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/pdf/table": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/pdf/textbox": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/layout_aware/pdf/two_column": {
+      "f1": 0.7167,
+      "f1_ci": [
+        0.692,
+        0.7414
+      ],
+      "drop_pct": 3.3,
+      "drop_ci": [
+        1.3,
+        5.5
+      ]
+    },
+    "latex/naive/docx/single": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/naive/docx/table": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/naive/docx/textbox": {
+      "f1": 0.3741,
+      "f1_ci": [
+        0.3535,
+        0.3928
+      ],
+      "drop_pct": 49.5,
+      "drop_ci": [
+        46.7,
+        52.3
+      ]
+    },
+    "latex/naive/docx/two_column": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/naive/pdf/single": {
+      "f1": 0.7412,
+      "f1_ci": [
+        0.7235,
+        0.7586
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "latex/naive/pdf/table": {
+      "f1": 0.3739,
+      "f1_ci": [
+        0.3609,
+        0.3863
+      ],
+      "drop_pct": 49.6,
+      "drop_ci": [
+        47.1,
+        51.9
+      ]
+    },
+    "latex/naive/pdf/textbox": {
+      "f1": 0.5421,
+      "f1_ci": [
+        0.5199,
+        0.5616
+      ],
+      "drop_pct": 26.9,
+      "drop_ci": [
+        24.4,
+        29.5
+      ]
+    },
+    "latex/naive/pdf/two_column": {
+      "f1": 0.7031,
+      "f1_ci": [
+        0.6718,
+        0.7345
+      ],
+      "drop_pct": 5.1,
+      "drop_ci": [
+        0.4,
+        9.9
+      ]
+    },
     "modern/layout_aware/docx/single": {
       "f1": 0.5132,
       "f1_ci": [
@@ -386,6 +962,198 @@
       "drop_ci": [
         -1.4,
         9.2
+      ]
+    },
+    "held_out_pooled/layout_aware/docx/single": {
+      "f1": 0.7219,
+      "f1_ci": [
+        0.587,
+        0.8019
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/layout_aware/docx/table": {
+      "f1": 0.7219,
+      "f1_ci": [
+        0.587,
+        0.8019
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/layout_aware/docx/textbox": {
+      "f1": 0.7219,
+      "f1_ci": [
+        0.587,
+        0.8019
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/layout_aware/docx/two_column": {
+      "f1": 0.694,
+      "f1_ci": [
+        0.5818,
+        0.7845
+      ],
+      "drop_pct": 3.9,
+      "drop_ci": [
+        0.0,
+        11.1
+      ]
+    },
+    "held_out_pooled/layout_aware/pdf/single": {
+      "f1": 0.6359,
+      "f1_ci": [
+        0.437,
+        0.7793
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/layout_aware/pdf/table": {
+      "f1": 0.5609,
+      "f1_ci": [
+        0.431,
+        0.6924
+      ],
+      "drop_pct": 11.8,
+      "drop_ci": [
+        -3.1,
+        30.9
+      ]
+    },
+    "held_out_pooled/layout_aware/pdf/textbox": {
+      "f1": 0.6359,
+      "f1_ci": [
+        0.437,
+        0.7793
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/layout_aware/pdf/two_column": {
+      "f1": 0.6329,
+      "f1_ci": [
+        0.4796,
+        0.7518
+      ],
+      "drop_pct": 0.5,
+      "drop_ci": [
+        -16.0,
+        6.3
+      ]
+    },
+    "held_out_pooled/naive/docx/single": {
+      "f1": 0.7219,
+      "f1_ci": [
+        0.587,
+        0.8019
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/naive/docx/table": {
+      "f1": 0.7219,
+      "f1_ci": [
+        0.587,
+        0.8019
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/naive/docx/textbox": {
+      "f1": 0.3509,
+      "f1_ci": [
+        0.2592,
+        0.4046
+      ],
+      "drop_pct": 51.4,
+      "drop_ci": [
+        34.9,
+        66.5
+      ]
+    },
+    "held_out_pooled/naive/docx/two_column": {
+      "f1": 0.694,
+      "f1_ci": [
+        0.5818,
+        0.7845
+      ],
+      "drop_pct": 3.9,
+      "drop_ci": [
+        0.0,
+        11.1
+      ]
+    },
+    "held_out_pooled/naive/pdf/single": {
+      "f1": 0.6359,
+      "f1_ci": [
+        0.437,
+        0.7793
+      ],
+      "drop_pct": 0.0,
+      "drop_ci": [
+        0.0,
+        0.0
+      ]
+    },
+    "held_out_pooled/naive/pdf/table": {
+      "f1": 0.3739,
+      "f1_ci": [
+        0.3605,
+        0.3867
+      ],
+      "drop_pct": 41.2,
+      "drop_ci": [
+        14.9,
+        52.2
+      ]
+    },
+    "held_out_pooled/naive/pdf/textbox": {
+      "f1": 0.4443,
+      "f1_ci": [
+        0.2601,
+        0.5793
+      ],
+      "drop_pct": 30.1,
+      "drop_ci": [
+        25.3,
+        40.6
+      ]
+    },
+    "held_out_pooled/naive/pdf/two_column": {
+      "f1": 0.5911,
+      "f1_ci": [
+        0.4103,
+        0.7258
+      ],
+      "drop_pct": 7.0,
+      "drop_ci": [
+        2.3,
+        10.8
       ]
     }
   }

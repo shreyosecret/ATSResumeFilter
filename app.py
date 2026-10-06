@@ -31,7 +31,7 @@ st.caption(
 
 @st.cache_resource(show_spinner="Rendering resumes...")
 def ensure_corpus() -> bool:
-    if not resume_path("p01", "single", "pdf", template="modern").exists():
+    if not all(resume_path("p16", "textbox", "docx", template=t).exists() for t in TEMPLATES):
         from scripts.build_corpus import main as build
 
         build(RESUME_DIR)
@@ -59,7 +59,7 @@ with st.sidebar:
     layout = st.selectbox("Resume layout (all candidates)", LAYOUTS, help="Same content, different visual layout.")
     fmt = st.selectbox("File format", FORMATS)
     template = st.selectbox("Template", TEMPLATES,
-                            help="classic: the template the parser was developed on. modern: held out.")
+                            help="classic: the template the parser was developed on. The others are held out.")
     layout_aware = st.toggle("Layout-aware parser", value=False,
                              help="Detect tables, boxes and columns before reading. Field rules are unchanged.")
     missing_policy = st.radio("If a knockout field can't be parsed", ["review", "reject", "pass"],

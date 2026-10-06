@@ -15,11 +15,23 @@ Layouts:
 Templates (the wording and formatting inside a layout):
   classic    the template the parser was developed against: ALL-CAPS headings,
              "B.S. in Field", "Title | Company | dates" on one line
-  modern     a held-out template written after the parser was frozen and never
-             used to tune it: title-case headings (one outside the parser's
-             heading list), a profile summary, icon glyphs in the contact line,
-             "Bachelor of Science, Field", right-aligned dates, skills grouped
-             under category labels, experience before education
+  The other four are held out: written after the parser was frozen, each
+  modeled on a common real-world style, and never used to tune the parser.
+  modern         title-case headings (one outside the parser's heading list),
+                 a profile summary, icon glyphs in the contact line,
+                 "Bachelor of Science, Field", right-aligned dates, skills
+                 grouped under category labels, experience before education
+  latex          modeled on the popular one-page LaTeX student template:
+                 school | location and degree | date-range rows, title | dates
+                 then company | location rows, "Technical Skills" by category
+  career_center  modeled on university career-center handouts: ALL-CAPS
+                 headings such as "RELEVANT EXPERIENCE", company line then
+                 title line, GPA inside the degree line, skills in one line of
+                 "Label: items;" groups
+  hybrid         a skills-first "functional/hybrid" resume: qualifications
+                 summary, "Core Competencies" as one bullet per skill,
+                 seasonal dates ("Summer 2025"), year-only graduation, and an
+                 "Education & Certifications" heading
 """
 from __future__ import annotations
 
@@ -30,7 +42,8 @@ from pathlib import Path
 
 LAYOUTS = ("single", "two_column", "table", "textbox")
 FORMATS = ("pdf", "docx")
-TEMPLATES = ("classic", "modern")
+TEMPLATES = ("classic", "modern", "latex", "career_center", "hybrid")
+HELD_OUT_TEMPLATES = ("modern", "latex", "career_center", "hybrid")
 REFERENCE_DATE = "2026-10"  # "today" for the synthetic data set; later grad dates are "Expected"
 
 _MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -138,14 +151,107 @@ def _modern_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, st
     return out
 
 
+def _date_range(x: dict, style: str) -> str:
+    return f"{fmt_date(x['start'], style)} – {fmt_date(x['end'], style)}"
+
+
+def _projects(p: dict) -> list[tuple[str, str]]:
+    out = []
+    for pr in p.get("projects", []):
+        out.append(("bold", pr["name"]))
+        out += [("bullet", b) for b in pr["bullets"]]
+    return out
+
+
+def _latex_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
+    e = p["education"]
+    y, m = (int(v) for v in e["grad_date"].split("-"))
+    start = f"{y - 4}-08"
+    out: dict[str, list[tuple[str, str]]] = {
+        "contact": [("text", p["phone"]), ("text", p["email"]), ("text", p["location"])],
+        "education": [
+            ("split", f"{e['school']}\t{e['location']}"),
+            ("splitplain", f"{DEGREE_LONG[e['degree_level']]} in {e['field']}\t"
+                           f"{fmt_date(start, opts.date_style)} – {fmt_date(e['grad_date'], opts.date_style)}"),
+        ],
+        "experience": [],
+        "projects": _projects(p),
+        "skills": [("text", f"{label}: {', '.join(items)}") for label, items in _skill_groups(p["skills"])],
+    }
+    if e.get("gpa") is not None:
+        out["education"].append(("text", f"GPA: {e['gpa']:.2f}"))
+    for x in p["experience"]:
+        out["experience"].append(("split", f"{x['title']}\t{_date_range(x, opts.date_style)}"))
+        out["experience"].append(("splitplain", f"{x['company']}\t{x['location']}"))
+        out["experience"] += [("bullet", b) for b in x["bullets"]]
+    return out
+
+
+def _career_center_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
+    e = p["education"]
+    gpa = f", GPA {e['gpa']:.2f}/4.00" if e.get("gpa") is not None else ""
+    out: dict[str, list[tuple[str, str]]] = {
+        "contact": [("text", p["location"]), ("text", p["email"]), ("text", p["phone"])],
+        "education": [
+            ("split", f"{e['school'].upper()}\t{e['location']}"),
+            ("splitplain", f"{DEGREE_LONG[e['degree_level']]} in {e['field']}{gpa}\t"
+                           f"{fmt_date(e['grad_date'], opts.date_style)}"),
+        ],
+        "experience": [],
+        "projects": _projects(p),
+        "skills": [("text", "; ".join(f"{label}: {', '.join(items)}" for label, items in _skill_groups(p["skills"])))],
+    }
+    for x in p["experience"]:
+        out["experience"].append(("split", f"{x['company'].upper()}\t{x['location']}"))
+        out["experience"].append(("splitplain", f"{x['title']}\t{_date_range(x, opts.date_style)}"))
+        out["experience"] += [("bullet", b) for b in x["bullets"]]
+    return out
+
+
+_SEASONS = {12: "Winter", 1: "Winter", 2: "Winter", 3: "Spring", 4: "Spring", 5: "Spring",
+            6: "Summer", 7: "Summer", 8: "Summer", 9: "Fall", 10: "Fall", 11: "Fall"}
+
+
+def _season(iso: str) -> str:
+    if iso == "present":
+        return "Present"
+    y, m = (int(v) for v in iso.split("-"))
+    return f"{_SEASONS[m]} {y}"
+
+
+def _hybrid_blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
+    e = p["education"]
+    gpa = f" (GPA {e['gpa']:.2f})" if e.get("gpa") is not None else ""
+    top = p["skills"][:3]
+    out: dict[str, list[tuple[str, str]]] = {
+        "contact": [("text", p["email"]), ("text", p["phone"]), ("text", p["location"])],
+        "summary": [
+            ("bullet", f"{e['field']} {'student' if e['grad_date'] > REFERENCE_DATE else 'graduate'} "
+                       f"with {len(p['experience'])} technical roles"),
+            ("bullet", f"Hands-on experience with {', '.join(top)}"),
+        ],
+        "skills": [("bullet", sk) for sk in p["skills"]],
+        "experience": [],
+        "projects": _projects(p),
+        "education": [("text", f"{e['degree']}, {e['field']}, {e['school']}, {e['grad_date'][:4]}{gpa}")],
+    }
+    for x in p["experience"]:
+        start, end = _season(x["start"]), _season(x["end"])
+        dates = start if start == end else f"{start} – {end}"
+        out["experience"].append(("split", f"{x['title']}, {x['company']}\t{dates}"))
+        out["experience"] += [("bullet", b) for b in x["bullets"]]
+    return out
+
+
+_BUILDERS = {"classic": "_classic_blocks", "modern": "_modern_blocks", "latex": "_latex_blocks",
+             "career_center": "_career_center_blocks", "hybrid": "_hybrid_blocks"}
+
+
 def blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
     """Lines per section as (kind, text), in the template's section order."""
-    if opts.template == "classic":
-        out = _classic_blocks(p, opts)
-    elif opts.template == "modern":
-        out = _modern_blocks(p, opts)
-    else:
+    if opts.template not in _BUILDERS:
         raise ValueError(f"unknown template {opts.template!r}")
+    out = globals()[_BUILDERS[opts.template]](p, opts)
     for heading, body in opts.extra_sections:
         out[heading.lower()] = [("text", body)]
     return out
@@ -157,6 +263,13 @@ HEADINGS = {
     # "Skills & Certifications" is deliberately one the naive parser does not know.
     "modern": {"contact": "Get in Touch", "summary": "Profile", "education": "Education",
                "experience": "Work History", "projects": "Selected Projects", "skills": "Skills & Certifications"},
+    "latex": {"contact": "Contact", "education": "Education", "experience": "Experience",
+              "projects": "Projects", "skills": "Technical Skills"},
+    "career_center": {"contact": "CONTACT", "education": "EDUCATION", "experience": "RELEVANT EXPERIENCE",
+                      "projects": "ACADEMIC PROJECTS", "skills": "SKILLS & INTERESTS"},
+    "hybrid": {"contact": "Contact", "summary": "Summary of Qualifications", "skills": "Core Competencies",
+               "experience": "Professional Experience", "projects": "Projects",
+               "education": "Education & Certifications"},
 }
 SIDEBAR = ("contact", "education", "skills")
 
@@ -171,7 +284,7 @@ def section_order(b: dict) -> list[str]:
 
 
 def line_text(kind: str, text: str, unicode_icons: bool = True) -> str:
-    if kind == "split":
+    if kind in ("split", "splitplain"):
         return text.replace("\t", "  ")
     if kind == "icon":
         key, value = text.split("\t")
@@ -208,9 +321,10 @@ def _flow(lines, st, width: float):
     for kind, text in lines:
         if kind == "bullet":
             out.append(Paragraph(html.escape(text), st["bullet"], bulletText="•"))
-        elif kind == "split":
+        elif kind in ("split", "splitplain"):
             left, right = (html.escape(t) for t in text.split("\t"))
-            t = Table([[Paragraph(left, st["bold"]), Paragraph(right, st["right"])]],
+            left_style = st["bold"] if kind == "split" else st["text"]
+            t = Table([[Paragraph(left, left_style), Paragraph(right, st["right"])]],
                       colWidths=[width * 0.66, width * 0.34])
             t.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
                                    ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
@@ -410,11 +524,11 @@ def _docx_lines(container, lines, width_in: float = 7.3):
         if kind == "bullet":
             para = container.add_paragraph(f"• {text}")
             para.paragraph_format.left_indent = Pt(10)
-        elif kind == "split":
+        elif kind in ("split", "splitplain"):
             left, right = text.split("\t")
             para = container.add_paragraph()
             para.paragraph_format.tab_stops.add_tab_stop(Inches(width_in), WD_TAB_ALIGNMENT.RIGHT)
-            para.add_run(left).bold = True
+            para.add_run(left).bold = kind == "split"
             para.add_run("\t" + right)
         else:
             para = container.add_paragraph()
@@ -497,7 +611,8 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
         for key in [k for k in section_order(b) if k != "skills"]:
             if key == "experience":
                 anchor = d.add_paragraph()
-                skills = [heading_for("skills", tpl), *[t for _, t in b["skills"]]]
+                skills = [heading_for("skills", tpl),
+                          *[("• " + t) if k == "bullet" else line_text(k, t) for k, t in b["skills"]]]
                 _add_textbox(anchor, skills, 0, 0, 520, 30 + 14 * len(b["skills"]), 2)
                 for _ in range(2 + len(b["skills"])):
                     d.add_paragraph()

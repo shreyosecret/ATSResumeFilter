@@ -120,12 +120,40 @@ def _inside(obj: dict, bbox: tuple) -> bool:
     return x0 <= cx <= x1 and top <= cy <= bottom
 
 
+def _rows(words: list[dict], tol: float = 2.0) -> list[list[dict]]:
+    rows: list[list[dict]] = []
+    for w in sorted(words, key=lambda w: (w["top"], w["x0"])):
+        if rows and abs(rows[-1][0]["top"] - w["top"]) <= tol:
+            rows[-1].append(w)
+        else:
+            rows.append([w])
+    return rows
+
+
+def _right_aligned(words: list[dict]) -> bool:
+    """True if these words form right-aligned fragments (dates, locations)
+    rather than a column of text. Body-text columns are left-aligned: their
+    rows share a left edge and have ragged right edges. Right-aligned fields
+    share a right edge and have ragged left edges."""
+    import statistics
+
+    rows = _rows(words)
+    if len(rows) < 3:
+        return False
+    lefts = [min(w["x0"] for w in r) for r in rows]
+    rights = [max(w["x1"] for w in r) for r in rows]
+    return statistics.pstdev(rights) < 0.5 * statistics.pstdev(lefts)
+
+
 def find_gutter(words: list[dict], page_width: float, pad: float = 4.0, min_side: float = 0.15) -> float | None:
     """x position of a vertical gutter that splits the words into two columns.
 
     A gutter is a vertical line that no word crosses (allowing 1% noise) and
     that has at least `min_side` of the words on each side. Single-column text
-    always has lines that run across the middle, so it has no gutter.
+    always has lines that run across the middle, so it has no gutter. A
+    right-hand side made of right-aligned fragments (dates and locations set
+    flush right) is not a column, and a gutter that cuts through a line of
+    continuous text is not a gutter.
     """
     if len(words) < 20:
         return None
@@ -140,7 +168,24 @@ def find_gutter(words: list[dict], page_width: float, pad: float = 4.0, min_side
             best, best_cross = x, cross
     if best is None or best_cross > 0.01 * len(words):
         return None
+    if _right_aligned([w for w in words if w["x0"] >= best]) or _cuts_a_line(words, best):
+        return None
     return best
+
+
+def _cuts_a_line(words: list[dict], x: float, min_gap: float = 8.0) -> bool:
+    """True if the candidate gutter at `x` runs through a line of continuous
+    text: a row with a word straddling it next to words on either side, or
+    with words on both sides closer together than normal column spacing."""
+    for row in _rows(words):
+        left = [w for w in row if w["x1"] <= x]
+        right = [w for w in row if w["x0"] >= x]
+        crossing = len(row) - len(left) - len(right)
+        if crossing and (left or right):
+            return True
+        if left and right and min(w["x0"] for w in right) - max(w["x1"] for w in left) < min_gap:
+            return True
+    return False
 
 
 def _region_text(page, bbox) -> str:

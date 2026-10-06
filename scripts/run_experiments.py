@@ -22,13 +22,14 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from ats_sim import experiments as ex  # noqa: E402
-from ats_sim.render import LAYOUTS, TEMPLATES  # noqa: E402
+from ats_sim.render import HELD_OUT_TEMPLATES, LAYOUTS, TEMPLATES  # noqa: E402
 
 OUT = ROOT / "results"
 
 # Reference palette (dataviz skill), light mode; slots in fixed order.
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
+SERIES_5 = SERIES + ["#e87ba4"]
 SCORER_ORDER = ["keyword", "tfidf", "embedding", "keyword+taxonomy"]
 CELL_COLS = ["template", "parser", "format", "layout"]
 LAYOUT_LABELS = {"single": "Single column", "two_column": "Two column", "table": "Table", "textbox": "Text boxes"}
@@ -76,53 +77,58 @@ def grouped_bars(ax, categories, series: dict[str, list[float]], colors, fmt="{:
     ax.grid(axis="x", visible=False)
 
 
+TEMPLATE_LABELS = {"classic": "classic (dev)", "modern": "modern", "latex": "latex",
+                   "career_center": "career center", "hybrid": "hybrid", ex.POOLED: "held-out, pooled"}
+
+
 def chart_layout(overall: pd.DataFrame, path: Path):
-    """Headline: the classic template read by the naive parser, with 95% CIs."""
-    d = overall[(overall.template == "classic") & (overall.parser == "naive")]
-    fig, ax = plt.subplots(figsize=(8, 4.2))
+    """Headline: naive parser, development template vs the held-out templates pooled, with 95% CIs."""
+    d = overall[overall.parser == "naive"]
+    combos = [("pdf", "classic", "PDF, dev template"), ("pdf", ex.POOLED, "PDF, held-out templates"),
+              ("docx", "classic", "DOCX, dev template"), ("docx", ex.POOLED, "DOCX, held-out templates")]
+    fig, ax = plt.subplots(figsize=(9.5, 4.4))
     series, errors = {}, {}
-    for fmt, label in (("pdf", "PDF"), ("docx", "DOCX")):
-        s = d[d.format == fmt].set_index("layout").reindex(LAYOUTS)
+    for fmt, template, label in combos:
+        s = d[(d.format == fmt) & (d.template == template)].set_index("layout").reindex(LAYOUTS)
         series[label] = s["f1"].tolist()
         errors[label] = (s["f1_lo"].tolist(), s["f1_hi"].tolist())
-    grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES[:2], errors=errors)
-    ax.set_ylim(0, 1.15)
+    grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES, errors=errors)
+    for t in ax.texts:
+        t.set_fontsize(7)
+    ax.set_ylim(0, 1.32)
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
     ax.set_ylabel("Field extraction F1 (micro)")
     ax.set_title("Same content, different layout: what the naive parser recovers")
-    ax.legend(loc="upper right", ncols=2)
-    ax.text(0, -0.16, "Classic template, naive parser. Whiskers: 95% bootstrap CI over the 16 personas.",
+    ax.legend(loc="upper center", ncols=4, fontsize=8)
+    ax.text(0, -0.16, "Held-out = 4 templates the parser never saw, pooled. Whiskers: 95% bootstrap CI "
+            "(dev: over personas; held-out: over templates and personas).",
             transform=ax.transAxes, fontsize=8, color=INK2)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
 
-def chart_layout_parsers(overall: pd.DataFrame, path: Path):
-    """Both templates x both parser modes, small multiples by template."""
-    combos = [("pdf", "naive", "PDF, naive"), ("pdf", "layout_aware", "PDF, layout-aware"),
-              ("docx", "naive", "DOCX, naive"), ("docx", "layout_aware", "DOCX, layout-aware")]
-    fig, axes = plt.subplots(1, 2, figsize=(13, 4.4), sharey=True)
-    titles = {"classic": "Classic template (parser developed on it)", "modern": "Modern template (held out)"}
-    for ax, template in zip(axes, TEMPLATES):
-        d = overall[overall.template == template]
-        series, errors = {}, {}
-        for fmt, parser, label in combos:
-            s = d[(d.format == fmt) & (d.parser == parser)].set_index("layout").reindex(LAYOUTS)
-            series[label] = s["f1"].tolist()
-            errors[label] = (s["f1_lo"].tolist(), s["f1_hi"].tolist())
-        grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES, errors=errors, fmt="{:.2f}")
-        ax.set_title(titles[template], fontsize=11)
-        ax.set_ylim(0, 1.15)
-        ax.tick_params(axis="x", labelsize=9)
-    for a in axes[1:]:
-        for t in a.texts:
-            t.set_fontsize(6.5)
-    for t in axes[0].texts:
-        t.set_fontsize(6.5)
-    axes[0].set_ylabel("Field extraction F1 (micro)")
-    fig.legend(*axes[0].get_legend_handles_labels(), loc="upper right", ncols=4)
-    fig.suptitle("Layout x template x parser", x=0.01, ha="left", fontweight="bold")
-    fig.tight_layout(rect=(0, 0, 1, 0.97))
+def chart_layout_templates(overall: pd.DataFrame, path: Path):
+    """Every template, both parser modes, both formats (2 x 2 small multiples)."""
+    fig, axes = plt.subplots(2, 2, figsize=(13, 7.4), sharey=True)
+    for r, parser in enumerate(("naive", "layout_aware")):
+        for c, fmt in enumerate(("pdf", "docx")):
+            ax = axes[r, c]
+            d = overall[(overall.parser == parser) & (overall.format == fmt)]
+            series, errors = {}, {}
+            for template in TEMPLATES:
+                s = d[d.template == template].set_index("layout").reindex(LAYOUTS)
+                series[TEMPLATE_LABELS[template]] = s["f1"].tolist()
+                errors[TEMPLATE_LABELS[template]] = (s["f1_lo"].tolist(), s["f1_hi"].tolist())
+            grouped_bars(ax, [LAYOUT_LABELS[l] for l in LAYOUTS], series, SERIES_5, errors=errors,
+                         label_values=False)
+            ax.set_title(f"{fmt.upper()}, {parser.replace('_', '-')} parser", fontsize=11)
+            ax.set_ylim(0, 1.08)
+            ax.tick_params(axis="x", labelsize=9)
+        axes[r, 0].set_ylabel("Field extraction F1 (micro)")
+    fig.legend(*axes[0, 0].get_legend_handles_labels(), loc="upper right", ncols=5)
+    fig.suptitle("Layout x template x parser (exact values in RESULTS.md)", x=0.01, ha="left", fontweight="bold")
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
@@ -269,7 +275,7 @@ def main():
     lay["effects"].to_csv(out / "layout_effects.csv", index=False)
     lay["transitions"].to_csv(out / "layout_knockout_transitions.csv", index=False)
     chart_layout(lay["overall"], out / "layout_f1.png")
-    chart_layout_parsers(lay["overall"], out / "layout_parsers.png")
+    chart_layout_templates(lay["overall"], out / "layout_templates.png")
     for template in TEMPLATES:
         for fmt in ("pdf", "docx"):
             chart_field_heatmap(lay["per_field"], template, fmt, out / f"layout_fields_{template}_{fmt}.png")
@@ -338,9 +344,11 @@ def main():
         "",
         "## 1. Layout robustness (field extraction F1)",
         "",
-        f"{n_resumes} rendered resumes (16 personas x 2 templates x 2 formats x 4 layouts), each read by both "
-        "parser modes. `drop` is relative to single column in the same template, parser and format; its CI is "
-        "a paired bootstrap over personas.",
+        f"{n_resumes} rendered resumes (16 personas x {len(TEMPLATES)} templates x 2 formats x 4 layouts), each "
+        "read by both parser modes. `drop` is relative to single column in the same template, parser and format. "
+        "Per-template CIs are a paired bootstrap over personas; `held_out_pooled` pools the "
+        f"{len(HELD_OUT_TEMPLATES)} held-out templates ({', '.join(HELD_OUT_TEMPLATES)}) with a two-level "
+        "bootstrap over templates and personas.",
         "",
         md_table(ov[CELL_COLS + ["precision", "recall", "f1", "f1_lo", "f1_hi",
                                  "f1_drop_vs_single_pct", "drop_lo", "drop_hi"]]),
@@ -355,14 +363,7 @@ def main():
         "",
         md_table(lay["transitions"]),
         "",
-        "Per-field F1, naive parser, classic template:",
-        "",
-        per_field_md("classic"),
-        "",
-        "Per-field F1, naive parser, modern (held-out) template:",
-        "",
-        per_field_md("modern"),
-        "",
+        *[line for t in TEMPLATES for line in (f"Per-field F1, naive parser, {t} template:", "", per_field_md(t), "")],
         "## 2. Synonym sensitivity",
         "",
         "`rank_change` > 0 means the resume dropped when it used the alternative wording. "
