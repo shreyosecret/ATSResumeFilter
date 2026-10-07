@@ -241,9 +241,10 @@ A big taxonomy halves the synonym penalty (it maps "finite element analysis" to 
 ```bash
 python scripts/check_resume.py my_resume.pdf --authorized yes --public-pool data/kaggle/Resume.csv
 python scripts/check_resume.py my_resume.pdf --gold my_resume.gold.json   # adds per-parser accuracy
+python scripts/check_resume.py my_resume.pdf --posting real_posting.txt   # score against real postings (repeatable)
 ```
 
-The report (written to `private/`, which is gitignored) shows what each parser extracted side by side, parsing risks (headings a heading-list parser will miss, glyphs that do not map to text, hidden text, detected columns or tables), skills found by the curated list and by SkillNer, the knockout result under each parse, and the resume's score and rank against each posting, including two extra postings in `data/jobs_extra/`. An optional answer key in the `data/personas.json` format adds per-parser accuracy. Nothing is uploaded anywhere.
+The report (written to `private/`, which is gitignored) shows what each parser extracted side by side, parsing risks (headings a heading-list parser will miss, glyphs that do not map to text, hidden text, detected columns or tables), skills found by the curated list and by SkillNer, the knockout result under each parse, and the resume's score and rank against each posting, including two extra postings in `data/jobs_extra/`. Those two were written while testing a real student resume, so they are not a neutral benchmark for that resume; for a meaningful rank, pass real postings with `--posting`. The report also flags a degree with no extractable field of study and parsers that disagree on the school. An optional answer key in the `data/personas.json` format adds per-parser accuracy. Nothing is uploaded anywhere.
 
 ## Limitations
 

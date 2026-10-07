@@ -2,6 +2,7 @@
 
     python scripts/check_resume.py my_resume.pdf
     python scripts/check_resume.py my_resume.pdf --gold my_resume.gold.json --authorized yes --public-pool data/kaggle/Resume.csv
+    python scripts/check_resume.py my_resume.pdf --posting real_posting.txt --posting another.txt
 
 The report goes to private/ (gitignored) by default. It shows what each
 parser extracted, parsing risks (headings a naive parser does not know,
@@ -101,6 +102,9 @@ def main():
     ap.add_argument("resume")
     ap.add_argument("--gold", help="hand-written answer key (data/personas.json format) for per-parser accuracy")
     ap.add_argument("--jobs-dir", action="append", help="posting folders (default: data/jobs and data/jobs_extra)")
+    ap.add_argument("--posting", action="append",
+                    help="a real posting saved as .txt (no knockout rules) or .json (data/jobs format); "
+                         "replaces the default postings, can repeat")
     ap.add_argument("--authorized", choices=["yes", "no", "unknown"], default="unknown",
                     help="answer to the work-authorization question (not on a resume)")
     ap.add_argument("--needs-sponsorship", choices=["yes", "no", "unknown"], default="unknown")
@@ -128,7 +132,16 @@ def main():
     md = [f"# Resume check: {path.name}", "",
           "A simulator modeled on documented ATS behavior, not a prediction of any real vendor's system.", ""]
 
-    md += ["## Parsing risks", ""] + [f"- {n}" for n in diagnostics(path, parsed["naive"].raw_text)] + [""]
+    notes = diagnostics(path, parsed["naive"].raw_text)
+    if any(r.degree_level for r in parsed.values()) and not any(r.field_of_study for r in parsed.values()):
+        notes.append("A degree was found but no parser extracted the field of study. Parsers commonly look for "
+                     "'<degree> in <Field>' (for example 'B.S. in Biomedical Engineering'); without 'in', degree-field "
+                     "knockout rules see a missing field.")
+    schools = {n: r.school for n, r in parsed.items() if r.school}
+    if len({str(v).lower() for v in schools.values()}) > 1:
+        notes.append("Parsers disagree on the school: " + "; ".join(f"{n}: {v}" for n, v in schools.items())
+                     + ". Check the education lines, especially a second school or a date on the same line.")
+    md += ["## Parsing risks", ""] + [f"- {n}" for n in notes] + [""]
 
     md += ["## What each parser extracted", "", "| field | " + " | ".join(names) + " |",
            "|---|" + "---|" * len(names)]
@@ -169,8 +182,20 @@ def main():
     md.append("")
 
     # ---- scoring against postings
-    dirs = args.jobs_dir or [str(ROOT / "data" / "jobs"), str(ROOT / "data" / "jobs_extra")]
-    jobs = [j for d in dirs for j in load_jobs(d)]
+    if args.posting:
+        from ats_sim.jd import load_job
+        from ats_sim.models import JobPosting
+
+        jobs = []
+        for pth in map(Path, args.posting):
+            if pth.suffix == ".json":
+                jobs.append(load_job(pth))
+            else:
+                body = pth.read_text()
+                jobs.append(JobPosting(id=pth.stem, title=body.strip().splitlines()[0][:80], text=body))
+    else:
+        dirs = args.jobs_dir or [str(ROOT / "data" / "jobs"), str(ROOT / "data" / "jobs_extra")]
+        jobs = [j for d in dirs for j in load_jobs(d)]
     pool = {}
     for p in load_personas():
         rp = resume_path(p["id"], "single", "pdf")
