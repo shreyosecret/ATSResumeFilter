@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ats-sim"
+version = "1.0.0"
+description = "A simulator of applicant tracking systems: see how resumes are parsed, screened and ranked."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pdfplumber>=0.11",
+  "python-docx>=1.1",
+  "reportlab>=4.0",
+  "spacy>=3.7",
+  "scikit-learn>=1.4",
+  "numpy",
+  "pandas>=2.2",
+  "matplotlib>=3.8",
+  "tabulate>=0.9",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+embeddings = ["sentence-transformers>=2.7"]   # the semantic (AI) scorer; without it an LSA fallback is used
+desktop = ["pywebview>=5"]                    # open in a native window instead of the browser
+dashboard = ["streamlit>=1.45"]               # the older developer dashboard (app.py)
+dev = ["pytest>=8", "httpx"]
+all = ["ats-sim[embeddings,desktop,dashboard,dev]"]
+
+[project.scripts]
+ats-sim = "ats_sim.desktop:main"
+
+[tool.setuptools.packages.find]
+include = ["ats_sim*"]
+
+[tool.setuptools.package-data]
+"ats_sim.webapp" = ["static/*"]

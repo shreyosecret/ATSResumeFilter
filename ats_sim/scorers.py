@@ -13,6 +13,8 @@ import re
 import warnings
 from dataclasses import dataclass, field
 
+from pathlib import Path
+
 import numpy as np
 
 from .models import JobAnalysis
@@ -214,6 +216,29 @@ class EmbeddingScorer:
                 n = np.linalg.norm(v)
                 self._cache[c] = v / n if n else v
         return np.stack([self._cache[c] for c in chunks])
+
+    def save_cache(self, path: str | Path) -> None:
+        """Persist chunk embeddings so the next launch skips re-encoding."""
+        if not self._cache or self.model is None:
+            return
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        keys = list(self._cache)
+        np.savez_compressed(path, keys=np.array(keys, dtype=object), vecs=np.stack([self._cache[k] for k in keys]),
+                            backend=np.array(self.backend))
+
+    def load_cache(self, path: str | Path) -> int:
+        """Load embeddings saved by save_cache for the same backend; returns how many."""
+        path = Path(path)
+        if self.model is None or not path.exists():
+            return 0
+        try:
+            data = np.load(path, allow_pickle=True)
+            if str(data["backend"]) != self.backend:
+                return 0
+            self._cache.update(zip(data["keys"].tolist(), data["vecs"]))
+            return len(data["keys"])
+        except Exception:  # a stale or partial cache is just ignored
+            return 0
 
     def doc_vector(self, text: str) -> np.ndarray:
         chunks = chunk_text(text) or [text or " "]

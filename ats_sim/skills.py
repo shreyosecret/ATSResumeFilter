@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from .data import DATA_DIR  # noqa: E402  (one place decides where the data lives)
 
 
 @dataclass(frozen=True)

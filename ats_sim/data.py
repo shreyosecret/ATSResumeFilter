@@ -2,15 +2,21 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(os.environ["ATS_SIM_HOME"]).resolve() if os.environ.get("ATS_SIM_HOME") \
+    else Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 RESUME_DIR = DATA_DIR / "resumes"
 
 
 def load_personas(path: str | Path | None = None) -> list[dict]:
     path = Path(path) if path else DATA_DIR / "personas.json"
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"Data files not found at {DATA_DIR}. Install from a checkout of the repository "
+            "(pip install -e .) or set ATS_SIM_HOME to the repository folder.")
     return json.loads(Path(path).read_text())["personas"]
 
 

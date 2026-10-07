@@ -10,3 +10,8 @@ streamlit>=1.45
 pytest>=8.0
 # after install: python -m spacy download en_core_web_sm
 tabulate>=0.9
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+httpx
+# optional: pywebview (native window for the app)

@@ -6,6 +6,33 @@ A Python simulator that parses resumes the way a simple applicant tracking syste
 
 This is **a simulator modeled on documented ATS behavior**, not a reproduction of any vendor's system. Workday, Greenhouse, Lever and iCIMS are proprietary, and nothing here says how any of them scores a real person.
 
+## The app
+
+![Resume check](docs/screenshots/resume-check.png)
+
+A desktop-style app for checking a resume and exploring how screening works. It runs entirely on your computer: uploaded resumes are read, analyzed and deleted, and the server only listens on 127.0.0.1.
+
+| Screen | What it does |
+|---|---|
+| **Resume check** | Drop in a PDF or Word resume. See what every parser read side by side, what could trip a screening rule (worst first), skills found, and how it scores and ranks against each posting, including one you paste in |
+| **Screening** | The recruiter's view: 16 fictional candidates screened and ranked. Switch template, layout, file format or parser and watch who gets screened out; click a candidate to compare what the parser read with what the resume says |
+| **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
+| **Research** | The headline findings and charts from the experiments below |
+
+**Run it**
+
+- Double-click `launchers/ATS Simulator.command` (macOS) or `launchers/ATS Simulator.bat` (Windows), or run `bash launchers/run.sh` (Linux). The first run creates a private Python environment and installs everything (a few minutes, once); later runs open in seconds.
+- Or by hand: `pip install -e ".[embeddings,desktop]"`, `python -m spacy download en_core_web_sm`, then `ats-sim`.
+
+With `pywebview` installed (the `desktop` extra) the app opens in its own window; otherwise it opens in your browser. `ats-sim --browser` forces the browser. Light and dark themes follow the system, with a toggle. The first launch takes about a minute while the language model indexes the comparison resumes; that index is cached, so later launches take seconds. The open-source parsers and SkillNer appear automatically when installed (`scripts/setup_external.sh`).
+
+<table><tr>
+<td><img src="docs/screenshots/screening.png" alt="Screening view"></td>
+<td><img src="docs/screenshots/candidate-dark.png" alt="Candidate details, dark theme"></td>
+</tr></table>
+
+**Shipping notes.** The app installs with pip from a checkout of this repository; the launchers wrap that so non-technical users can double-click. It is not yet a signed stand-alone installer: bundling it with PyInstaller is possible but would carry PyTorch (for the semantic scorer, roughly 1 to 2 GB) and must be built on each operating system. Without the `embeddings` extra the app still works, using a lighter LSA fallback that it labels as such. The older Streamlit developer dashboard is still available with `streamlit run app.py`.
+
 ## What it models (and what it deliberately does not)
 
 The popular claim that "75% of resumes are auto-rejected by robots" has no solid study behind it. Documented ATS behavior comes down to three things, and the simulator models exactly those:
@@ -28,8 +55,9 @@ python -m spacy download en_core_web_sm
 
 python scripts/build_corpus.py                 # 16 personas x 5 templates x 2 formats x 4 layouts = 640 resumes
 python scripts/run_experiments.py --require-minilm      # results/ (fails rather than falling back to LSA)
-streamlit run app.py                           # dashboard
-pytest                                         # 52 tests (also run by GitHub Actions on every push)
+ats-sim                                        # the app (after pip install -e ".[embeddings,desktop]")
+streamlit run app.py                           # older developer dashboard
+pytest                                         # 60 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
 python scripts/fetch_public_resumes.py         # CC0 dataset, no Kaggle account needed
@@ -277,6 +305,9 @@ results/parsers/      parser benchmark (ours vs OpenResume vs pyresparser vs ens
 results/        16-resume pool: CSVs, charts, RESULTS.md, summary.json
 results/public_pool/  same experiments with 186 public distractor resumes
 tests/          pytest suite (forces the LSA backend so it runs offline)
-app.py          Streamlit dashboard
+ats_sim/webapp/ the app: FastAPI server and a dependency-free HTML/CSS/JS front end
+ats_sim/report.py     resume analysis shared by the app and scripts/check_resume.py
+launchers/      double-click launchers for macOS, Windows and Linux
+app.py          older Streamlit developer dashboard
 .github/        GitHub Actions: tests on every push
 ```
