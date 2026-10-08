@@ -154,4 +154,4 @@ with tab_exp:
             if (RESULTS / png).exists():
                 st.image(str(RESULTS / png), caption=caption)
         with st.expander("Full results tables"):
-            st.markdown(md.read_text())
+            st.markdown(md.read_text(encoding="utf-8"))
