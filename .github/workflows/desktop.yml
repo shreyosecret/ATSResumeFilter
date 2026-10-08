@@ -72,7 +72,7 @@ jobs:
       - name: Install the app and the build tools
         shell: bash
         run: |
-          pip install . onnxruntime tokenizers "pyinstaller>=6.11"
+          pip install ".[visual]" onnxruntime tokenizers "pyinstaller>=6.11"
           if [ "$RUNNER_OS" != "Linux" ]; then pip install "pywebview>=5"; fi
           python -m spacy download en_core_web_sm
       - name: Fetch the ONNX copy of MiniLM
@@ -108,6 +108,11 @@ jobs:
             kill %1 || true
             exit 1
           fi
+          # One real analysis, so a missing model file or library fails here and not on a user's computer.
+          python -c "from reportlab.pdfgen import canvas; c = canvas.Canvas('smoke.pdf'); c.drawString(72, 720, 'Ana Ruiz'); c.drawString(72, 700, 'EDUCATION'); c.drawString(72, 680, 'B.S. in Biology, Example University, 2026'); c.save()"
+          out=$(curl -s -F file=@smoke.pdf -F engines=false http://127.0.0.1:8799/api/analyze)
+          echo "$out" | head -c 600; echo
+          echo "$out" | grep -q '"visual":{"visible_letters"' || { echo "The visual check did not run"; kill %1 || true; exit 1; }
           kill %1 || true
       - name: Zip
         shell: bash

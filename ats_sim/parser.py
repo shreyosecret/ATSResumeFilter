@@ -92,6 +92,13 @@ def _is_visible_char(obj: dict) -> bool:
     return True
 
 
+# Words split where the gap between letters exceeds 15% of the font size.
+# pdfplumber's default is a fixed 3 points, which glues words in tightly set
+# (justified, 11 pt) text: "Builtasurvivalmodel" where pdfminer and PDFium
+# both read "Built a survival model". A space is about a quarter of the size.
+WORD_GAP = {"x_tolerance_ratio": 0.15}
+
+
 def extract_text_pdf(path: str | Path, drop_invisible: bool = False, layout_aware: bool = False) -> str:
     """Page-by-page text in the order pdfplumber reads it (top-to-bottom, left-to-right).
 
@@ -108,7 +115,7 @@ def extract_text_pdf(path: str | Path, drop_invisible: bool = False, layout_awar
         for page in pdf.pages:
             if drop_invisible:
                 page = page.filter(_is_visible_char)
-            pages.append(_layout_aware_page_text(page) if layout_aware else (page.extract_text() or ""))
+            pages.append(_layout_aware_page_text(page) if layout_aware else (page.extract_text(**WORD_GAP) or ""))
     return "\n".join(pages)
 
 
@@ -189,12 +196,12 @@ def _cuts_a_line(words: list[dict], x: float, min_gap: float = 8.0) -> bool:
 
 
 def _region_text(page, bbox) -> str:
-    return page.within_bbox(bbox).extract_text() or ""
+    return page.within_bbox(bbox).extract_text(**WORD_GAP) or ""
 
 
 def _table_text(table) -> str:
     lines = []
-    for row in table.extract():
+    for row in table.extract(**WORD_GAP):
         for cell in row:
             if cell:
                 lines.append(cell)
@@ -234,7 +241,7 @@ def _layout_aware_page_text(page) -> str:
     blocks += [(b, _region_text(page, b)) for b in _box_regions(page, [b for b, _ in blocks])]
     regions = [b for b, _ in blocks]
     free = page.filter(lambda o: not any(_inside(o, r) for r in regions)) if regions else page
-    words = free.extract_words()
+    words = free.extract_words(**WORD_GAP)
     if words:
         main_x0, main_x1 = min(w["x0"] for w in words), max(w["x1"] for w in words)
     else:

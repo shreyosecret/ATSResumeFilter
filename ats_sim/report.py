@@ -21,7 +21,7 @@ from .evaluate import LENIENT_FIELDS, micro, score_resume_lenient
 from .jd import analyze_job, load_job, load_jobs
 from .knockout import apply_knockouts
 from .models import JobPosting, Knockouts, ParsedResume
-from .parser import _HEADING_LOOKUP, extract_text, find_gutter, normalize_heading, parse_resume
+from .parser import _HEADING_LOOKUP, WORD_GAP, extract_text, find_gutter, normalize_heading, parse_resume
 from .render import RenderOptions, render
 from .scorers import EmbeddingScorer, KeywordScorer, TfidfScorer
 from .skills import default_taxonomy
@@ -154,7 +154,7 @@ def diagnose(path: str | Path, parsed: dict[str, ParsedResume]) -> list[dict]:
             risks.append(_risk("ok", "No hidden text", "Nothing white or tiny that a reviewer could not see."))
         with pdfplumber.open(str(path)) as pdf:
             pages = len(pdf.pages)
-            cols = [i + 1 for i, pg in enumerate(pdf.pages) if find_gutter(pg.extract_words(), pg.width)]
+            cols = [i + 1 for i, pg in enumerate(pdf.pages) if find_gutter(pg.extract_words(**WORD_GAP), pg.width)]
             tables = [i + 1 for i, pg in enumerate(pdf.pages) if pg.find_tables()]
         if cols:
             risks.append(_risk("warn", "Two-column layout",
@@ -292,12 +292,14 @@ class Analyzer:
 
     def analyze(self, path: str | Path, postings: list[JobPosting] | None = None, application: dict | None = None,
                 gold: dict | None = None, use_engines: bool = True, with_skillner: bool = True,
-                store=None) -> dict:
+                store=None, visual: bool = True) -> dict:
         """`with_skillner` adds SkillNer's skill list (accurate but slow: about a
         minute for a two-page resume the first time). `store`, a loaded
         learn.store.ModelStore, adds the learned parser and per-line labels; it is
         kept out of the vote, agreement and risk checks so those stay comparable
-        with results from before any learning."""
+        with results from before any learning. `visual` reads the rendered page
+        with OCR (ats_sim/visual.py, when installed) and adds its findings to the
+        risks."""
         path = Path(path)
         parsed = parse_all(path, use_engines=use_engines)
         text = parsed["naive"].raw_text
@@ -316,12 +318,22 @@ class Analyzer:
             "best": best,
             "agreement": agreement(parsed),
             "risks": diagnose(path, parsed),
+            "visual": None,
             "skills": skills,
             "matches": [self.match(text, parsed, j, application) for j in (postings or self.postings)],
             "raw_text": text,
             "pool": {"size": len(self.pool), "synthetic": self.n_synthetic,
                      "public": len(self.pool) - self.n_synthetic},
         }
+        if visual:
+            from . import visual as V
+
+            try:
+                result["visual"] = V.check(path, text)
+            except Exception as e:  # a damaged page should not stop the analysis
+                result["visual"] = {"error": str(e)}
+            else:
+                result["risks"] += V.risks(result["visual"])
         if store is not None and store.ready():
             from .learn.geometry import read
             from .learn.tagger import sections_from_labels

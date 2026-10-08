@@ -1,3 +1,5 @@
+<p align="center"><img src="packaging/logo.svg" width="112" alt="ATS Simulator logo: a resume page read by a scan line, with one keyword highlighted"></p>
+
 # ATS Filter Simulator
 
 [![tests](https://github.com/shreyosecret/ATSResumeFilter/actions/workflows/tests.yml/badge.svg)](https://github.com/shreyosecret/ATSResumeFilter/actions/workflows/tests.yml)

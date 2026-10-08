@@ -28,8 +28,8 @@ def model_dir() -> Path:
 
 # Bump when the starting model's training set changes, so cached starting
 # models are rebuilt. 2: added the 50 generated formats. 3: page geometry,
-# designer and reference formats. 4: wrapped lines joined into whole bullets.
-CORPUS_VERSION = 4
+# designer and reference formats. 4: wrapped lines joined into whole bullets. 5: font-relative word gaps.
+CORPUS_VERSION = 5
 
 
 class ModelStore:

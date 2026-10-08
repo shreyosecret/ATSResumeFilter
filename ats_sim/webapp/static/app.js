@@ -295,6 +295,7 @@ async function runAnalysis() {
   go.disabled = true;
   go.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(255,255,255,.35);border-top-color:#fff"></span>Analyzing`;
   const steps = ["Reading the file", "Parsing with every parser", "Checking for screening risks",
+    ...(state.meta && state.meta.engines.visual ? ["Reading the page the way a person sees it"] : []),
     mode === "paste" ? "Reading the job description's rules" : "Scoring against postings", "Ranking against other resumes"];
   if ($("#deep").checked) steps.push("Scanning 31,000 skills");
   let i = 0;
@@ -922,6 +923,13 @@ async function renderResearch(main) {
       barChart({ categories: GR.map((g) => g[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Line accuracy by use of page geometry",
         series: M.map(([m, name], i) => ({ name, color: ["var(--muted)", "var(--s2)", "var(--s1)"][i], values: GR.map(([g]) => ({ v: G[g][m].line_acc })) })) }), fig("geometry_ablation.png")));
   }
+  if (S.visual && S.visual.readers) {
+    const R = S.visual.readers, RD = [["rapidocr", "RapidOCR (app)"], ["florence", "Florence-2 (VLM)"], ["smolvlm", "SmolVLM-256M (VLM)"]].filter(([r]) => R[r]);
+    const K = [["recall", "Words read"], ["found", "Image text found"], ["changed", "Words changed"]];
+    cards.push(chartCard("Reading the page as an image", "OCR against two small vision-language models, on rendered resume pages whose text is known. Changed words are invented or altered; lower is better.",
+      barChart({ categories: K.map((k) => k[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Reading rendered resume pages",
+        series: RD.map(([r, name], i) => ({ name, color: ["var(--s1)", "var(--s2)", "var(--s3)"][i], values: K.map(([k]) => ({ v: R[r][k] })) })) }), fig("visual_reading.png")));
+  }
   main.innerHTML = `<div class="page">
     <div class="grid g4">${d.stats.map((s) => stat(esc(s.label), s.format === "pct" ? `${s.value.toFixed(0)}<small>%</small>` : s.value.toFixed(2), esc(s.detail))).join("")}</div>
     <div class="grid g2">${cards.join("")}</div>
@@ -941,6 +949,8 @@ function renderAbout(main) {
   const m = state.meta;
   main.innerHTML = `<div class="page"><div class="grid g-main">
       <section class="card"><div class="card-body prose">
+        <div class="about-hero"><img src="logo.svg" width="64" height="64" alt="">
+          <div><div class="about-name">ATS Simulator</div><div class="muted">A resume read the way a screening system reads it: line by line, looking for the terms that match.</div></div></div>
         <h3>What it models</h3>
         <p>Applicant tracking systems mostly do three things: turn a resume into fields, screen applicants out on knockout questions (work authorization, graduation date, GPA, degree), and let recruiters search and rank by keywords, sometimes with an AI match score. This app simulates those three stages.</p>
         <p>There is no single score that rejects people. Scores only order the candidates who pass the knockout rules, and a person decides what happens next.</p>
@@ -959,10 +969,11 @@ function renderAbout(main) {
           <dt>OpenResume</dt><dd>${m ? (m.engines.openresume ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
           <dt>pyresparser</dt><dd>${m ? (m.engines.pyresparser ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
           <dt>Learned parser</dt><dd id="about-model">–</dd>
+          <dt>Visual check (OCR)</dt><dd>${m ? (m.engines.visual ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
           <dt>SkillNer</dt><dd>${m ? (m.engines.skillner ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
         </dl>
         <div class="divider"></div>
-        <div class="small muted">Open-source components: OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) run as separate programs; SkillNer (MIT); Inter typeface (SIL Open Font License).</div>
+        <div class="small muted">Open-source components: OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) run as separate programs; SkillNer (MIT); RapidOCR and PaddleOCR models (Apache-2.0); Inter typeface (SIL Open Font License).</div>
       </div></section>
     </div></div>`;
   api("/api/model").then((md) => {

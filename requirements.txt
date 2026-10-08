@@ -14,4 +14,6 @@ fastapi>=0.110
 uvicorn>=0.29
 python-multipart>=0.0.9
 httpx
+rapidocr-onnxruntime>=1.2  # the visual check (ats_sim/visual.py)
+pypdfium2>=4
 # optional: pywebview (native window for the app)

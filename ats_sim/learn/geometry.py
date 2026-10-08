@@ -197,14 +197,14 @@ def read_pdf(path: str | Path, merge_wrapped: bool = True) -> list[Line]:
     paragraphs; with False the lines are exactly the text reader's."""
     import pdfplumber
 
-    from ..parser import _layout_aware_page_text
+    from ..parser import WORD_GAP, _layout_aware_page_text
     from .labels import split_lines
 
     pages = []
     with pdfplumber.open(str(path)) as pdf:
         for pno, page in enumerate(pdf.pages):
             lines = split_lines(_layout_aware_page_text(page))
-            words = page.extract_words(return_chars=True)
+            words = page.extract_words(return_chars=True, **WORD_GAP)
             pages.append((pno, page.width, page.height, lines, _match_lines(lines, words), _regions(page)))
 
     sizes = [c["size"] for *_, matched, _ in pages for ws in matched for w in ws for c in w["chars"]]

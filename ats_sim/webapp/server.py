@@ -9,6 +9,7 @@ a reset that deletes them.
 from __future__ import annotations
 
 import json
+import mimetypes
 import tempfile
 import threading
 import time
@@ -33,6 +34,16 @@ from ..report import FIELDS, Analyzer, fields_of, posting_from_text, to_markdown
 from ..search import QueryError, search
 
 warnings.filterwarnings("ignore")
+# Windows reads MIME types from the registry, which can be wrong or missing.
+for _ext, _type in ((".svg", "image/svg+xml"), (".js", "text/javascript"), (".css", "text/css"),
+                    (".woff2", "font/woff2")):
+    mimetypes.add_type(_type, _ext)
+def _visual_available() -> bool:
+    from ..visual import available
+
+    return available()
+
+
 STATIC = Path(__file__).resolve().parent / "static"
 RESULTS = DATA_DIR.parent / "results"
 MAX_UPLOAD = 10 * 1024 * 1024
@@ -127,7 +138,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
             "templates": TEMPLATES, "held_out_templates": HELD_OUT_TEMPLATES, "layouts": LAYOUTS,
             "formats": FORMATS,
             "engines": {"openresume": OpenResumeParser().available(), "pyresparser": PyresparserParser().available(),
-                        "skillner": skillner_available()},
+                        "skillner": skillner_available(), "visual": _visual_available()},
             "embedding_backend": a.embedding_backend,
             "pool": {"size": len(a.pool), "synthetic": a.n_synthetic, "public": len(a.pool) - a.n_synthetic},
         }
@@ -302,7 +313,8 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
     @app.get("/results/{name:path}")
     def result_image(name: str):
         path = (RESULTS / name).resolve()
-        allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning", "formats", "geometry"))}
+        allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning", "formats", "geometry",
+                                                                    "visual"))}
         if path.parent not in allowed or path.suffix != ".png" or not path.exists():
             raise HTTPException(404)
         return FileResponse(path, media_type="image/png")
@@ -355,6 +367,8 @@ def research_summary(results: Path) -> dict:
          "More generated formats in training, tested on templates and people never seen."),
         ("geometry/geometry_ablation.png", "Reading the page",
          "Text only vs page geometry, on formats and people never trained on."),
+        ("visual/visual_reading.png", "Reading the page as an image",
+         "OCR vs small vision-language models on rendered pages with known text."),
     ]
     out["charts"] = [{"src": f"/results/{c}", "title": t, "caption": cap} for c, t, cap in charts
                      if (results / c).exists()]
@@ -394,7 +408,8 @@ def research_series(results: Path) -> dict:
         out["stuffing"] = _records(st, cols)
     import json
 
-    for name, key in (("learning", "learning"), ("formats", "formats"), ("geometry", "geometry")):
+    for name, key in (("learning", "learning"), ("formats", "formats"), ("geometry", "geometry"),
+                      ("visual", "visual")):
         p = results / name / "summary.json"
         if p.exists():
             try:

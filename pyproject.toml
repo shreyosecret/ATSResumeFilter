@@ -26,10 +26,11 @@ dependencies = [
 [project.optional-dependencies]
 embeddings = ["sentence-transformers>=2.7"]   # the semantic (AI) scorer; without it an LSA fallback is used
 onnx = ["onnxruntime>=1.17", "tokenizers>=0.15"]  # the same scorer without PyTorch (scripts/fetch_minilm_onnx.py)
+visual = ["rapidocr-onnxruntime>=1.2", "pypdfium2>=4"]  # read the rendered page with OCR (ats_sim/visual.py)
 desktop = ["pywebview>=5"]                    # open in a native window instead of the browser
 dashboard = ["streamlit>=1.45"]               # the older developer dashboard (app.py)
 dev = ["pytest>=8", "httpx"]
-all = ["ats-sim[embeddings,desktop,dashboard,dev]"]
+all = ["ats-sim[embeddings,visual,desktop,dashboard,dev]"]
 
 [project.scripts]
 ats-sim = "ats_sim.desktop:main"

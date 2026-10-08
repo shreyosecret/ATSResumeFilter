@@ -53,7 +53,7 @@ else:
 
 binaries, hiddenimports = [], collect_submodules("ats_sim")
 for pkg in ("en_core_web_sm", "spacy", "thinc", "pdfplumber", "pdfminer", "reportlab", "docx", "uvicorn",
-            "onnxruntime", "tokenizers", "webview"):
+            "onnxruntime", "tokenizers", "webview", "rapidocr_onnxruntime", "pypdfium2", "pypdfium2_raw"):
     try:
         d, b, h = collect_all(pkg)
     except Exception:
