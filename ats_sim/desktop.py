@@ -46,6 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--browser", action="store_true", help="open in the default browser instead of a native window")
     ap.add_argument("--no-open", action="store_true", help="do not open anything; just serve")
     ap.add_argument("--no-public-pool", action="store_true", help="rank only against the 16 synthetic resumes")
+    ap.add_argument("--no-learning", action="store_true", help="turn off the learned parser and the Teach tab")
     args = ap.parse_args(argv)
 
     import uvicorn
@@ -53,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     from .webapp.server import create_app
 
     kwargs = {"public_pool": False} if args.no_public_pool else {}
-    app = create_app(kwargs)
+    app = create_app(kwargs, model_store=not args.no_learning)
     port = free_port(args.port)
     url = f"http://127.0.0.1:{port}/"
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))

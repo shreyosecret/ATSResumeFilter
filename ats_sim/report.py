@@ -31,7 +31,7 @@ FIELD_LABELS = {"name": "Name", "email": "Email", "phone": "Phone", "degree_leve
                 "field_of_study": "Field of study", "school": "School", "grad_date": "Graduation",
                 "gpa": "GPA"}
 PARSER_LABELS = {"naive": "Simple parser", "layout_aware": "Layout-aware parser", "openresume": "OpenResume",
-                 "pyresparser": "pyresparser", "ensemble": "Combined (vote)"}
+                 "pyresparser": "pyresparser", "ensemble": "Combined (vote)", "learned": "Learned (neural)"}
 PUBLIC_CATEGORIES = ["ENGINEERING", "INFORMATION-TECHNOLOGY", "AVIATION", "AUTOMOBILE", "HEALTHCARE"]
 
 
@@ -281,9 +281,13 @@ class Analyzer:
         }
 
     def analyze(self, path: str | Path, postings: list[JobPosting] | None = None, application: dict | None = None,
-                gold: dict | None = None, use_engines: bool = True, with_skillner: bool = True) -> dict:
+                gold: dict | None = None, use_engines: bool = True, with_skillner: bool = True,
+                store=None) -> dict:
         """`with_skillner` adds SkillNer's skill list (accurate but slow: about a
-        minute for a two-page resume the first time)."""
+        minute for a two-page resume the first time). `store`, a loaded
+        learn.store.ModelStore, adds the learned parser and per-line labels; it is
+        kept out of the vote, agreement and risk checks so those stay comparable
+        with results from before any learning."""
         path = Path(path)
         parsed = parse_all(path, use_engines=use_engines)
         text = parsed["naive"].raw_text
@@ -308,6 +312,19 @@ class Analyzer:
             "pool": {"size": len(self.pool), "synthetic": self.n_synthetic,
                      "public": len(self.pool) - self.n_synthetic},
         }
+        if store is not None and store.ready():
+            from .learn.labels import split_lines
+            from .learn.tagger import sections_from_labels
+            from .parser import parse_with_sections
+
+            lines = split_lines(extract_text(path, layout_aware=True))
+            items = store.predict(lines)
+            sections, name = sections_from_labels(lines, [x["label"] for x in items])
+            parsed["learned"] = parse_with_sections("\n".join(lines), sections, str(path), name=name)
+            result["parsers"]["learned"] = fields_of(parsed["learned"])
+            result["parser_labels"]["learned"] = PARSER_LABELS["learned"]
+            result["lines"] = items
+            result["model"] = store.info()
         if gold:
             result["accuracy"] = accuracy(gold, parsed)
         return result

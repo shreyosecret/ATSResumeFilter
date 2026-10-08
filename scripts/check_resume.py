@@ -114,6 +114,8 @@ def main():
     ap.add_argument("--with-skillner-ranking", action="store_true",
                     help="also rank with the SkillNer scorer (it annotates every pool resume and is slow)")
     ap.add_argument("--no-skillner-ranking", action="store_true", help=argparse.SUPPRESS)  # old flag, now default
+    ap.add_argument("--learned", action="store_true",
+                    help="add the learned (neural) parser from the app's local model folder")
     ap.add_argument("--out", default=str(ROOT / "private"))
     args = ap.parse_args()
 
@@ -135,11 +137,16 @@ def main():
     print(f"analyzing {path.name}")
     analyzer = Analyzer(postings=postings, public_pool=args.public_pool or False, extra_scorers=extra)
     analyzer.warm()
+    store = None
+    if args.learned:
+        from ats_sim.learn.store import ModelStore
+
+        store = ModelStore().load()  # trains the starting model on first use
     answer = {"yes": True, "no": False, "unknown": None}
     result = analyzer.analyze(
         path, application={"work_authorized": answer[args.authorized],
                            "needs_sponsorship": answer[args.needs_sponsorship]},
-        gold=json.loads(Path(args.gold).read_text()) if args.gold else None)
+        gold=json.loads(Path(args.gold).read_text()) if args.gold else None, store=store)
     out = out_dir / f"{path.stem}.report.md"
     out.write_text(to_markdown(result, args.authorized))
     print(f"wrote {out}")

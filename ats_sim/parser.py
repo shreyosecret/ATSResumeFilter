@@ -433,14 +433,21 @@ def extract_experience(exp_text: str) -> list[ExperienceEntry]:
 
 
 def parse_text(text: str, source: str = "<text>") -> ParsedResume:
-    sections = split_sections(text)
+    return parse_with_sections(text, split_sections(text), source)
+
+
+def parse_with_sections(text: str, sections: dict[str, str], source: str = "<text>",
+                        name: str | None = None) -> ParsedResume:
+    """Field extraction given sections found by any method (the heading list
+    above, or the learned line tagger in ats_sim.learn). The field rules are
+    the same either way."""
     edu = sections.get("education", "")
     level, field = extract_degree(edu)
     return ParsedResume(
         source=source,
         raw_text=text,
         sections=sections,
-        name=extract_name(text),
+        name=name if name is not None else extract_name(text),
         email=(m.group(0) if (m := EMAIL_RE.search(text)) else None),
         phone=(m.group(0) if (m := PHONE_RE.search(text)) else None),
         degree_level=level,

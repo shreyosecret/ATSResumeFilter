@@ -429,3 +429,21 @@ pre.raw { white-space: pre-wrap; word-break: break-word; font: 12.5px/1.6 var(--
   .g4 { grid-template-columns: 1fr 1fr; }
   .person { flex-wrap: wrap; } .person-right { margin-left: 0; justify-content: flex-start; }
 }
+
+/* ---------------------------------------------------------------- teach tab */
+.learn-head { display: flex; gap: 32px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.learn-kv { min-width: 220px; margin: 0; }
+.learn-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 18px; }
+table.lines td { padding-top: 6px; padding-bottom: 6px; vertical-align: middle; }
+table.lines .line-text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; max-width: 640px; }
+table.lines select { height: 30px; font-size: 12.5px; min-width: 132px; border-left-width: 4px; }
+table.lines tr.edited td { background: var(--accent-soft); }
+table.lines .unsure { color: var(--warn); font-weight: 600; }
+.lbl-name, .lbl-contact { border-left-color: #8e6bd8; }
+.lbl-heading { border-left-color: var(--muted); }
+.lbl-summary { border-left-color: #e87ba4; }
+.lbl-education { border-left-color: #2a78d6; }
+.lbl-experience { border-left-color: #1baf7a; }
+.lbl-projects { border-left-color: #eda100; }
+.lbl-skills { border-left-color: #eb6834; }
+.lbl-other { border-left-color: var(--border); }

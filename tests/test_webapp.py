@@ -6,19 +6,22 @@ pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from ats_sim.data import load_personas  # noqa: E402
+from ats_sim.learn.store import ModelStore  # noqa: E402
 from ats_sim.render import RenderOptions, render  # noqa: E402
 from ats_sim.webapp.server import create_app  # noqa: E402
 
 
 @pytest.fixture(scope="module")
-def client():
-    c = TestClient(create_app({"public_pool": False}))
+def client(tmp_path_factory):
+    store = ModelStore(tmp_path_factory.mktemp("model"),
+                       corpus={"templates": ("classic",), "layouts": ("single",), "fmts": ("pdf",)})
+    c = TestClient(create_app({"public_pool": False}, model_store=store))
     for _ in range(240):
         s = c.get("/api/status").json()
-        if s["ready"] or s["status"] == "error":
+        if (s["ready"] and s["model"]["ready"]) or s["status"] == "error" or "error" in s["model"]["status"]:
             break
         time.sleep(0.5)
-    assert s["ready"], s
+    assert s["ready"] and s["model"]["ready"], s
     return c
 
 
@@ -61,6 +64,8 @@ def test_analyze_upload(client, tmp_path, fmt):
     assert r.status_code == 200, r.text
     j = r.json()
     assert j["parsers"][j["best"]]["name"] == "Tomas Lindqvist"
+    assert j["parsers"]["learned"]["name"] == "Tomas Lindqvist"
+    assert j["lines"][0] == {**j["lines"][0], "text": "Tomas Lindqvist", "label": "name"}
     m = j["matches"][0]
     assert m["posting"]["id"] == "mechanical_design" and m["scores"][0]["rank"] <= 2
     assert any(x["level"] == "ok" for x in j["risks"])
@@ -85,3 +90,22 @@ def test_research_and_image_guard(client):
     assert client.get(d["charts"][0]["src"]).status_code == 200
     assert client.get("/results/../README.md").status_code == 404
     assert client.get("/results/summary.json").status_code == 404
+
+
+def test_teach_and_reset(client):
+    lines = ["Ana Ruiz", "ana@x.com", "Academic Background", "B.S. in Biology, State University", "Toolbox", "Python, R"]
+    labels = ["name", "contact", "heading", "education", "heading", "skills"]
+    r = client.post("/api/learn", json={"lines": lines, "labels": labels})
+    assert r.status_code == 200, r.text
+    j = r.json()
+    assert j["model"]["taught"] == 1 and len(j["lines"]) == len(lines)
+    assert client.get("/api/model").json()["taught"] == 1
+    assert client.post("/api/learn", json={"lines": lines, "labels": labels[:2]}).status_code == 400
+    assert client.post("/api/learn", json={"lines": ["x"], "labels": ["salary"]}).status_code == 400
+    assert client.post("/api/model/reset").json()["model"]["taught"] == 0
+
+
+def test_learning_can_be_turned_off():
+    c = TestClient(create_app(start=False, model_store=False))
+    assert c.get("/api/model").json() == {"enabled": False}
+    assert c.post("/api/learn", json={"lines": ["a"], "labels": ["name"]}).status_code == 404

@@ -1,7 +1,10 @@
 """Local web API and static front end for the desktop app.
 
 Binds to 127.0.0.1 only. Uploaded resumes are written to a temporary file,
-analyzed and deleted; nothing is stored or sent anywhere.
+analyzed and deleted; nothing is sent anywhere. The one thing kept is the
+learned line tagger, and only when the user clicks "Teach": its weights and
+a replay buffer of hashed line features, in a local folder (learn.store), with
+a reset that deletes them.
 """
 from __future__ import annotations
 
@@ -12,13 +15,15 @@ import warnings
 from functools import lru_cache
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..data import DATA_DIR, RESUME_DIR, load_personas, resume_path
 from ..engines import OpenResumeParser, PyresparserParser, skillner_available
 from ..jd import analyze_job
+from ..learn.labels import LABELS
+from ..learn.store import ModelStore
 from ..pipeline import Candidate, screen
 from ..parser import parse_resume
 from ..render import FORMATS, HELD_OUT_TEMPLATES, LAYOUTS, TEMPLATES, RenderOptions, render
@@ -29,14 +34,16 @@ warnings.filterwarnings("ignore")
 STATIC = Path(__file__).resolve().parent / "static"
 RESULTS = DATA_DIR.parent / "results"
 MAX_UPLOAD = 10 * 1024 * 1024
+MAX_LINES = 2000
 VERSION = "1.0.0"
 
 
 class State:
     """The analyzer loads in the background so the window opens immediately."""
 
-    def __init__(self):
+    def __init__(self, store: ModelStore | None = None):
         self.analyzer: Analyzer | None = None
+        self.store = store
         self.status = "starting"
         self.error: str | None = None
         self.lock = threading.Lock()
@@ -54,7 +61,17 @@ class State:
                 self.error = f"{type(e).__name__}: {e}"
                 self.status = "error"
 
+        def run_model():
+            # Separate thread: the first launch trains the starting network, and
+            # the rest of the app should not wait for it.
+            try:
+                self.store.load()
+            except Exception as e:
+                self.store.status = f"error: {type(e).__name__}: {e}"
+
         threading.Thread(target=run, daemon=True).start()
+        if self.store is not None:
+            threading.Thread(target=run_model, daemon=True).start()
 
     def require(self) -> Analyzer:
         if self.analyzer is None:
@@ -62,9 +79,13 @@ class State:
         return self.analyzer
 
 
-def create_app(analyzer_kwargs: dict | None = None, start: bool = True) -> FastAPI:
+def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
+               model_store: ModelStore | None | bool = True) -> FastAPI:
+    """`model_store`: True for the default local folder, a ModelStore, or
+    False to turn learning off."""
     app = FastAPI(title="ATS Simulator", version=VERSION, docs_url=None, redoc_url=None)
-    state = State()
+    store = ModelStore() if model_store is True else (model_store or None)
+    state = State(store)
     app.state.sim = state
     if start:
         state.start(**(analyzer_kwargs or {}))
@@ -78,7 +99,8 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True) -> FastA
         a = state.analyzer
         return {"status": state.status, "error": state.error, "ready": state.status == "ready",
                 "embedding_backend": a.embedding_backend if a else None,
-                "pool": len(a.pool) if a else None}
+                "pool": len(a.pool) if a else None,
+                "model": None if store is None else {"ready": store.ready(), "status": store.status}}
 
     @app.get("/api/meta")
     def meta():
@@ -120,11 +142,45 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True) -> FastA
             path.write_bytes(data)
             try:
                 result = a.analyze(path, postings=postings, application=application, use_engines=engines,
-                                   with_skillner=deep_skills)
+                                   with_skillner=deep_skills, store=store)
             except Exception as e:
                 raise HTTPException(422, detail=f"Could not read that file ({type(e).__name__}: {e}).")
         result["file"] = file.filename
         return JSONResponse(json.loads(json.dumps(result, default=str)))
+
+    # ---------------------------------------------------------------- learning
+
+    def require_model() -> ModelStore:
+        if store is None:
+            raise HTTPException(404, detail="Learning is turned off.")
+        if not store.ready():
+            raise HTTPException(503, detail=f"The learned model is still loading ({store.status}).")
+        return store
+
+    @app.get("/api/model")
+    def model_info():
+        if store is None:
+            return {"enabled": False}
+        return {"enabled": True, **store.info()}
+
+    @app.post("/api/learn")
+    def learn(payload: dict = Body(...)):
+        m = require_model()
+        lines, labels = payload.get("lines"), payload.get("labels")
+        if (not isinstance(lines, list) or not isinstance(labels, list) or not lines
+                or len(lines) != len(labels) or len(lines) > MAX_LINES
+                or not all(isinstance(x, str) for x in lines)):
+            raise HTTPException(400, detail="Send matching, non-empty lists of lines and labels.")
+        if set(labels) - set(LABELS):
+            raise HTTPException(400, detail=f"Labels must be one of: {', '.join(LABELS)}.")
+        event = m.learn(lines, labels)
+        return {"event": event, "lines": m.predict(lines), "model": m.info()}
+
+    @app.post("/api/model/reset")
+    def model_reset():
+        m = require_model()
+        m.reset()
+        return {"model": m.info()}
 
     # ---------------------------------------------------------------- screening
 
@@ -212,7 +268,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True) -> FastA
     @app.get("/results/{name:path}")
     def result_image(name: str):
         path = (RESULTS / name).resolve()
-        allowed = {RESULTS.resolve(), (RESULTS / "parsers").resolve(), (RESULTS / "public_pool").resolve()}
+        allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning"))}
         if path.parent not in allowed or path.suffix != ".png" or not path.exists():
             raise HTTPException(404)
         return FileResponse(path, media_type="image/png")
@@ -259,6 +315,8 @@ def research_summary(results: Path) -> dict:
         ("synonyms.png", "Synonym sensitivity", "Score lost when a resume uses different wording."),
         ("stuffing.png", "Keyword-stuffing audit", "Which scorers hidden keywords fool, and the parser fix."),
         ("public_pool/stability.png", "Ranking stability", "Movement after small wording edits, 202-resume pool."),
+        ("learning/learning_curve.png", "Learning a new template",
+         "The neural line tagger, taught one corrected resume at a time."),
     ]
     out["charts"] = [{"src": f"/results/{c}", "title": t, "caption": cap} for c, t, cap in charts
                      if (results / c).exists()]

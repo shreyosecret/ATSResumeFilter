@@ -14,7 +14,7 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 | Screen | What it does |
 |---|---|
-| **Resume check** | Drop in a PDF or Word resume. Tabs for an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, and the extracted text |
+| **Resume check** | Drop in a PDF or Word resume. Tabs for an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, the extracted text, and **Teach the model** (see [Learning from each resume](#learning-from-each-resume)) |
 | **Screening** | The recruiter's view: 16 fictional candidates screened and ranked. Switch template, layout, file format or parser and watch who gets screened out; click a candidate to compare what the parser read with what the resume says |
 | **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
 | **Research** | The headline findings, drawn as interactive charts (hover for values and 95% intervals, or switch any chart to a table) |
@@ -60,7 +60,8 @@ python scripts/build_corpus.py                 # 16 personas x 5 templates x 2 f
 python scripts/run_experiments.py --require-minilm      # results/ (fails rather than falling back to LSA)
 ats-sim                                        # the app (after pip install -e ".[embeddings,desktop]")
 streamlit run app.py                           # older developer dashboard
-pytest                                         # 60 tests (also run by GitHub Actions on every push)
+python scripts/learning_curve.py               # experiment 5: results/learning/ (about 15 minutes)
+pytest                                         # 69 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
 python scripts/fetch_public_resumes.py         # CC0 dataset, no Kaggle account needed
@@ -267,6 +268,44 @@ Full tables, including per-template and per-field results: `results/parsers/PARS
 
 A big taxonomy halves the synonym penalty (it maps "finite element analysis" to FEA and "SOPs" to SOP) but still misses "ML", "NLP", "GMP" spelled out, "RCA" and "additive manufacturing". It also brings noise: "B.S." matched "B (Programming Language)" and "Co-op" matched "Component Object Model". Being presence-based, it is as easy to stuff as exact matching and as stable under rewording.
 
+## Learning from each resume
+
+![Teach the model](docs/screenshots/teach-the-model.png)
+
+The app has a fourth parser that learns: a small neural network (`ats_sim/learn/`, scikit-learn `MLPClassifier`, one hidden layer of 64 units) that labels every line of a resume with its section (name, contact, heading, summary, education, experience, projects, skills, other). The field rules then run on the sections it found. Where the heading-list parser only knows the headings it was given, the network looks at the line, its neighbors, the nearest heading above it and the line's shape (bullets, dates, capitals), so it can follow headings it has never seen, such as "Where I have worked" or "Toolbox".
+
+**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus (all 640 resumes; trained on first launch, which takes a few minutes in the background while the rest of the app works, then cached).
+
+**What it deliberately does not learn.** You asked for a network that learns from every new resume. I built it to learn only from resumes you confirm, and only where the sections are, for two reasons that the experiment below measures or that the literature already settled:
+
+- *Learning from its own guesses drifts.* Without a person checking, the network trains on its own mistakes. In the experiment it helped on one template, did nothing on two, and made one worse, with a wide spread between runs. So nothing is learned unless you click the button.
+- *Learning "good candidates" from outcomes copies bias.* Training a model on who got hired teaches it whatever produced those hires; Amazon scrapped a resume model in 2018 after it learned to penalize the word "women's". This network never sees a score, a rank or an outcome.
+
+**Privacy.** The model lives in `~/.ats_sim/model` (or `%APPDATA%\ats_sim\model`; set `ATS_SIM_MODEL_DIR` to move it), never in the repository. Teaching stores the updated weights and a replay buffer of hashed line features (not the text, but derived from it). *Reset model* deletes both and returns to the starting model. `ats-sim --no-learning` turns the feature off. The learned parser is shown as its own column and kept out of the combined vote, the agreement count and the risk checks, so those match results from before any teaching. `python scripts/check_resume.py my_resume.pdf --learned` adds it to the command-line report.
+
+### 5. Learning a new template, one resume at a time
+
+`scripts/learning_curve.py` trains the network on the classic template only, then treats each held-out template as new: 8 personas arrive one at a time (random layout and format), and after each one we measure on the other 8 personas in all 8 layout and format combinations (64 files). Five seeds vary the persona split, the order and the initial weights. Conditions: learning from corrections (the true labels, as a user would supply), learning from its own guesses (self-training), no learning, and the heading-list parser. "Perfect sections" parses with the true line labels and is the ceiling for any section tagger, because the field rules after it have their own misses.
+
+![Learning curve](results/learning/learning_curve.png)
+
+| Template | Lines right, start | After 1 correction | After 8 | After 8 of its own guesses | Field F1: heading list / start / after 1 / ceiling |
+|---|---|---|---|---|---|
+| Modern | 0.87 | 0.98 | 0.99 | 0.86 (0.80 to 0.91) | 0.51 / 0.74 / 0.76 / 0.76 |
+| LaTeX | 0.96 | 0.98 | 0.99 | 0.97 | 0.73 / 0.73 / 0.73 / 0.73 |
+| Career center | 0.95 | 0.96 | 0.98 | 0.96 | 0.78 / 0.80 / 0.80 / 0.80 |
+| Hybrid | 0.64 | 0.96 | 0.99 | 0.74 (0.53 to 0.88) | 0.60 / 0.55 / 0.69 / 0.70 |
+
+Means over 5 seeds; ranges are min to max. What this shows:
+
+- **One corrected resume is most of the gain.** On the two templates the starting network reads worst, a single correction takes line accuracy from 0.87 and 0.64 to 0.98 and 0.96, and it generalizes to other people's resumes in that template, not just the one taught.
+- **Field F1 hits the ceiling, and the ceiling is the field rules.** After one correction the learned parser matches "perfect sections" on every template. The remaining misses are in the regexes (for example, "B.S., Software Engineering" has no "in", so no field of study is found), which a section tagger cannot fix.
+- **It beats the heading list where headings are unfamiliar** (Modern: 0.76 vs 0.51) and ties it where they are familiar (LaTeX). Before any teaching it is *worse* than the heading list on Hybrid (0.55 vs 0.60), so the starting network is not a free upgrade.
+- **Self-training is unreliable.** On Modern, 4 of 5 runs ended with lower line accuracy than they started with. On Hybrid it helped on average (0.64 to 0.74), but 2 of 5 runs ended below their start (0.60 to 0.53 in the worst). Its Hybrid F1 (0.62) stays under what one correction gives (0.69).
+- **No forgetting.** After learning each new template, classic-template F1 stayed at 0.99 under every condition, thanks to the replay buffer.
+
+Caveats: these templates are synthetic and the labels are exact, so a real user's corrections will be noisier. The starting network in the app is trained on all five templates, which makes it better on them than the classic-only network above. On one real resume (the author's), the starting network found the projects under "TECHNICAL PROJECTS", a heading the heading list does not know, but called the summary paragraph experience and spread a publications list across experience and education, which is exactly what the Teach tab is for.
+
 ## Check your own resume
 
 ```bash
@@ -286,6 +325,7 @@ The report (written to `private/`, which is gitignored) shows what each parser e
 - **Experiments 2 to 4 use the classic single-column PDF** so the scorer is the only moving part; scoring results on other templates may differ.
 - **Third-party engines are run, not reimplemented, but through adapters.** The mapping into this project's schema (and the lenient scoring) is a choice; another mapping could move their numbers a few points. Each engine's raw output is cached under `results/_tmp/engine_cache/` for inspection.
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
+- **The learned parser is only as good as its corrections.** It learns section boundaries, not fields; a wrong label taught by a user is learned too (Reset undoes everything). Its experiment uses exact synthetic labels and four templates.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
 
 ## Resume bullet
@@ -302,7 +342,7 @@ Do not quote "two-column cuts accuracy by 33%". That number came from the develo
 ats_sim/        parser, jd analyzer, knockouts, scorers, search, pipeline, renderer, experiments
 data/           personas (answer key), jobs, skills list, sample PDFs (full corpus is generated)
 scripts/        build_corpus.py, run_experiments.py, fetch_public_resumes.py,
-                benchmark_parsers.py, check_resume.py, setup_external.sh
+                benchmark_parsers.py, check_resume.py, learning_curve.py, setup_external.sh
 external/       runners for OpenResume (Node) and pyresparser (Python 3.8); no third-party code
 results/parsers/      parser benchmark (ours vs OpenResume vs pyresparser vs ensemble)
 results/        16-resume pool: CSVs, charts, RESULTS.md, summary.json
@@ -310,6 +350,8 @@ results/public_pool/  same experiments with 186 public distractor resumes
 tests/          pytest suite (forces the LSA backend so it runs offline)
 ats_sim/webapp/ the app: FastAPI server and a dependency-free HTML/CSS/JS front end
 ats_sim/report.py     resume analysis shared by the app and scripts/check_resume.py
+ats_sim/learn/  the neural line tagger: labels from the corpus, online learning, local model store
+results/learning/     experiment 5: learning curve on new templates
 launchers/      double-click launchers for macOS, Windows and Linux
 app.py          older Streamlit developer dashboard
 .github/        GitHub Actions: tests on every push

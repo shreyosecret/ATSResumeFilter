@@ -1,0 +1,282 @@
+{
+  "seeds": 5,
+  "teach": 8,
+  "templates": {
+    "modern": {
+      "line_acc": {
+        "start": {
+          "mean": 0.873,
+          "min": 0.831,
+          "max": 0.891
+        },
+        "after_1_corrected": {
+          "mean": 0.979,
+          "min": 0.97,
+          "max": 0.985
+        },
+        "after_8_corrected": {
+          "mean": 0.992,
+          "min": 0.991,
+          "max": 0.994
+        },
+        "after_8_self": {
+          "mean": 0.861,
+          "min": 0.802,
+          "max": 0.91
+        }
+      },
+      "oracle": {
+        "mean": 0.762,
+        "min": 0.758,
+        "max": 0.771
+      },
+      "rules": {
+        "mean": 0.513,
+        "min": 0.494,
+        "max": 0.522
+      },
+      "start": {
+        "mean": 0.74,
+        "min": 0.716,
+        "max": 0.759
+      },
+      "after_1_corrected": {
+        "mean": 0.761,
+        "min": 0.755,
+        "max": 0.765
+      },
+      "after_3_corrected": {
+        "mean": 0.764,
+        "min": 0.762,
+        "max": 0.766
+      },
+      "after_8_corrected": {
+        "mean": 0.759,
+        "min": 0.755,
+        "max": 0.766
+      },
+      "after_8_self": {
+        "mean": 0.728,
+        "min": 0.63,
+        "max": 0.763
+      },
+      "classic_after_corrected": {
+        "mean": 0.991,
+        "min": 0.991,
+        "max": 0.992
+      },
+      "classic_after_self": {
+        "mean": 0.991,
+        "min": 0.99,
+        "max": 0.991
+      }
+    },
+    "latex": {
+      "line_acc": {
+        "start": {
+          "mean": 0.961,
+          "min": 0.957,
+          "max": 0.963
+        },
+        "after_1_corrected": {
+          "mean": 0.98,
+          "min": 0.964,
+          "max": 0.993
+        },
+        "after_8_corrected": {
+          "mean": 0.988,
+          "min": 0.98,
+          "max": 0.991
+        },
+        "after_8_self": {
+          "mean": 0.97,
+          "min": 0.964,
+          "max": 0.975
+        }
+      },
+      "oracle": {
+        "mean": 0.731,
+        "min": 0.725,
+        "max": 0.737
+      },
+      "rules": {
+        "mean": 0.733,
+        "min": 0.727,
+        "max": 0.739
+      },
+      "start": {
+        "mean": 0.728,
+        "min": 0.723,
+        "max": 0.736
+      },
+      "after_1_corrected": {
+        "mean": 0.732,
+        "min": 0.727,
+        "max": 0.738
+      },
+      "after_3_corrected": {
+        "mean": 0.732,
+        "min": 0.727,
+        "max": 0.738
+      },
+      "after_8_corrected": {
+        "mean": 0.731,
+        "min": 0.727,
+        "max": 0.735
+      },
+      "after_8_self": {
+        "mean": 0.732,
+        "min": 0.727,
+        "max": 0.738
+      },
+      "classic_after_corrected": {
+        "mean": 0.991,
+        "min": 0.99,
+        "max": 0.991
+      },
+      "classic_after_self": {
+        "mean": 0.991,
+        "min": 0.99,
+        "max": 0.991
+      }
+    },
+    "career_center": {
+      "line_acc": {
+        "start": {
+          "mean": 0.954,
+          "min": 0.949,
+          "max": 0.959
+        },
+        "after_1_corrected": {
+          "mean": 0.963,
+          "min": 0.946,
+          "max": 0.977
+        },
+        "after_8_corrected": {
+          "mean": 0.976,
+          "min": 0.954,
+          "max": 0.992
+        },
+        "after_8_self": {
+          "mean": 0.959,
+          "min": 0.955,
+          "max": 0.965
+        }
+      },
+      "oracle": {
+        "mean": 0.799,
+        "min": 0.794,
+        "max": 0.805
+      },
+      "rules": {
+        "mean": 0.777,
+        "min": 0.77,
+        "max": 0.78
+      },
+      "start": {
+        "mean": 0.798,
+        "min": 0.791,
+        "max": 0.803
+      },
+      "after_1_corrected": {
+        "mean": 0.799,
+        "min": 0.785,
+        "max": 0.809
+      },
+      "after_3_corrected": {
+        "mean": 0.801,
+        "min": 0.793,
+        "max": 0.805
+      },
+      "after_8_corrected": {
+        "mean": 0.801,
+        "min": 0.794,
+        "max": 0.806
+      },
+      "after_8_self": {
+        "mean": 0.8,
+        "min": 0.794,
+        "max": 0.806
+      },
+      "classic_after_corrected": {
+        "mean": 0.991,
+        "min": 0.989,
+        "max": 0.992
+      },
+      "classic_after_self": {
+        "mean": 0.991,
+        "min": 0.99,
+        "max": 0.991
+      }
+    },
+    "hybrid": {
+      "line_acc": {
+        "start": {
+          "mean": 0.638,
+          "min": 0.596,
+          "max": 0.673
+        },
+        "after_1_corrected": {
+          "mean": 0.962,
+          "min": 0.961,
+          "max": 0.962
+        },
+        "after_8_corrected": {
+          "mean": 0.992,
+          "min": 0.987,
+          "max": 0.995
+        },
+        "after_8_self": {
+          "mean": 0.743,
+          "min": 0.532,
+          "max": 0.876
+        }
+      },
+      "oracle": {
+        "mean": 0.698,
+        "min": 0.696,
+        "max": 0.7
+      },
+      "rules": {
+        "mean": 0.601,
+        "min": 0.599,
+        "max": 0.602
+      },
+      "start": {
+        "mean": 0.547,
+        "min": 0.526,
+        "max": 0.571
+      },
+      "after_1_corrected": {
+        "mean": 0.694,
+        "min": 0.692,
+        "max": 0.696
+      },
+      "after_3_corrected": {
+        "mean": 0.698,
+        "min": 0.696,
+        "max": 0.701
+      },
+      "after_8_corrected": {
+        "mean": 0.698,
+        "min": 0.696,
+        "max": 0.701
+      },
+      "after_8_self": {
+        "mean": 0.619,
+        "min": 0.508,
+        "max": 0.706
+      },
+      "classic_after_corrected": {
+        "mean": 0.991,
+        "min": 0.989,
+        "max": 0.993
+      },
+      "classic_after_self": {
+        "mean": 0.991,
+        "min": 0.99,
+        "max": 0.991
+      }
+    }
+  }
+}

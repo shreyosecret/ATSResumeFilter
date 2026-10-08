@@ -35,6 +35,8 @@ const ICONS = {
   filter: '<path d="M22 3H2l8 9.5V19l4 2v-8.5z"/>',
   rank: '<path d="M8 21V11M16 21V5M12 21v-6"/>',
   table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  learn: '<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/>',
+  reset: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
 };
 const icon = (name, size = 16) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -336,7 +338,7 @@ function renderResult(main) {
     </div>
     <section class="card">
       <div class="tabs" role="tablist">
-        ${[["overview", "Overview"], ["matches", "Job matches", r.matches.length], ["parsers", "Parser comparison", Object.keys(r.parsers).length], ["text", "Extracted text"]]
+        ${[["overview", "Overview"], ["matches", "Job matches", r.matches.length], ["parsers", "Parser comparison", Object.keys(r.parsers).length], ["text", "Extracted text"], ...(r.lines ? [["learn", "Teach the model"]] : [])]
           .map(([id, label, n]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${state.tab === id}">${label}${n != null ? `<span class="count">${n}</span>` : ""}</button>`).join("")}
       </div>
       <div id="tab-body"></div>
@@ -404,9 +406,82 @@ function renderTab() {
     });
   } else if (state.tab === "parsers") {
     body.innerHTML = parserTable(r);
+  } else if (state.tab === "learn") {
+    renderLearn(body);
   } else {
     body.innerHTML = `<div class="card-body"><div class="label" style="margin-bottom:10px">Text in the order the simple parser read it</div><pre class="raw">${esc(r.raw_text)}</pre></div>`;
   }
+}
+
+// ------------------------------------------------------------------ resume check: teaching
+const LINE_LABELS = { name: "Name", contact: "Contact", heading: "Heading", summary: "Summary", education: "Education",
+  experience: "Experience", projects: "Projects", skills: "Skills", other: "Other" };
+const UNSURE = 0.8;
+
+function renderLearn(body) {
+  const r = state.result;
+  if (!r.edits) r.edits = r.lines.map((x) => x.label);
+  const model = r.model || {};
+  const unsure = r.lines.filter((x) => x.confidence < UNSURE).length;
+  const changed = r.edits.filter((y, i) => y !== r.lines[i].label).length;
+  const onlyUnsure = !!state.onlyUnsure;
+  const labelOpts = Object.keys(LINE_LABELS);
+  body.innerHTML = `<div class="card-body">
+      <div class="learn-head">
+        <div class="prose" style="max-width:640px"><p style="margin:0">The <strong>learned parser</strong> is a small neural network that labels every line with the section it belongs to. Fix any wrong labels below, then <strong>Confirm and teach</strong>: the network updates on this computer and reads the next resume with what it learned. It learns where sections are, never whether a candidate is good.</p></div>
+        <dl class="kv learn-kv">
+          <dt>Resumes taught here</dt><dd class="tnum">${model.taught ?? 0}</dd>
+          <dt>Training lines</dt><dd class="tnum">${model.lines_seen ?? "–"}</dd>
+          <dt>Unsure on this resume</dt><dd class="tnum">${unsure} of ${r.lines.length}</dd>
+        </dl>
+      </div>
+      <div class="learn-bar">
+        <label class="switch"><input type="checkbox" id="only-unsure" ${onlyUnsure ? "checked" : ""}><span><span class="small">Show only unsure lines</span></span></label>
+        <span class="small muted" id="changed-count">${changed} label${changed === 1 ? "" : "s"} changed</span>
+        <span style="flex:1"></span>
+        <button class="btn ghost sm" id="model-reset" title="Forget everything taught on this computer">${icon("reset", 15)}Reset model</button>
+        <button class="btn primary" id="teach">${icon("learn", 16)}Confirm and teach</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="data lines"><thead><tr><th class="num">#</th><th>Line</th><th>Section</th><th class="num">Confidence</th></tr></thead><tbody>
+      ${r.lines.map((x, i) => (onlyUnsure && x.confidence >= UNSURE && r.edits[i] === x.label) ? "" : `<tr class="${r.edits[i] !== x.label ? "edited" : ""}">
+        <td class="num muted tnum">${i + 1}</td>
+        <td class="line-text">${esc(x.text)}</td>
+        <td><select class="line-label lbl-${esc(r.edits[i])}" data-i="${i}" aria-label="Section for line ${i + 1}">${labelOpts.map((k) => `<option value="${k}" ${k === r.edits[i] ? "selected" : ""}>${LINE_LABELS[k]}</option>`).join("")}</select></td>
+        <td class="num tnum ${x.confidence < UNSURE ? "unsure" : "muted"}">${Math.round(x.confidence * 100)}%</td></tr>`).join("")}
+      ${onlyUnsure && !r.lines.some((x, i) => x.confidence < UNSURE || r.edits[i] !== x.label) ? `<tr><td colspan="4" class="muted" style="text-align:center;padding:28px">The network is at least ${UNSURE * 100}% sure of every line. Turn the filter off to review them all.</td></tr>` : ""}
+    </tbody></table></div>
+    <div class="chart-foot" style="padding:12px 20px">Saved only on this computer${model.location ? ` (${esc(model.location)})` : ""}. Reset deletes everything taught here and returns to the starting model.</div>`;
+  $$(".line-label", body).forEach((sel) => sel.addEventListener("change", () => {
+    const i = +sel.dataset.i;
+    r.edits[i] = sel.value;
+    sel.className = `line-label lbl-${sel.value}`;
+    sel.closest("tr").classList.toggle("edited", sel.value !== r.lines[i].label);
+    const n = r.edits.filter((y, j) => y !== r.lines[j].label).length;
+    $("#changed-count").textContent = `${n} label${n === 1 ? "" : "s"} changed`;
+  }));
+  $("#only-unsure").addEventListener("change", (e) => { state.onlyUnsure = e.target.checked; renderLearn(body); });
+  $("#teach").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const out = await api("/api/learn", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines: r.lines.map((x) => x.text), labels: r.edits }) });
+      const ev = out.event;
+      r.lines = out.lines; r.model = out.model; r.edits = null;
+      toast(`Learned from this resume. You changed ${ev.changed ?? 0} label${ev.changed === 1 ? "" : "s"}; it now labels ${Math.round(ev.accuracy_after * 100)}% of this resume the way you did. Analyze again to see updated fields.`);
+      renderLearn(body);
+    } catch (err) { toast(err.message); btn.disabled = false; }
+  });
+  $("#model-reset").addEventListener("click", async () => {
+    if (!confirm("Forget everything taught on this computer and go back to the starting model?")) return;
+    try {
+      const out = await api("/api/model/reset", { method: "POST" });
+      r.model = out.model;
+      toast("The model was reset. Analyze again to see the starting model's labels.");
+      renderLearn(body);
+    } catch (err) { toast(err.message); }
+  });
 }
 
 function pctlCell(s) {
@@ -760,6 +835,8 @@ function renderAbout(main) {
         <p>Commercial systems are proprietary. This is a simulator modeled on documented behavior, not a reproduction of Workday, Greenhouse, Lever, iCIMS or any other product.</p>
         <h3>Privacy</h3>
         <p>Everything runs on this computer. The app only listens for connections from this machine, and uploaded resumes are read, analyzed and deleted.</p>
+        <h3>What it learns</h3>
+        <p>The learned parser is a small neural network that labels each line with its section. It changes only when you click <em>Confirm and teach</em> on a resume, and it is saved on this computer. It learns where sections are, never which candidates are good: learning from hiring outcomes would copy whatever bias produced them.</p>
       </div></section>
       <section class="card"><div class="card-head"><h2>This installation</h2></div><div class="card-body">
         <dl class="kv">
@@ -768,12 +845,20 @@ function renderAbout(main) {
           <dt>Comparison pool</dt><dd>${m ? `${m.pool.size} resumes` : "–"}</dd>
           <dt>OpenResume</dt><dd>${m ? (m.engines.openresume ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
           <dt>pyresparser</dt><dd>${m ? (m.engines.pyresparser ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
+          <dt>Learned parser</dt><dd id="about-model">–</dd>
           <dt>SkillNer</dt><dd>${m ? (m.engines.skillner ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
         </dl>
         <div class="divider"></div>
         <div class="small muted">Open-source components: OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) run as separate programs; SkillNer (MIT); Inter typeface (SIL Open Font License).</div>
       </div></section>
     </div></div>`;
+  api("/api/model").then((md) => {
+    const el = $("#about-model");
+    if (!el) return;
+    el.innerHTML = !md.enabled ? '<span class="badge neutral">Off</span>'
+      : md.ready ? `<span class="badge good"><span class="dot"></span>Ready</span> <span class="small muted">${md.taught} resume${md.taught === 1 ? "" : "s"} taught here</span>`
+      : `<span class="badge neutral">${esc(md.status)}</span>`;
+  }).catch(() => {});
 }
 
 // ------------------------------------------------------------------ boot
