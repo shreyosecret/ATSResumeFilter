@@ -59,8 +59,8 @@ NAMES = {"corrected": "Learns from corrections", "self": "Learns from its own gu
 
 def evaluate(tagger, docs, personas) -> tuple[float, float]:
     counts, hits, total = [], 0, 0
-    for (pid, *_), (lines, labels) in docs.items():
-        parsed, _, pred = parse_with_tagger("\n".join(lines), tagger)
+    for (pid, *_), (lines, labels, geo) in docs.items():
+        parsed, _, pred = parse_with_tagger("\n".join(lines), tagger, geo=geo)
         counts.append(score_resume(personas[pid], parsed))
         hits += sum(a == b for a, b in zip(pred, labels))
         total += len(labels)
@@ -69,12 +69,12 @@ def evaluate(tagger, docs, personas) -> tuple[float, float]:
 
 def rules_f1(docs, personas) -> float:
     return micro([score_resume(personas[pid], parse_text("\n".join(lines)))
-                  for (pid, *_), (lines, _) in docs.items()]).f1
+                  for (pid, *_), (lines, *_) in docs.items()]).f1
 
 
 def oracle_f1(docs, personas) -> float:
     counts = []
-    for (pid, *_), (lines, labels) in docs.items():
+    for (pid, *_), (lines, labels, _) in docs.items():
         sections, name = sections_from_labels(lines, labels)
         counts.append(score_resume(personas[pid], parse_with_sections("\n".join(lines), sections, name=name)))
     return micro(counts).f1
@@ -107,8 +107,8 @@ def run(n_seeds: int, n_teach: int) -> pd.DataFrame:
                 tg = copy.deepcopy(base)
                 rows.append(dict(seed=seed, template=template, step=0, condition=cond, f1=f0, line_acc=a0))
                 for k, (pid, lay, fmt) in enumerate(stream, 1):
-                    lines, labels = docs[(pid, template, lay, fmt)]
-                    tg.learn(lines, labels if cond == "corrected" else tg.predict(lines))
+                    lines, labels, geo = docs[(pid, template, lay, fmt)]
+                    tg.learn(lines, labels if cond == "corrected" else tg.predict(lines, geo), geo)
                     f, a = evaluate(tg, test, personas)
                     rows.append(dict(seed=seed, template=template, step=k, condition=cond, f1=f, line_acc=a))
                 classic_after, _ = evaluate(tg, base_docs, personas)

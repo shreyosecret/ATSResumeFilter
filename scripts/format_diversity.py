@@ -51,8 +51,8 @@ GROUP_COLORS = {"hand-written": "#2a78d6", "generated": "#eb6834"}
 
 def scores(tagger, docs, personas) -> tuple[float, float]:
     counts, hits, total = [], 0, 0
-    for (pid, *_), (lines, labels) in docs.items():
-        parsed, _, pred = parse_with_tagger("\n".join(lines), tagger)
+    for (pid, *_), (lines, labels, geo) in docs.items():
+        parsed, _, pred = parse_with_tagger("\n".join(lines), tagger, geo=geo)
         counts.append(score_resume(personas[pid], parsed))
         hits += sum(a == b for a, b in zip(pred, labels))
         total += len(labels)
@@ -61,7 +61,7 @@ def scores(tagger, docs, personas) -> tuple[float, float]:
 
 def reference_f1(docs, personas) -> tuple[float, float]:
     rules, oracle = [], []
-    for (pid, *_), (lines, labels) in docs.items():
+    for (pid, *_), (lines, labels, _) in docs.items():
         text = "\n".join(lines)
         rules.append(score_resume(personas[pid], parse_text(text)))
         sections, name = sections_from_labels(lines, labels)

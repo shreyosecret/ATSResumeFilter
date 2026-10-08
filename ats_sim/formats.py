@@ -12,6 +12,13 @@ They come from one generator written by one person, so they share its blind
 spots; that is why the learned tagger is still evaluated on the hand-written
 held-out templates and on generated formats it never trained on.
 
+Up to 22 "reference" formats, r01 onward, follow the structure of public
+resume templates and career-center guides recorded in data/format_sources.json
+(open-source templates whose licenses allow reuse, Google Docs gallery
+templates described from public articles, and university samples): their
+exact headings and section order, mapped onto the closest entry style here.
+Only structure is taken; no template text or code is copied.
+
 Twelve more, d01 to d12, are "designer" formats: the visual habits of
 drag-and-drop resume builders, implemented here from a description (no
 template from any builder is copied): letter-spaced headings, colored headings
@@ -22,6 +29,7 @@ confuse text-only parsers.
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass, field
 
 N_FORMATS = 50
@@ -143,8 +151,79 @@ def make_design_spec(name: str) -> FormatSpec:
     return spec
 
 
+def _reference_style(r: dict) -> str:
+    """The closest of the five templates' entry styles to a researched layout."""
+    exp = (r.get("experience_layout") or "").lower()
+    dates = (r.get("date_format") or "").lower()
+    if "summer" in dates or "season" in dates:
+        return "hybrid"
+    if "single line" in exp:
+        return "modern"
+    if re.search(r"organi[sz]ation|company", exp.split(";")[0]) and "location" in exp.split(";")[0]:
+        return "career_center"
+    if "line 1" in exp and ("title" in exp.split(";")[0] or "position" in exp.split(";")[0]):
+        return "latex"
+    return "classic"
+
+
+def make_reference_spec(name: str, r: dict) -> FormatSpec:
+    """A format built from a researched record (data/format_sources.json): its
+    exact headings and section order, the closest entry style, its date style,
+    columns and visual habits. Content always comes from the personas."""
+    rng = random.Random(f"ats-sim-reference-{name}")
+    heads = {k: v for k, v in (r.get("headings") or {}).items() if k in HEADING_POOLS and v}
+    if heads.get("summary", "").lower().startswith("welcome"):  # a sample-content heading
+        heads["summary"] = "Summary"
+    if heads.get("contact", "").lower() == "header":
+        heads["contact"] = "Contact"
+    order = [k for k in r.get("order") or [] if k in HEADING_POOLS and k != "contact"]
+    for k in ("education", "experience", "skills"):  # sections every parse needs
+        if k not in order:
+            order.append(k)
+    title = all(v[:1].isupper() and not v.isupper() for v in heads.values()) if heads else True
+    for k in order + ["contact"]:
+        heads.setdefault(k, {"skills": "Skills", "projects": "Projects"}.get(k, k.title()) if title
+                         else k.upper())
+    visual = " ".join(r.get("visual") or []).lower()
+    dates = (r.get("date_format") or "").lower()
+    summary = SUMMARIES[rng.randrange(len(SUMMARIES))] if "summary" in order else None
+    spec = FormatSpec(
+        name=name, style=_reference_style(r), headings=heads, order=order, summary=summary,
+        extras=[k for k in order if k in EXTRAS], bullet="•",
+        date_style="long" if "month yyyy" in dates and "mon." not in dates else "short",
+        contact="one_line_labeled" if "icon" not in (r.get("contact_style") or "").lower() else "as_style",
+        pdf_font="Times-Roman" if any(w in visual for w in ("serif", "latex", "charter", "computer modern"))
+        and "sans" not in visual else "Helvetica",
+        docx_font="Times New Roman" if "serif" in visual and "sans" not in visual else "Calibri",
+        heading_size=12, notes={"case": "as published", "source": r.get("id"), "url": r.get("source_url"),
+                                "license": r.get("license")},
+        layouts=("two_column",) if r.get("columns") == "two_column" else ("single",))
+    color = re.search(r"\b(blue|orange|coral|green|pink|red|accent|colou?red)\b", visual)
+    rule = "rule" in visual or "line" in visual
+    if color or rule:
+        spec.design = {"tracked": False, "rule": rule, "tagline": "tagline" in visual or "title" in visual,
+                       "ratings": False, "shaded": False, "name_size": 24 if "large" in visual else 18,
+                       "heading_color": {"blue": "#1F4E79", "orange": "#C2571A", "coral": "#D9534F",
+                                         "green": "#2E7D32", "pink": "#C2185B"}.get(color.group(1), "#1F4E79")
+                       if color else "#000000"}
+    return spec
+
+
+def _load_reference() -> dict[str, FormatSpec]:
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "data" / "format_sources.json"
+    if not path.exists():
+        return {}
+    records = json.loads(path.read_text())
+    return {f"r{i:02d}": make_reference_spec(f"r{i:02d}", r) for i, r in enumerate(records, 1)}
+
+
 SPECS = {n: make_spec(n) for n in GENERATED_FORMATS}
 SPECS.update({n: make_design_spec(n) for n in DESIGNER_FORMATS})
+SPECS.update(_load_reference())
+REFERENCE_FORMATS = tuple(n for n in SPECS if n.startswith("r"))
 
 
 def design(name: str) -> dict:
@@ -267,4 +346,5 @@ def describe() -> list[dict]:
              "case": s.notes["case"], "bullet": s.bullet or "none", "dates": s.date_style, "contact": s.contact,
              "extras": ", ".join(s.extras) or "none", "pdf_font": s.pdf_font, "docx_font": s.docx_font,
              "design": ", ".join(k for k, v in s.design.items() if v is True) or "none",
+             "source": s.notes.get("source", ""),
              "split": "train" if s.name in TRAIN_FORMATS + TRAIN_DESIGNER else "held out"} for s in SPECS.values()]

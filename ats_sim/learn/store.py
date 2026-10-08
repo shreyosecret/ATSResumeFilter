@@ -28,7 +28,8 @@ def model_dir() -> Path:
 
 
 # Bump when the starting model's training set changes, so cached starting
-# models are rebuilt. 2: added the 50 generated formats. 3: page geometry.
+# models are rebuilt. 2: added the 50 generated formats. 3: page geometry,
+# designer and reference formats.
 CORPUS_VERSION = 3
 
 
@@ -55,12 +56,12 @@ class ModelStore:
         return self.tagger is not None
 
     def build_base(self) -> T.LineTagger:
-        from ..formats import GENERATED_FORMATS
+        from ..formats import SPECS
         from .corpus import documents, format_documents
 
         self.status = "training the starting model on the synthetic corpus"
         kw = dict(self.corpus)
-        formats = kw.pop("formats", GENERATED_FORMATS)
+        formats = kw.pop("formats", tuple(SPECS))  # generated, designer and reference formats
         per_persona = kw.pop("per_persona", 2)
         cache = self.dir / "corpus"
         docs = list(documents(cache=cache, **kw).values())

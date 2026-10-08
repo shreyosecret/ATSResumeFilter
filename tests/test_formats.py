@@ -1,7 +1,9 @@
 import pytest
 
 from ats_sim.data import load_personas
-from ats_sim.formats import DESIGNER_FORMATS, GENERATED_FORMATS, HELD_OUT_FORMATS, SPECS, TRAIN_FORMATS, describe
+from ats_sim.formats import (
+    DESIGNER_FORMATS, GENERATED_FORMATS, HELD_OUT_FORMATS, REFERENCE_FORMATS, SPECS, TRAIN_FORMATS, describe,
+)
 from ats_sim.learn.corpus import document, format_combos
 from ats_sim.learn.labels import tokens
 from ats_sim.render import heading_for
@@ -14,7 +16,7 @@ def test_fifty_distinct_formats_with_a_held_out_split():
     assert heading_for("education", "f07") == SPECS["f07"].headings["education"]
 
 
-@pytest.mark.parametrize("name", GENERATED_FORMATS + DESIGNER_FORMATS)
+@pytest.mark.parametrize("name", GENERATED_FORMATS + DESIGNER_FORMATS + REFERENCE_FORMATS)
 def test_every_format_renders_and_labels(name, tmp_path):
     p = load_personas()[5]
     fmt = "pdf" if int(name[1:]) % 2 else "docx"
@@ -45,3 +47,17 @@ def test_designer_features_show_up_in_geometry(tmp_path):
     i = {n: k for k, n in enumerate(__import__("ats_sim.learn.geometry", fromlist=["x"]).GEO_FEATURES)}
     assert all(h[i["colored"]] == 1 and h[i["letter_spacing"]] > 0 and h[i["rule_below"]] == 1 for h in heads)
     assert not any(b[i["colored"]] for b in body)
+
+
+def test_reference_formats_keep_their_published_headings():
+    import json
+    from pathlib import Path
+
+    records = json.loads((Path(__file__).resolve().parent.parent / "data" / "format_sources.json").read_text())
+    assert len(REFERENCE_FORMATS) == len(records) >= 15
+    for name, r in zip(REFERENCE_FORMATS, records):
+        spec = SPECS[name]
+        assert spec.notes["source"] == r["id"] and r["license"] and r["source_url"].startswith("http")
+        for key in ("education", "experience"):
+            if key in (r.get("headings") or {}):
+                assert spec.headings[key] == r["headings"][key]

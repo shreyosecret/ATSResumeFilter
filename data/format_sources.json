@@ -1,0 +1,785 @@
+[
+ {
+  "id": "jakes_resume",
+  "name": "Jake's Resume (LaTeX)",
+  "source_url": "https://github.com/jakegut/resume (resume.tex)",
+  "license": "MIT (LICENSE, Copyright (c) 2020 Jake Gutierrez)",
+  "headings": {
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "skills": "Technical Skills"
+  },
+  "order": [
+   "contact",
+   "education",
+   "experience",
+   "projects",
+   "skills"
+  ],
+  "education_layout": "2x2 tabular: line 1 = bold Institution (left) | Location (right); line 2 = italic small Degree, Minor (left) | italic small date range (right)",
+  "experience_layout": "2x2 tabular: line 1 = bold Job Title (left) | date range (right); line 2 = italic small Company (left) | italic small Location (right); bullets below. Optional sub-heading for additional roles at same company: italic title | italic dates",
+  "skills_style": "'Label: items' categories, bold label then colon and comma list, one category per line (Languages, Frameworks, Developer Tools, Libraries)",
+  "contact_style": "centered single line under name, items separated by ' | ' (phone | email | linkedin | github), links underlined",
+  "columns": "single",
+  "visual": [
+   "huge bold small-caps name, centered",
+   "small-caps section headings, large, left-aligned",
+   "full-width horizontal rule under each heading",
+   "project heading: bold project name | italic tech stack (left), date range (right)",
+   "small round bullets"
+  ],
+  "date_format": "Mon. YYYY -- Mon. YYYY (abbrev. with period e.g. 'Aug. 2018 -- May 2021', 'June 2020 -- Present')",
+  "notes": "Very common ATS-friendly SWE format derived from sb2nov's resume. Experience swaps the line-2 order relative to education (title/date on line 1)."
+ },
+ {
+  "id": "awesome_cv",
+  "name": "Awesome-CV (resume variant)",
+  "source_url": "https://github.com/posquit0/Awesome-CV (awesome-cv.cls, examples/resume.tex, examples/resume/*.tex)",
+  "license": "LPPL 1.3c (LICENCE file)",
+  "headings": {
+   "summary": "Summary",
+   "experience": "Work Experience",
+   "awards": "Honors & Awards",
+   "certifications": "Certificates",
+   "education": "Education",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "experience",
+   "awards",
+   "certifications",
+   "education"
+  ],
+  "education_layout": "cventry 2x2 table: line 1 = bold Institution (left) | italic colored Location (right); line 2 = small-caps gray Degree (left) | small slanted gray date range (right); bullet items below",
+  "experience_layout": "cventry 2x2 table: line 1 = bold Organization (left) | italic accent-colored Location (right); line 2 = small-caps gray Job Title (left) | slanted gray date range (right); bullets below",
+  "skills_style": "cvskills table: bold Category (left column) + comma list (right column), one row per category (Skills section is in the CV example, not the resume example)",
+  "contact_style": "centered header; first name light + last name bold; position line in small caps accent color (items joined with ' · '); italic address line; social line with FontAwesome icons separated by ' | ' (mobile, email, homepage, github, linkedin); optional italic quote below",
+  "columns": "single",
+  "visual": [
+   "very large name (32pt), first name light gray, last name bold",
+   "colored tagline/position under name",
+   "section headings 16pt bold with first 3 letters in accent color (awesome-red default)",
+   "section heading followed by a horizontal rule filling the rest of the line",
+   "subsections in small caps (e.g. Honors split into 'International Awards', 'Domestic Awards', 'Community')",
+   "icons in contact line",
+   "footer with name, title, page number in small caps"
+  ],
+  "date_format": "Mon. YYYY - Mon. YYYY (e.g. 'Mar. 2010 - Aug. 2017')",
+  "notes": "Honors section uses cvhonors rows: Award | Event | Location | Year. Accent color configurable (awesome-red, emerald, skyblue, etc.)."
+ },
+ {
+  "id": "deedy_resume",
+  "name": "Deedy-Resume (OpenFonts)",
+  "source_url": "https://github.com/deedydas/Deedy-Resume (OpenFonts/deedy_resume-openfont.xtx, deedy-resume-openfont.cls); formerly deedy/Deedy-Resume",
+  "license": "Apache-2.0 (LICENSE)",
+  "headings": {
+   "education": "Education",
+   "contact": "Links",
+   "skills": "Skills",
+   "experience": "Experience",
+   "projects": "Research",
+   "awards": "Awards",
+   "publications": "Publications"
+  },
+  "order": [
+   "contact",
+   "education",
+   "skills",
+   "experience",
+   "projects",
+   "awards",
+   "publications"
+  ],
+  "education_layout": "left sidebar: bold uppercase Institution line; small-caps Degree line; gray line 'Mon YYYY | City, ST' (date first, then location, pipe separated); optional extra lines (honors, GPA)",
+  "experience_layout": "main column: bold UPPERCASE Company run-in with small-caps '| Job Title' on same line; next line gray 'Mon YYYY - Mon YYYY | City, ST' (left aligned, no right alignment); tight bullets below",
+  "skills_style": "sidebar sub-groups: gray proficiency label (e.g. 'Over 5000 lines:', 'Familiar:') followed by items separated by bullet characters ' • '",
+  "contact_style": "centered under name, one line separated by '|' (website | email | phone); separate sidebar 'Links' section with 'Github:// handle' style multi-line entries",
+  "columns": "two_column",
+  "visual": [
+   "very large thin name (Lato Hairline/Light, 40pt), first name lighter than last",
+   "full-width thin rule under header",
+   "section headings uppercase, light weight, gray, 16pt, no rule",
+   "left sidebar ~1/3 width (Education, Links, Coursework, Skills), main column ~2/3 (Experience, Research, Awards, Publications)",
+   "awards as a 3-column table: year | rank | award",
+   "'Last Updated' date in top-right corner"
+  ],
+  "date_format": "Mon YYYY - Mon YYYY or 'Mon YYYY - Present'",
+  "notes": "Sidebar also has a 'Coursework' section (Graduate/Undergraduate subsections) not in the key list. Two-column layout is a classic ATS reading-order trap."
+ },
+ {
+  "id": "moderncv",
+  "name": "moderncv (template.tex; styles casual/classic/banking/oldstyle/fancy/contemporary)",
+  "source_url": "https://github.com/moderncv/moderncv (template.tex, README)",
+  "license": "LPPL-1.3c (README)",
+  "headings": {
+   "education": "Education",
+   "experience": "Experience",
+   "languages": "Languages",
+   "skills": "Computer skills",
+   "interests": "Interests"
+  },
+  "order": [
+   "contact",
+   "education",
+   "experience",
+   "languages",
+   "skills",
+   "interests"
+  ],
+  "education_layout": "cventry: date range in a narrow left column (right-aligned within it); main column one line: bold Degree, italic Institution, City, italic Grade (comma separated), description below",
+  "experience_layout": "cventry: date range in left column; main column: bold Job Title, italic Employer, City on one line; description lines/bullets below. Subsections ('Vocational', 'Miscellaneous') allowed",
+  "skills_style": "cvdoubleitem: two label/value pairs per row ('category: XXX, YYY, ZZZ'); languages via cvitemwithcomment 'Language  Skill level  Comment'; optional skill matrix with rating marks",
+  "contact_style": "classic/casual: large name with title, contact items (address, phone, email, homepage, social) with icons, multi-line, aligned right in header (classic) or in footer (casual); banking: centered single line with separators",
+  "columns": "single",
+  "visual": [
+   "left date column / hanging layout",
+   "colored section headings with a colored bar in the left column",
+   "large name, optional 'Résumé title' subtitle",
+   "color themes: blue (default), black, burgundy, green, grey, orange, purple, red, cerulean",
+   "optional photo"
+  ],
+  "date_format": "year--year (template placeholder), free text",
+  "notes": "Template also has 'Master thesis', 'Extra 1/2', 'References' sections. Style-specific header details (classic vs banking) are from general familiarity with the package; headings/macros verified from template.tex."
+ },
+ {
+  "id": "rendercv_classic",
+  "name": "RenderCV 'classic' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_ClassicTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "3 columns: bold Degree in narrow left column; main = '**INSTITUTION**, AREA' then summary/highlights; right column = Location over Date",
+  "experience_layout": "main = '**COMPANY**, POSITION' then summary and bullet highlights; right column = Location (line 1) over Date (line 2); time span shown in experience",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "centered single line with icons, no separator characters, items spaced 0.5cm",
+  "columns": "single",
+  "visual": [
+   "large bold name 30pt in blue rgb(0,79,144)",
+   "section titles bold blue with partial line (rule after text)",
+   "bullet '•'",
+   "Source Sans 3 font",
+   "footer 'NAME -- PAGE/TOTAL', top note 'Last updated in ...'"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing."
+ },
+ {
+  "id": "rendercv_sb2nov",
+  "name": "RenderCV 'sb2nov' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_Sb2novTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "main = bold Institution (line 1), italic '*DEGREE* in *AREA*' (line 2); right column = italic Location over italic Date; no degree column",
+  "experience_layout": "main = bold POSITION (line 1), italic COMPANY (line 2); right column = italic Location over italic Date; bullets",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "centered single line separated by ' • ', URLs shown instead of usernames, links underlined, no icons",
+  "columns": "single",
+  "visual": [
+   "all black",
+   "New Computer Modern (LaTeX look)",
+   "section titles with full-width rule",
+   "hollow bullet '◦'"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing. Close to the original sb2nov LaTeX resume that Jake's Resume derives from."
+ },
+ {
+  "id": "rendercv_moderncv",
+  "name": "RenderCV 'moderncv' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_ModerncvTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "date in left column; main = '**INSTITUTION**, DEGREE_WITH_AREA -- LOCATION' (one line)",
+  "experience_layout": "date in left column; main = '**POSITION**, COMPANY -- LOCATION' then bullets",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "left-aligned header, icons, links underlined",
+  "columns": "single",
+  "visual": [
+   "Fontin font",
+   "name 25pt not bold",
+   "moderncv-style section title (thick 0.15cm colored bar)",
+   "left date column"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing."
+ },
+ {
+  "id": "rendercv_engineeringresumes",
+  "name": "RenderCV 'engineeringresumes' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_EngineeringresumesTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "single line: '**INSTITUTION**, DEGREE_WITH_AREA -- LOCATION' left, Date right-aligned",
+  "experience_layout": "single line: '**POSITION**, COMPANY -- LOCATION' left, Date right-aligned; tight bullets '●'",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "centered single line separated by ' | ', URLs displayed, underlined, no icons",
+  "columns": "single",
+  "visual": [
+   "all black",
+   "XCharter font",
+   "name 25pt",
+   "section titles with full-width rule",
+   "filled bullet '●'",
+   "no footer"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing. Follows r/EngineeringResumes wiki style."
+ },
+ {
+  "id": "rendercv_engineeringclassic",
+  "name": "RenderCV 'engineeringclassic' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_EngineeringclassicTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "single line: '**INSTITUTION**, DEGREE_WITH_AREA -- LOCATION' left, Date right",
+  "experience_layout": "single line: '**POSITION**, COMPANY -- LOCATION' left, Date right; bullets",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "left-aligned header, icons (classic defaults), blue",
+  "columns": "single",
+  "visual": [
+   "Raleway font",
+   "left-aligned header",
+   "name not bold",
+   "section titles not bold, full-width rule",
+   "blue accent like classic"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing."
+ },
+ {
+  "id": "rendercv_harvard",
+  "name": "RenderCV 'harvard' theme",
+  "source_url": "https://github.com/rendercv/rendercv/tree/main/examples (John_Doe_HarvardTheme_CV.yaml)",
+  "license": "MIT (rendercv/rendercv LICENSE)",
+  "headings": {
+   "summary": "Welcome to RenderCV",
+   "education": "Education",
+   "experience": "Experience",
+   "projects": "Projects",
+   "publications": "Publications",
+   "awards": "Selected Honors",
+   "skills": "Skills"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "projects",
+   "publications",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "single line: '**INSTITUTION**, DEGREE_WITH_AREA -- LOCATION' left, Date right",
+  "experience_layout": "single line: '**COMPANY**, POSITION -- LOCATION' left, Date right; bullets",
+  "skills_style": "'Label: items' categories, one per line, label bold (one_line_entry)",
+  "contact_style": "centered single line separated by ' • ', 9pt, no icons",
+  "columns": "single",
+  "visual": [
+   "all black",
+   "XCharter font",
+   "section titles centered with centered partial line",
+   "0.5in margins",
+   "no top note"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY (abbrev. months, en dash, 'present')",
+  "notes": "RenderCV section titles are arbitrary YAML keys (snake_case keys are title-cased, e.g. selected_honors -> 'Selected Honors'); headings/order here are from the shipped John_Doe example YAML, which also has 'Patents' and 'Invited Talks' sections. Skills use one_line_entry template '**LABEL:** DETAILS'. Default single_date 'MONTH_ABBREVIATION YEAR', date_range 'START_DATE – END_DATE' (en dash), month abbreviations Jan..May, June, July, Aug, Sept...; 'present' for ongoing."
+ },
+ {
+  "id": "jsonresume_even",
+  "name": "JSON Resume theme 'even'",
+  "source_url": "https://github.com/rbardini/jsonresume-theme-even (components/*.js, assets/page.css)",
+  "license": "MIT (LICENSE)",
+  "headings": {
+   "experience": "Work",
+   "volunteering": "Volunteer",
+   "education": "Education",
+   "projects": "Projects",
+   "awards": "Awards",
+   "certifications": "Certificates",
+   "publications": "Publications",
+   "skills": "Skills",
+   "languages": "Languages",
+   "interests": "Interests"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "experience",
+   "volunteering",
+   "education",
+   "projects",
+   "awards",
+   "certifications",
+   "publications",
+   "skills",
+   "languages",
+   "interests"
+  ],
+  "education_layout": "h4 Institution; meta line 'StudyType in **Area**'; next meta line date range with duration; optional 'Courses' sub-heading + list",
+  "experience_layout": "h4 Position (title first); meta lines: '**Company** · description', then date range + duration, then location (stacked, not right-aligned); consecutive roles at same company grouped under company name",
+  "skills_style": "grid of skill groups: h4 group name with keywords as tag chips (pill list), 2 groups per row",
+  "contact_style": "masthead: name h1, label/tagline h2, summary paragraph, then icon list (map-pin location, mail, phone, link, social profiles) stacked vertically on wide/print",
+  "columns": "single",
+  "visual": [
+   "section headings in a narrow left gutter column, right-aligned, colored (secondary color); content in right column",
+   "large name with tagline",
+   "icons for contact",
+   "tag chips for skills",
+   "optional photo in left gutter",
+   "light/dark mode"
+  ],
+  "date_format": "Mon YYYY – Mon YYYY plus ' · N yrs' duration (Intl date formatting)",
+  "notes": "Section keys follow JSON Resume schema (basics, work, volunteer, education, projects, awards, certificates, publications, skills, languages, interests, references); heading 'References' also exists. Not a sidebar layout: headings sit in the left grid column level with their content, so plain-text extraction usually stays in order. Summary is unheaded (inside masthead)."
+ },
+ {
+  "id": "google_swiss",
+  "name": "Google Docs 'Swiss' resume",
+  "source_url": "https://docs.google.com/document/u/0/?tgif=d (Template gallery > Resumes); descriptions: https://www.resumebuilder.com/google-docs-resume-examples, https://novoresume.com/career-blog/google-docs-resume-templates",
+  "license": "Google Docs template, structure only; not copied",
+  "headings": {
+   "skills": "Skills",
+   "experience": "Experience",
+   "education": "Education",
+   "awards": "Awards"
+  },
+  "order": [
+   "contact",
+   "skills",
+   "experience",
+   "education",
+   "awards"
+  ],
+  "education_layout": "bold 'School Name, Location — Degree' line then small date line 'MONTH 20XX - MONTH 20XX', paragraph description",
+  "experience_layout": "bold 'Company, Location — Job Title' (company emphasized, title de-emphasized), next line small date range 'MONTH 20XX - PRESENT', description as a PARAGRAPH (not bullets)",
+  "skills_style": "paragraph/inline list (separate with semicolons or pipes)",
+  "contact_style": "large name at top, contact details in a block near the name (multi-line)",
+  "columns": "two_column",
+  "visual": [
+   "two-column structure (headings column + content column)",
+   "orange accent color",
+   "large name",
+   "minimal sans-serif"
+  ],
+  "date_format": "MONTH YYYY - MONTH YYYY / PRESENT (uppercase placeholders)",
+  "notes": "Structure from public third-party descriptions (resumebuilder.com Google Docs guide; novoresume.com Google Docs templates article). Exact heading capitalization and the 'Company, Location — Job Title' / 'MONTH 20XX - PRESENT' placeholder pattern are from general familiarity with the gallery, NOT verified against a fetched source; treat as approximate. Per resumebuilder: no template includes a profile/summary section; all five have an awards section; company/school names are emphasized over job titles/degrees; templates prompt for start and end month+year."
+ },
+ {
+  "id": "google_serif",
+  "name": "Google Docs 'Serif' resume",
+  "source_url": "https://docs.google.com/document/u/0/?tgif=d (Template gallery > Resumes); descriptions: https://www.resumebuilder.com/google-docs-resume-examples, https://novoresume.com/career-blog/google-docs-resume-templates",
+  "license": "Google Docs template, structure only; not copied",
+  "headings": {
+   "experience": "EXPERIENCE",
+   "education": "EDUCATION",
+   "projects": "PROJECTS",
+   "skills": "SKILLS",
+   "awards": "AWARDS",
+   "languages": "LANGUAGES"
+  },
+  "order": [
+   "contact",
+   "experience",
+   "education",
+   "projects",
+   "skills",
+   "awards",
+   "languages"
+  ],
+  "education_layout": "bold School Name, Location — Degree; date line below; paragraph",
+  "experience_layout": "bold Company, Location — Job Title; small date line below; PARAGRAPH description",
+  "skills_style": "vertical list down the right column (one skill per line)",
+  "contact_style": "name large top-left; contact block (address, phone, email) multi-line at top right",
+  "columns": "two_column",
+  "visual": [
+   "wide main column + narrow right sidebar (Skills, Awards, Languages)",
+   "black and blue color scheme",
+   "serif typeface",
+   "uppercase small headings"
+  ],
+  "date_format": "MONTH YYYY - MONTH YYYY / PRESENT",
+  "notes": "Structure from public third-party descriptions (resumebuilder.com Google Docs guide; novoresume.com Google Docs templates article). Exact heading capitalization and the 'Company, Location — Job Title' / 'MONTH 20XX - PRESENT' placeholder pattern are from general familiarity with the gallery, NOT verified against a fetched source; treat as approximate. Per resumebuilder: no template includes a profile/summary section; all five have an awards section; company/school names are emphasized over job titles/degrees; templates prompt for start and end month+year. Only Serif has Projects and Languages sections (resumebuilder)."
+ },
+ {
+  "id": "google_coral",
+  "name": "Google Docs 'Coral' resume",
+  "source_url": "https://docs.google.com/document/u/0/?tgif=d (Template gallery > Resumes); descriptions: https://www.resumebuilder.com/google-docs-resume-examples, https://novoresume.com/career-blog/google-docs-resume-templates",
+  "license": "Google Docs template, structure only; not copied",
+  "headings": {
+   "experience": "Experience",
+   "education": "Education",
+   "skills": "Skills",
+   "awards": "Awards"
+  },
+  "order": [
+   "contact",
+   "experience",
+   "education",
+   "skills",
+   "awards"
+  ],
+  "education_layout": "School Name, Location — Degree (school emphasized); date line below",
+  "experience_layout": "Company and Location emphasized, '— Job Title' less prominent; date line below; BULLET points",
+  "skills_style": "paragraph list separated by semicolons or pipes",
+  "contact_style": "name large, contact lines near top (multi-line)",
+  "columns": "single",
+  "visual": [
+   "coral accent color on headings",
+   "decorative/cursive-style heading font mixed with body font",
+   "left-indented single column"
+  ],
+  "date_format": "MONTH YYYY - MONTH YYYY / PRESENT",
+  "notes": "Structure from public third-party descriptions (resumebuilder.com Google Docs guide; novoresume.com Google Docs templates article). Exact heading capitalization and the 'Company, Location — Job Title' / 'MONTH 20XX - PRESENT' placeholder pattern are from general familiarity with the gallery, NOT verified against a fetched source; treat as approximate. Per resumebuilder: no template includes a profile/summary section; all five have an awards section; company/school names are emphasized over job titles/degrees; templates prompt for start and end month+year."
+ },
+ {
+  "id": "google_spearmint",
+  "name": "Google Docs 'Spearmint' resume",
+  "source_url": "https://docs.google.com/document/u/0/?tgif=d (Template gallery > Resumes); descriptions: https://www.resumebuilder.com/google-docs-resume-examples, https://novoresume.com/career-blog/google-docs-resume-templates",
+  "license": "Google Docs template, structure only; not copied",
+  "headings": {
+   "skills": "SKILLS",
+   "experience": "EXPERIENCE",
+   "education": "EDUCATION",
+   "awards": "AWARDS"
+  },
+  "order": [
+   "contact",
+   "skills",
+   "experience",
+   "education",
+   "awards"
+  ],
+  "education_layout": "School Name, Location — Degree; date line below",
+  "experience_layout": "Company, Location emphasized — Job Title; date line; BULLET points",
+  "skills_style": "paragraph list separated by semicolons or pipes",
+  "contact_style": "large name, contact details left-aligned beneath (multi-line)",
+  "columns": "single",
+  "visual": [
+   "thick green rule across the top",
+   "bright green section titles",
+   "large name",
+   "skills listed first (novoresume)"
+  ],
+  "date_format": "MONTH YYYY - MONTH YYYY / PRESENT",
+  "notes": "Structure from public third-party descriptions (resumebuilder.com Google Docs guide; novoresume.com Google Docs templates article). Exact heading capitalization and the 'Company, Location — Job Title' / 'MONTH 20XX - PRESENT' placeholder pattern are from general familiarity with the gallery, NOT verified against a fetched source; treat as approximate. Per resumebuilder: no template includes a profile/summary section; all five have an awards section; company/school names are emphasized over job titles/degrees; templates prompt for start and end month+year."
+ },
+ {
+  "id": "google_modern_writer",
+  "name": "Google Docs 'Modern Writer' resume",
+  "source_url": "https://docs.google.com/document/u/0/?tgif=d (Template gallery > Resumes); descriptions: https://www.resumebuilder.com/google-docs-resume-examples, https://novoresume.com/career-blog/google-docs-resume-templates",
+  "license": "Google Docs template, structure only; not copied",
+  "headings": {
+   "skills": "Skills",
+   "experience": "Experience",
+   "education": "Education",
+   "awards": "Awards"
+  },
+  "order": [
+   "contact",
+   "skills",
+   "experience",
+   "education",
+   "awards"
+  ],
+  "education_layout": "School Name, Location — Degree; school location appears twice in placeholder (resumebuilder); date line",
+  "experience_layout": "Company, Location emphasized — Job Title; date line; BULLET points",
+  "skills_style": "paragraph list separated by semicolons or pipes",
+  "contact_style": "contact information ABOVE the name; solid line separates header from body",
+  "columns": "single",
+  "visual": [
+   "Roboto Condensed / typewriter-like monospace font",
+   "pink accent color (headings/letters)",
+   "name below contact info",
+   "horizontal rule under header"
+  ],
+  "date_format": "MONTH YYYY - MONTH YYYY / PRESENT",
+  "notes": "Structure from public third-party descriptions (resumebuilder.com Google Docs guide; novoresume.com Google Docs templates article). Exact heading capitalization and the 'Company, Location — Job Title' / 'MONTH 20XX - PRESENT' placeholder pattern are from general familiarity with the gallery, NOT verified against a fetched source; treat as approximate. Per resumebuilder: no template includes a profile/summary section; all five have an awards section; company/school names are emphasized over job titles/degrees; templates prompt for start and end month+year."
+ },
+ {
+  "id": "harvard_mcs",
+  "name": "Harvard College (Mignone Center for Career Success) resume sample",
+  "source_url": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/ (resume-sample.pdf)",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "education": "Education",
+   "experience": "Experience",
+   "leadership": "Leadership",
+   "skills": "Skills & Interests"
+  },
+  "order": [
+   "contact",
+   "education",
+   "experience",
+   "leadership",
+   "skills"
+  ],
+  "education_layout": "line 1: bold Institution (left) | City, ST (right); line 2: degree + 'GPA x.xx.' (left) | graduation month year (right); then 'Relevant Coursework:' line and activity lines; high school entries allowed",
+  "experience_layout": "line 1: bold Organization (left) | Location (right); line 2: italic Job Title (left) | date range (right); description as paragraph (bullet-point variant template also offered)",
+  "skills_style": "'Label: items' lines: 'Technical:', 'Language:', 'Interests:'",
+  "contact_style": "centered name, then single centered line 'street • city, ST zip • email • phone' with bullet separators",
+  "columns": "single",
+  "visual": [
+   "centered section headings",
+   "name centered and larger",
+   "right-aligned locations and dates",
+   "no photo"
+  ],
+  "date_format": "Month YYYY; ranges 'May - August 2026', 'February 2024 - Present' (full month names)",
+  "notes": "Guide says: list headings in order of importance, reverse chronological within headings, don't start lines with dates; two templates offered (Bullet Points / Paragraph Format). Optional categories page shows concurrent-degree formats e.g. 'A.B./S.M. Computer Science, GPA 3.6'."
+ },
+ {
+  "id": "mit_capd_first_year",
+  "name": "MIT CAPD first-year sample (left-margin headings)",
+  "source_url": "https://capd.mit.edu/resources/resumes/ (sampe-resumes-capd.pdf)",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "education": "Education",
+   "leadership": "Leadership Experience",
+   "experience": "Work Experience",
+   "awards": "Activities & Awards",
+   "skills": "Skills/Interests"
+  },
+  "order": [
+   "contact",
+   "education",
+   "leadership",
+   "experience",
+   "awards",
+   "skills"
+  ],
+  "education_layout": "heading in left margin column; Institution (left) | City, ST (right); 'Candidate for Bachelor of Science in X' (left) | Month YYYY (right); 'Coursework includes:' line",
+  "experience_layout": "heading in left margin; Organization (left) | Location (right); Title (left) | date range (right); bullets; multiple roles stacked under one org",
+  "skills_style": "bulleted lines",
+  "contact_style": "centered name; single centered line 'address • city, ST zip • Phone: ... • Email: ...'",
+  "columns": "two_column",
+  "visual": [
+   "section headings set in a left-hand margin column (title case), content indented to the right",
+   "right-aligned dates/locations",
+   "round bullets"
+  ],
+  "date_format": "Month YYYY-Month YYYY (full month, hyphen no spaces), 'Present'",
+  "notes": "Headings in left margin wrap across two lines (e.g. 'Leadership / Experience'), which can break heading detection. Columns marked two_column because of the margin heading column, not a sidebar."
+ },
+ {
+  "id": "mit_capd_undergrad",
+  "name": "MIT CAPD undergraduate sample",
+  "source_url": "https://capd.mit.edu/resources/resumes/ (sampe-resumes-capd.pdf)",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "education": "EDUCATION",
+   "experience": "EXPERIENCE",
+   "leadership": "LEADERSHIP",
+   "skills": "SKILLS"
+  },
+  "order": [
+   "contact",
+   "education",
+   "experience",
+   "leadership",
+   "skills"
+  ],
+  "education_layout": "Institution (left) | City, ST (right); bulleted lines for degree, minor, coursework with grad date and 'GPA: x/5.0' right-aligned on bullet lines",
+  "experience_layout": "Organization (left) | City, Country (right); Job Title (left) | 'Month YYYY – Present' (right); bullets",
+  "skills_style": "'Label: items' lines (Languages:, Software:, Activities:)",
+  "contact_style": "three-column header: campus address left, centered email/phone under name, home address right (multi-line)",
+  "columns": "single",
+  "visual": [
+   "UPPERCASE left-aligned headings",
+   "centered name",
+   "right-aligned dates",
+   "round bullets"
+  ],
+  "date_format": "Month YYYY – Month YYYY (full month, en dash)",
+  "notes": "Other samples in the same PDF use headings 'LEADERSHIP & SERVICE', 'CERTIFICATIONS AND SKILLS', 'SKILLS AND INTERESTS', 'RELEVANT SKILLS', 'INTERESTS AND ACTIVITIES', 'HONORS AND ACHIEVEMENTS', 'ADDITIONAL INFORMATION', some placing SKILLS before EXPERIENCE."
+ },
+ {
+  "id": "mit_capd_phd",
+  "name": "MIT CAPD PhD sample",
+  "source_url": "https://capd.mit.edu/resources/resumes/ (sampe-resumes-capd.pdf)",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "summary": "SUMMARY",
+   "education": "EDUCATION",
+   "skills": "SKILLS",
+   "experience": "EXPERIENCE",
+   "awards": "HONORS AND AWARDS",
+   "publications": "JOURNAL PUBLICATIONS"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "skills",
+   "experience",
+   "awards",
+   "publications"
+  ],
+  "education_layout": "line 1: 'Institution, City, ST, Country' (left) | year only (right); line 2: degree + department; bullets for Thesis and GPA",
+  "experience_layout": "line 1: 'Department, Institution, City, Country' (left) | 'Mon. YYYY–current' (right); line 2: Job Title; bullets",
+  "skills_style": "bullets with bold-ish category label then semicolon/comma list (Computer:, Analytical:, Language:)",
+  "contact_style": "centered name/title line, then single line 'address • Phone: ... • Email: ...'",
+  "columns": "single",
+  "visual": [
+   "UPPERCASE headings",
+   "summary paragraph at top",
+   "right-aligned dates",
+   "also 'OTHER PUBLICATIONS', 'ACTIVITIES' sections"
+  ],
+  "date_format": "Mon. YYYY–current; education year only (YYYY)",
+  "notes": "Advanced-degree format: Summary first, Skills before Experience, publications split into journal/other."
+ },
+ {
+  "id": "berkeley_technical",
+  "name": "UC Berkeley Career Engagement technical sample",
+  "source_url": "https://career.berkeley.edu/prepare-for-success/resumes/sample-resumes/ (Technical Experience Google Doc template, read as text export)",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "education": "Education",
+   "skills": "Skills",
+   "projects": "Highlighted Experience and Projects",
+   "leadership": "Leadership and Extracurricular Activities"
+  },
+  "order": [
+   "contact",
+   "education",
+   "skills",
+   "projects",
+   "leadership"
+  ],
+  "education_layout": "Institution line, Degree line (dates right-aligned via tab), then 'Relevant Coursework:' line",
+  "experience_layout": "single line 'Job Title, Organization, City, ST' (left) | season/date (right, tab-aligned); bullets. Projects as 'Project: Name, Course: Name' lines with bullets",
+  "skills_style": "'Label: items' categories (Languages:, Data Analysis & Visualization:, Machine Learning & Modeling:, Databases & Tools:)",
+  "contact_style": "name in caps, then single line 'City, ST | phone | email | Linkedin | website' with pipe separators",
+  "columns": "single",
+  "visual": [
+   "title-case headings",
+   "name uppercase",
+   "right-aligned dates via tabs",
+   "bullets"
+  ],
+  "date_format": "'Summer 2026', 'Spring 2026', 'Sept. 2025 - May 2026' (season or abbreviated month)",
+  "notes": "Guide's ATS advice: standard fonts, section titles like Education/Projects/Experience, work history as position title, company, dates; avoid headers/footers, text boxes, tables, colors, graphics. Experience and projects merged under one heading; Skills placed before experience."
+ },
+ {
+  "id": "purdue_cco_guide",
+  "name": "Purdue CCO 'Writing the Resume' guidance (no sample fetched)",
+  "source_url": "https://www.cco.purdue.edu/Students/ResumesAndCVs",
+  "license": "University career guide; structure only, no content copied",
+  "headings": {
+   "contact": "Header",
+   "summary": "Objective",
+   "education": "Education",
+   "experience": "Experience",
+   "awards": "Honors and Awards",
+   "leadership": "Activities"
+  },
+  "order": [
+   "contact",
+   "summary",
+   "education",
+   "experience",
+   "awards",
+   "leadership"
+  ],
+  "education_layout": "items: Institution, Location, Graduation Date, Degree(s), Major(s), Minor(s)/Concentration(s), GPA; optional Awards/Scholarships, Course Highlights (layout not specified)",
+  "experience_layout": "not specified; result-focused bullets, reverse chronological",
+  "skills_style": "not specified (suggests 'Computer/Technical Skills', 'Laboratory Skills/Field Processes', 'Languages (indicate level)' as optional sections)",
+  "contact_style": "not specified",
+  "columns": "single",
+  "visual": [],
+  "date_format": "not specified",
+  "notes": "Rule: Heading, Objective (if included) and Education come first in that order. Advises against templates. Other suggested categories: Research Experiences, Practicum or Internship Experiences, Teaching Experiences, Study/Travel Abroad, Certifications of Licensure, Presentations and Publications, Volunteer and Community/Campus Involvement, Leadership Positions, Class or Design Projects."
+ }
+]
