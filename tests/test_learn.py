@@ -113,7 +113,7 @@ def test_geometry_lines_match_the_text_reader(personas, tmp_path):
 def test_text_only_tagger_ignores_geometry(base):
     lines = ["Ana Ruiz", "ana@x.com", "EDUCATION", "B.S. in Biology"]
     text_only = LineTagger(use_geometry=False)
-    text_only.fit([(lines, ["name", "contact", "heading", "education"], [[1.0] * 22] * 4)], epochs=2)
-    a = text_only.predict_proba(lines, [[1.0] * 22] * 4)
+    text_only.fit([(lines, ["name", "contact", "heading", "education"], [[1.0] * 20] * 4)], epochs=2)
+    a = text_only.predict_proba(lines, [[1.0] * 20] * 4)
     b = text_only.predict_proba(lines, None)
     assert np.allclose(a, b)

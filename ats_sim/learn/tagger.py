@@ -27,10 +27,10 @@ from ..models import ParsedResume
 from ..parser import (
     _HEADING_LOOKUP, DATE_RANGE_RE, EMAIL_RE, MONTH_YEAR_RE, PHONE_RE, normalize_heading, parse_with_sections,
 )
-from .geometry import N_GEO
+from .geometry import GEO_FEATURES, N_GEO
 from .labels import LABELS, SECTION_LABELS, split_lines, tokens
 
-FORMAT_VERSION = 2  # 2: page geometry features
+FORMAT_VERSION = 3  # 2: page geometry features; 3: no page/height features, augmented training
 _BULLET_RE = re.compile(r"^\s*(?:\(cid:127\)|[•\-\*·▪◦●■–])")
 _URL_RE = re.compile(r"(?:https?://|www\.|linkedin\.com|github\.com)", re.IGNORECASE)
 _YEAR_RE = re.compile(r"\b(?:19|20)\d\d\b")
@@ -97,6 +97,39 @@ def _geo_block(geo: Geo, n: int, use: bool) -> np.ndarray:
         raise ValueError(f"geometry must be {n} rows of {N_GEO} values")
     pad = np.zeros((1, N_GEO), dtype=np.float32)
     return np.hstack([G, np.vstack([pad, G[:-1]]), np.vstack([G[1:], pad])])
+
+
+_G = {n: i for i, n in enumerate(GEO_FEATURES)}
+
+
+def augment_geometry(geo: Geo, labels: list[str], rng: np.random.Generator) -> Geo:
+    """A randomly perturbed copy of one training resume's geometry.
+
+    Synthetic resumes come out of one renderer, so some cues never vary in
+    training (nothing is italic, gaps are always the same) and the network
+    would treat any value it never saw as meaningful. Jittering sizes, gaps
+    and margins, sprinkling italic, bold and color over body text, and
+    sometimes hiding geometry altogether teaches it to lean only on cues that
+    hold up across documents."""
+    if geo is None:
+        return None
+    G = np.asarray(geo, dtype=np.float32).copy()
+    if rng.random() < 0.15:
+        return np.zeros_like(G).tolist()
+    n = len(G)
+    body = np.array([y not in ("heading", "name") for y in labels])
+    G[:, _G["size_ratio"]] *= rng.uniform(0.85, 1.15)
+    G[:, _G["size_ratio"]] += rng.normal(0, 0.01, n)
+    for k in ("gap_above", "gap_below"):
+        G[:, _G[k]] = np.clip(G[:, _G[k]] * rng.uniform(0.5, 2.0) + rng.normal(0, 0.02, n), 0, 1)
+    shift = rng.uniform(-0.05, 0.05)
+    for k in ("x0", "x1"):
+        G[:, _G[k]] = np.clip(G[:, _G[k]] + shift, 0, 1) * (G[:, _G["has_geometry"]] > 0)
+    for k, p_doc, share in (("italic", 0.4, 0.25), ("bold", 0.3, 0.1), ("colored", 0.15, 0.1)):
+        if rng.random() < p_doc:
+            hit = body & (rng.random(n) < share)
+            G[hit, _G[k]] = rng.uniform(0.2, 1.0, hit.sum())
+    return np.clip(G, -0.5, 1).tolist()
 
 
 class LineTagger:
@@ -175,10 +208,15 @@ class LineTagger:
         is_heading = [y == "heading" for y in labels]
         return self.featurize(lines, is_heading, geo), np.asarray(labels, dtype=object)
 
-    def fit(self, docs: list[tuple], epochs: int = 8) -> "LineTagger":
+    def fit(self, docs: list[tuple], epochs: int = 8, augment: bool = True) -> "LineTagger":
         """Batch training on many labeled documents (the starting model). Each
-        document is (lines, labels) or (lines, labels, geometry)."""
-        rows = [self.doc_rows(*d) for d in docs if d[0]]
+        document is (lines, labels) or (lines, labels, geometry). With
+        `augment`, each document is added once as is and once with perturbed
+        geometry (augment_geometry)."""
+        docs = [d for d in docs if d[0]]
+        if augment and self.use_geometry:
+            docs = docs + [(d[0], d[1], augment_geometry(d[2], d[1], self.rng)) for d in docs if len(d) > 2]
+        rows = [self.doc_rows(*d) for d in docs]
         X = sparse.vstack([r[0] for r in rows], format="csr")
         y = np.concatenate([r[1] for r in rows])
         self._fit_rows(X, y, epochs)

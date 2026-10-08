@@ -22,9 +22,12 @@ from pathlib import Path
 
 GEO_FEATURES = (
     "has_geometry", "size_ratio", "is_largest", "bold", "italic", "colored", "x0", "x1", "width",
-    "right_aligned", "centered", "gap_above", "gap_below", "y", "letter_spacing", "single_letter_words",
-    "rule_below", "shaded", "in_table", "in_box", "page", "indent_change",
+    "right_aligned", "centered", "gap_above", "gap_below", "letter_spacing", "single_letter_words",
+    "rule_below", "shaded", "in_table", "in_box", "indent_change",
 )
+# No absolute page number or height on the page: every training resume is one
+# page, so those features never varied in training, kept their random initial
+# weights, and threw off every line on page 2 of a real two-page resume.
 N_GEO = len(GEO_FEATURES)
 _BOLD = re.compile(r"bold|black|heavy|semibold|demi", re.IGNORECASE)
 _ITALIC = re.compile(r"italic|oblique", re.IGNORECASE)
@@ -168,7 +171,7 @@ def read_pdf(path: str | Path) -> list[Line]:
                 g["bold"], g["italic"], g["colored"], g["x0"] / W, g["x1"] / W, width / W,
                 float(right - g["x1"] < 3 and g["x0"] - left > 0.3 * W),
                 float(abs(mid - (left + right) / 2) < 6 and g["x0"] - left > 20),
-                _clip(above, 0, 4) / 4, _clip(below, 0, 4) / 4, g["top"] / H,
+                _clip(above, 0, 4) / 4, _clip(below, 0, 4) / 4,
                 _clip(g["spacing"], 0, 1), g["single"],
                 float(any(r[1] >= g["bottom"] - 1 and r[1] - g["bottom"] < 6 and r[0] <= g["x1"] and r[2] >= g["x0"]
                           for r in rules)),
@@ -176,7 +179,6 @@ def read_pdf(path: str | Path) -> list[Line]:
                 float(any(_inside(g["x0"], g["top"], g["x1"], g["bottom"], t) for t in tables)),
                 float(any(_inside(g["x0"], g["top"], g["x1"], g["bottom"], b) for b in boxes)
                       or any(_inside(g["x0"], g["top"], g["x1"], g["bottom"], t) for t in tables)),
-                _clip(pno, 0, 3) / 3,
                 _clip(((g["x0"] - prev["x0"]) / W) if prev else 0.0, -0.5, 0.5),
             ]))
     return out
@@ -280,10 +282,10 @@ def read_docx(path: str | Path) -> list[Line]:
         out.append(Line(t, [
             1.0, _clip(f["size"] / body, 0, 3) / 3, float(f["size"] >= 0.98 * largest), f["bold"], f["italic"],
             f["colored"], _clip(f["indent"] / 612, 0, 1), 0.0, 0.0, float(f["right"] or "\t" in t),
-            float(f["centered"]), _clip(f["before"] / max(body, 1), 0, 4) / 4, 0.0, i / max(len(texts) - 1, 1),
+            float(f["centered"]), _clip(f["before"] / max(body, 1), 0, 4) / 4, 0.0,
             _clip(f["spacing"], 0, 1), sum(len(w) == 1 for w in t.split()) / max(len(t.split()), 1),
             float(f["rule"] or f["heading_style"]), 0.0, float(f["in_table"]), float(f["in_box"] or f["in_table"]),
-            0.0, _clip((f["indent"] - prev_indent) / 612, -0.5, 0.5),
+            _clip((f["indent"] - prev_indent) / 612, -0.5, 0.5),
         ]))
     return out
 
