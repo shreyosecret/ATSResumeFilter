@@ -31,6 +31,9 @@ if __name__ == "__main__":
         import faulthandler
 
         faulthandler.enable(log)
+        if os.environ.get("ATS_SIM_DUMP_AFTER"):  # CI: show where a hung start-up is stuck
+            faulthandler.dump_traceback_later(int(os.environ["ATS_SIM_DUMP_AFTER"]), repeat=True, file=log)
+        print("starting ATS Simulator", sys.version.split()[0], sys.platform, flush=True)
     os.environ.setdefault("ATS_SIM_EMBEDDING_BACKEND", "onnx")  # no PyTorch inside: MiniLM runs on onnxruntime
     try:
         from ats_sim.desktop import main

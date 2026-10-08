@@ -52,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
                          "(default: 3 in the packaged app, never otherwise)")
     args = ap.parse_args(argv)
 
+    print("loading", flush=True)
     import uvicorn
 
     from .webapp.server import create_app
@@ -60,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     app = create_app(kwargs, model_store=not args.no_learning)
     port = free_port(args.port)
     url = f"http://127.0.0.1:{port}/"
+    print(f"serving on {url}", flush=True)
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()

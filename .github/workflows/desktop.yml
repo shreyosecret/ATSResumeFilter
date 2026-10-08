@@ -58,7 +58,7 @@ jobs:
             macOS)   BIN="dist/ATS Simulator.app/Contents/MacOS/ATS-Simulator" ;;
             *)       BIN="dist/ATS-Simulator" ;;
           esac
-          "$BIN" --no-open --no-learning --port 8799 &
+          ATS_SIM_DUMP_AFTER=120 "$BIN" --no-open --no-learning --port 8799 &
           for i in $(seq 1 150); do
             if curl -s http://127.0.0.1:8799/api/status | grep -q '"ready":true'; then
               curl -s http://127.0.0.1:8799/api/status; echo; ok=1; break
