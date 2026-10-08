@@ -54,7 +54,32 @@ RELATED_RE = re.compile(r"\b(?:or\s+(?:a\s+)?(?:closely\s+)?related|related\s+(?
                         r"|equivalent|similar\s+(?:field|discipline))", re.IGNORECASE)
 
 
+_CONNECTOR_END = re.compile(r"(?:,|\b(?:and|or|a|an|the|of|in|to|for|with|by|from|as|on|at|least|than|between))$",
+                            re.IGNORECASE)
+
+
+def unwrap(text: str) -> str:
+    """Join lines that were wrapped inside one bullet or sentence.
+
+    Text copied out of a PDF or a narrow web page keeps its line breaks, so
+    one requirement can arrive as two lines, and "or a related field" ends up
+    cut off from the degree it qualifies. A line is joined to the one above
+    when it is not a new bullet and either starts in lowercase or follows a
+    line that ends mid-phrase (a comma or a word like "and", "of", "a")."""
+    out: list[str] = []
+    for line in text.splitlines():
+        s = line.strip()
+        prev = out[-1].rstrip() if out else ""
+        if (s and prev and not re.match(r"[-•*·▪◦●■–]\s|\d+[.)]\s", s) and not prev.endswith((".", ":", ";", "!", "?"))
+                and (s[0].islower() or _CONNECTOR_END.search(prev))):
+            out[-1] = prev + " " + s
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 def _sentences(text: str) -> list[str]:
+    text = unwrap(text)
     # Split after a word of three or more lowercase letters or digits, so the
     # dots in "B.S.", "U.S." or "e.g." do not end a sentence.
     parts = re.split(r"(?<=[a-z0-9)]{3}[.;!?])\s+|\n+", text)

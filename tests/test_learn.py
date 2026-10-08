@@ -29,8 +29,10 @@ def test_labels_follow_the_source(personas, tmp_path):
     lines, labels, _ = document(p, "hybrid", "table", "pdf", root=tmp_path, cache=tmp_path)
     assert labels[0] == "name" and lines[0] == p["name"]
     assert set(labels) <= set(LABELS)
-    # "Education &" / "Certifications" wrap in a narrow cell; both are heading fragments
-    assert labels[lines.index("Certifications")] == "heading"
+    # "Education &" / "Certifications" wrap in a narrow cell and are read back as one heading;
+    # "Core" / "Competencies" stay apart (the second word fit), and both fragments are headings
+    assert labels[lines.index("Education & Certifications")] == "heading"
+    assert labels[lines.index("Competencies")] == "heading"
     edu = [l for l, y in zip(lines, labels) if y == "education"]
     assert any(p["education"]["school"] in l for l in edu)
 
@@ -101,13 +103,45 @@ def test_geometry_lines_match_the_text_reader(personas, tmp_path):
 
     for fmt in ("pdf", "docx"):
         path = render(personas[0], "two_column", fmt, tmp_path / f"r.{fmt}", RenderOptions(template="modern"))
-        rows = read(path)
+        rows = read(path, merge_wrapped=False)
         assert [r.text for r in rows] == split_lines(extract_text(path, layout_aware=True))
         assert all(len(r.geo) == len(GEO_FEATURES) for r in rows)
     size, bold = GEO_FEATURES.index("size_ratio"), GEO_FEATURES.index("bold")
     pdf = read(render(personas[0], "single", "pdf", tmp_path / "s.pdf", RenderOptions()))
     assert pdf[0].geo[size] > max(r.geo[size] for r in pdf[1:])  # the name is the largest text
     assert pdf[[r.text for r in pdf].index("EDUCATION")].geo[bold] == 1.0
+
+
+def test_wrapped_bullets_are_read_as_one_line(tmp_path):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Table
+
+    from ats_sim.learn.geometry import read
+
+    body = ParagraphStyle("b", fontName="Helvetica", fontSize=10, leading=12)
+    item = ParagraphStyle("i", parent=body, leftIndent=12, bulletIndent=0)
+    long = ("Built a pipeline that reads twelve thousand instrument logs every night and flags the runs "
+            "that drift outside tolerance for review")
+    story = [
+        Table([["Lab Assistant, Example University", "May 2025 \u2013 Present"]], colWidths=[300, 168],
+              style=[("ALIGN", (1, 0), (1, 0), "RIGHT"), ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+                     ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]),
+        Paragraph(long, item, bulletText="\u2022"),
+        Paragraph("Wrote setup guides", item, bulletText="\u2022"),
+        Paragraph("Languages: Python, R", body),
+        Paragraph("Tools: Git", body),
+    ]
+    path = tmp_path / "w.pdf"
+    SimpleDocTemplate(str(path), pagesize=letter, leftMargin=72, rightMargin=72).build(story)
+    raw = [r.text for r in read(path, merge_wrapped=False)]
+    lines = [r.text for r in read(path)]
+    assert len(raw) > len(lines)  # the long bullet wrapped on the page
+    bullet = "(cid:127)"  # how pdfplumber reads Helvetica's bullet glyph
+    assert bullet + " " + long in lines
+    assert bullet + " Wrote setup guides" in lines  # a new bullet is never joined
+    assert "Languages: Python, R" in lines and "Tools: Git" in lines  # nor are stacked label lines
+    assert any(l.startswith("Lab Assistant") for l in lines) and not any("Present " + bullet in l for l in lines)
 
 
 def test_text_only_tagger_ignores_geometry(base):

@@ -2,7 +2,7 @@ import pytest
 
 from ats_sim.data import DATA_DIR
 from ats_sim.jd import load_jobs
-from ats_sim.jd_rules import extract_knockouts, guess_title
+from ats_sim.jd_rules import extract_knockouts, guess_title, unwrap
 from ats_sim.knockout import check_rules
 from ats_sim.models import ParsedResume
 
@@ -58,3 +58,23 @@ def test_title_and_rule_checks():
     rows = {c["rule"]: c["status"] for c in check_rules(r, k, {"work_authorized": True}, found)}
     assert rows == {"Degree": "pass", "Field of study": "pass", "GPA": "fail", "Graduation": "pass",
                     "Work authorization": "pass", "Visa sponsorship": "ask"}
+
+
+def test_lines_wrapped_by_a_copy_are_joined():
+    text = ("Requirements\n"
+            "- Pursuing a Bachelor's degree in Computer Science or a\n"
+            "  related field\n"
+            "- Must be authorized to work in the United States without\n"
+            "  visa sponsorship\n"
+            "- Minimum GPA of 3.0\n"
+            "Nice to have\n")
+    assert unwrap(text).splitlines() == [
+        "Requirements",
+        "- Pursuing a Bachelor's degree in Computer Science or a related field",
+        "- Must be authorized to work in the United States without visa sponsorship",
+        "- Minimum GPA of 3.0",
+        "Nice to have",
+    ]
+    k, found = extract_knockouts(text)
+    assert k.degree_fields is None  # "or a related field" survived the wrap, so the field is not enforced
+    assert k.no_sponsorship and k.min_gpa == 3.0

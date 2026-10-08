@@ -30,7 +30,15 @@ GEO_FEATURES = (
 # weights, and threw off every line on page 2 of a real two-page resume.
 N_GEO = len(GEO_FEATURES)
 _BOLD = re.compile(r"bold|black|heavy|semibold|demi", re.IGNORECASE)
+_BULLET = re.compile(r"^\s*(?:\(cid:127\)|[•\-\*·▪◦●■–>])")
 _ITALIC = re.compile(r"italic|oblique", re.IGNORECASE)
+# Contact details stacked one per line are separate items, not a wrap.
+_CONTACT = re.compile(r"@|https?://|www\.|linkedin|github\.com|^\+?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}",
+                      re.IGNORECASE)
+# Starts of a new item even without a bullet glyph: a "Label:" (skills,
+# contact), a past-tense action verb, or a degree.
+_NEW_ITEM = re.compile(r"^(?:[A-Z][\w&/+ ]{0,24}:\s|[A-Z][a-z]+ed\b|(?:Wrote|Built|Led|Ran|Made|Won|Taught|Grew|Cut"
+                       r"|Drew|Oversaw|Sold|Spoke|Took|Gave|Held|Kept|Began|Brought|Bachelor|Master|B\.\s?[SA]\.|M\.\s?S\.)\b)")
 
 
 @dataclass
@@ -62,14 +70,16 @@ def _match_lines(page_lines: list[str], words: list[dict]) -> list[list[dict]]:
     """Find, for each extracted line, the page words it was made of.
 
     Lines come from the layout-aware reader, which builds them out of the same
-    words, so each line's first word is matched to an unused occurrence whose
-    row also holds the line's following words; ties go to reading order."""
+    words, so each line's first word is matched to an unused occurrence that
+    the line's following words directly follow on its row; ties go to reading
+    order."""
     by_text: dict[str, list[int]] = {}
     for i, w in enumerate(words):
         by_text.setdefault(w["text"], []).append(i)
     used = [False] * len(words)
-    out = []
-    for line in page_lines:
+    out: list[list[dict] | None] = [None] * len(page_lines)
+
+    def best_for(line: str):
         toks = line.split()
         best, best_score = None, -1
         for i in by_text.get(toks[0], []) if toks else []:
@@ -78,18 +88,30 @@ def _match_lines(page_lines: list[str], words: list[dict]) -> list[list[dict]]:
             row = [j for j, w in enumerate(words) if not used[j] and abs(w["top"] - words[i]["top"]) < 2.5
                    and w["x0"] >= words[i]["x0"] - 0.5]
             row.sort(key=lambda j: words[j]["x0"])
-            chosen, k = [], 0
-            for j in row:
-                if k < len(toks) and words[j]["text"] == toks[k]:
-                    chosen.append(j)
-                    k += 1
+            row = row[row.index(i):]
+            chosen = []  # consecutive words only: "(cid:127) TypeScript" must not match
+            for j, tok in zip(row, toks):  # a bullet and a word further along another line
+                if words[j]["text"] != tok:
+                    break
+                chosen.append(j)
             if len(chosen) > best_score:
                 best, best_score = chosen, len(chosen)
                 if best_score == len(toks):
                     break
-        for j in best or []:
-            used[j] = True
-        out.append([words[j] for j in best or []])
+        return best or [], best_score == len(toks)
+
+    # Lines whose words all match are placed first, so a line that only half
+    # matches cannot take a shared first word (a bullet glyph) from another.
+    for full_pass in (True, False):
+        for n, line in enumerate(page_lines):
+            if out[n] is not None:
+                continue
+            best, full = best_for(line)
+            if full_pass and not full:
+                continue
+            for j in best:
+                used[j] = True
+            out[n] = [words[j] for j in best]
     return out
 
 
@@ -117,7 +139,62 @@ def _inside(x0, top, x1, bottom, bbox) -> bool:
     return bbox[0] <= cx <= bbox[2] and bbox[1] <= cy <= bbox[3]
 
 
-def read_pdf(path: str | Path) -> list[Line]:
+def _continues(block: dict, g: dict, text: str, block_text: str, col_right: float) -> bool:
+    """Is this line the wrapped continuation of the block above it?
+
+    A wrapped line sits directly below at normal line spacing, in the same
+    size and weight, starts where the block's text starts (after a bullet's
+    hanging indent), is not a new bullet, and its first word would not have
+    fit at the end of the line before it. A line ending in a right-aligned date or a colon
+    is complete, and stacked contact details (email, phone, links) are
+    separate items, so nothing joins those. Nor does a line that reads like
+    the start of a new item (_NEW_ITEM), for bullets drawn without a glyph."""
+    if _BULLET.match(text) or block_text.rstrip().endswith(":") or block["last_gap"]:
+        return False
+    if _NEW_ITEM.match(text) or _CONTACT.search(text) or _CONTACT.search((block_text.split() or [""])[-1]):
+        return False
+    gap = g["top"] - block["bottom"]
+    if not (-1 <= gap <= 0.6 * block["last_size"]) or abs(g["size"] - block["last_size"]) > 0.6:
+        return False
+    if abs(g["bold"] - block["last_bold"]) > 0.5:
+        return False
+    if not (block["text_x0"] - 3 <= g["x0"] <= block["text_x0"] + 12):
+        return False
+    # Word wrap moves a word down only when it does not fit: had this line's
+    # first word fit after the line above (with a space), it is a new item.
+    return block["last_x1"] + 0.25 * g["size"] + g["first_w"] > col_right - 2
+
+
+def _merge_wrapped(lines: list[str], rows: list[dict | None], width: float) -> tuple[list[str], list[dict | None]]:
+    """Join lines that a PDF wrapped back into the bullet or paragraph they
+    came from (a PDF stores each visual line separately)."""
+    found = [g for g in rows if g]
+    out_t: list[str] = []
+    out_g: list[dict | None] = []
+    for text, g in zip(lines, rows):
+        block = out_g[-1] if out_g else None
+        if g is not None and block is not None:
+            same_col = [r for r in found if abs(r["x0"] - block["x0"]) < 0.06 * width
+                        or abs(r["x0"] - block["text_x0"]) < 0.06 * width]
+            col_right = max((r["x1"] for r in same_col), default=block["last_x1"])
+            if _continues(block, g, text, out_t[-1], col_right):
+                prev = out_t[-1]
+                out_t[-1] = prev[:-1] + text if prev.endswith("-") and text[:1].islower() else prev + " " + text
+                n0, n1 = len(prev), len(text)
+                for k in ("bold", "italic", "colored"):
+                    block[k] = (block[k] * n0 + g[k] * n1) / (n0 + n1)
+                block.update(x1=max(block["x1"], g["x1"]), bottom=g["bottom"], last_x1=g["x1"],
+                             last_size=g["size"], last_bold=g["bold"], last_gap=g["gap"], parts=block["parts"] + 1)
+                continue
+        out_t.append(text)
+        out_g.append(None if g is None else {**g, "last_x1": g["x1"], "last_size": g["size"], "last_bold": g["bold"],
+                                             "last_gap": g["gap"], "parts": 1})
+    return out_t, out_g
+
+
+def read_pdf(path: str | Path, merge_wrapped: bool = True) -> list[Line]:
+    """`merge_wrapped` joins lines the PDF wrapped back into whole bullets and
+    paragraphs; with False the lines are exactly the text reader's."""
     import pdfplumber
 
     from ..parser import _layout_aware_page_text
@@ -145,14 +222,22 @@ def read_pdf(path: str | Path) -> list[Line]:
             top, bottom = min(w["top"] for w in ws), max(w["bottom"] for w in ws)
             size = statistics.mean(c["size"] for c in chars)
             gaps = [b["x0"] - a["x1"] for w in ws for a, b in zip(w["chars"], w["chars"][1:])]
+            word_gaps = [b["x0"] - a["x1"] for a, b in zip(ws, ws[1:])]
+            bullet = bool(_BULLET.match(ws[0]["text"])) or ws[0]["text"] == "(cid:127)"
             geo_rows.append(dict(
                 x0=x0, x1=x1, top=top, bottom=bottom, size=size,
+                text_x0=ws[1]["x0"] if bullet and len(ws) > 1 else x0,
+                # a wide space means a separately placed part (a right-aligned date or place)
+                gap=bool(word_gaps) and max(word_gaps) > 1.2 * size,
+                first_w=ws[0]["x1"] - ws[0]["x0"],
                 bold=sum(bool(_BOLD.search(c["fontname"])) for c in chars) / len(chars),
                 italic=sum(bool(_ITALIC.search(c["fontname"])) for c in chars) / len(chars),
                 colored=sum(_is_colored(c.get("non_stroking_color")) for c in chars) / len(chars),
                 spacing=(statistics.mean(gaps) / size) if gaps else 0.0,
                 single=sum(len(w["text"]) == 1 for w in ws) / len(ws),
             ))
+        if merge_wrapped:
+            lines, geo_rows = _merge_wrapped(lines, geo_rows, W)
         found = [g for g in geo_rows if g]
         left = min((g["x0"] for g in found), default=0.0)
         right = max((g["x1"] for g in found), default=W)
@@ -290,10 +375,10 @@ def read_docx(path: str | Path) -> list[Line]:
     return out
 
 
-def read(path: str | Path) -> list[Line]:
+def read(path: str | Path, merge_wrapped: bool = True) -> list[Line]:
     suffix = Path(path).suffix.lower()
     if suffix == ".pdf":
-        return read_pdf(path)
+        return read_pdf(path, merge_wrapped)
     if suffix == ".docx":
         return read_docx(path)
     from .labels import split_lines
