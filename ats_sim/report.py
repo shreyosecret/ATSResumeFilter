@@ -352,7 +352,8 @@ def to_markdown(r: dict, authorized: str = "unknown") -> str:
           "## Parsing risks", ""]
     md += [f"- **{REPORT_ICONS[x['level']]}: {x['title']}.** {x['detail']}" for x in r["risks"]] + [""]
 
-    md += ["## What each parser extracted", "", "| field | " + " | ".join(names) + " |",
+    labels = r.get("parser_labels", {})
+    md += ["## What each parser extracted", "", "| field | " + " | ".join(labels.get(n, n) for n in names) + " |",
            "|---|" + "---|" * len(names)]
     for f in FIELDS:
         md.append(f"| {f} | " + " | ".join(show(r["parsers"][n][f]) for n in names) + " |")
@@ -365,6 +366,7 @@ def to_markdown(r: dict, authorized: str = "unknown") -> str:
         md += ["## Accuracy against your answer key (lenient matching)", "",
                "| parser | F1 | " + " | ".join(LENIENT_FIELDS) + " |", "|---|---|" + "---|" * len(LENIENT_FIELDS)]
         for n, acc in r["accuracy"].items():
+            n = labels.get(n, n)
             cells = []
             for f in LENIENT_FIELDS:
                 c = acc["fields"][f]
