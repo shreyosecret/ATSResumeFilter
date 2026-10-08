@@ -29,7 +29,7 @@ from ..learn.store import ModelStore
 from ..pipeline import Candidate, screen
 from ..parser import parse_resume
 from ..render import FORMATS, HELD_OUT_TEMPLATES, LAYOUTS, TEMPLATES, RenderOptions, render
-from ..report import FIELDS, Analyzer, posting_from_text
+from ..report import FIELDS, Analyzer, fields_of, posting_from_text, to_markdown
 from ..search import QueryError, search
 
 warnings.filterwarnings("ignore")
@@ -162,6 +162,9 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
             except Exception as e:
                 raise HTTPException(422, detail=f"Could not read that file ({type(e).__name__}: {e}).")
         result["file"] = file.filename
+        if store is not None and not store.ready():
+            result["model_pending"] = store.status  # the Teach tab says it is still loading
+        result["report_md"] = to_markdown(json.loads(json.dumps(result, default=str)), authorized)
         return JSONResponse(json.loads(json.dumps(result, default=str)))
 
     # ---------------------------------------------------------------- learning
@@ -194,7 +197,15 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
                 isinstance(g, list) and len(g) == N_GEO and all(isinstance(v, (int, float)) for v in g) for g in geo)):
             raise HTTPException(400, detail=f"Geometry must be one list of {N_GEO} numbers per line.")
         event = m.learn(lines, labels, geo)
-        return {"event": event, "lines": m.predict(lines, geo), "model": m.info()}
+        items = m.predict(lines, geo)
+        # What the learned parser now reads from this resume, so the app can show it without re-analyzing.
+        from ..learn.tagger import sections_from_labels
+        from ..parser import parse_with_sections
+
+        sections, name = sections_from_labels(lines, [x["label"] for x in items])
+        learned = fields_of(parse_with_sections("\n".join(lines), sections, name=name))
+        return JSONResponse(json.loads(json.dumps({"event": event, "lines": items, "learned": learned,
+                                                   "model": m.info()}, default=str)))
 
     @app.post("/api/model/reset")
     def model_reset():
@@ -376,6 +387,15 @@ def research_series(results: Path) -> dict:
         cols = ["attack", "scorer", "beats_best_genuine"] + [c for c in ("beats_best_genuine_lo", "beats_best_genuine_hi")
                                                              if c in st.columns]
         out["stuffing"] = _records(st, cols)
+    import json
+
+    for name, key in (("learning", "learning"), ("formats", "formats"), ("geometry", "geometry")):
+        p = results / name / "summary.json"
+        if p.exists():
+            try:
+                out[key] = json.loads(p.read_text(encoding="utf-8"))
+            except ValueError:
+                pass
     for folder, key in ((results / "public_pool", "stability_public"), (results, "stability")):
         p = folder / "stability_summary.csv"
         if p.exists():

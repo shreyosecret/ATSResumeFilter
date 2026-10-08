@@ -74,6 +74,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             import webview  # pywebview
 
+            try:  # let "Download report" save files, and open outside links in the real browser
+                webview.settings["ALLOW_DOWNLOADS"] = True
+                webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
+            except (AttributeError, TypeError):
+                pass
+
             webview.create_window("ATS Simulator", url, width=1320, height=880, min_size=(900, 640))
             webview.start()  # blocks until the window closes
             server.should_exit = True

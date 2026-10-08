@@ -116,3 +116,23 @@ def test_learning_can_be_turned_off():
     c = TestClient(create_app(start=False, model_store=False))
     assert c.get("/api/model").json() == {"enabled": False}
     assert c.post("/api/learn", json={"lines": ["a"], "labels": ["name"]}).status_code == 404
+
+
+def test_report_and_research_series(client, tmp_path):
+    p = next(x for x in load_personas() if x["id"] == "p03")
+    path = render(p, "single", "pdf", tmp_path / "r.pdf", RenderOptions())
+    with open(path, "rb") as fh:
+        j = client.post("/api/analyze", files={"file": ("r.pdf", fh)},
+                        data={"posting_id": "process_engineer", "engines": "false"}).json()
+    md = j["report_md"]
+    assert md.startswith("# Resume check: r.pdf") and "## Against each posting" in md and p["name"] in md
+    series = client.get("/api/research").json()["series"]
+    assert {"learning", "formats", "geometry"} <= set(series)
+
+
+def test_teaching_returns_the_refreshed_learned_parse(client):
+    lines = ["Ana Ruiz", "ana@x.com", "Academic Background", "B.S. in Biology, State University", "Toolbox", "Python, R"]
+    labels = ["name", "contact", "heading", "education", "heading", "skills"]
+    j = client.post("/api/learn", json={"lines": lines, "labels": labels}).json()
+    assert j["learned"]["name"] == "Ana Ruiz" and "Python" in j["learned"]["skills"]
+    client.post("/api/model/reset")

@@ -23,7 +23,7 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 The app is built as a single program for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
 
-1. Open the repository's **Actions** tab, pick the latest successful **desktop app** run, and download the file for your system under **Artifacts** (you need to be signed in to GitHub). When a version tag such as `v1.1.0` is pushed, the same files are attached to a **Release** on the repository's main page, which anyone can download.
+1. Open the repository's **Actions** tab, pick the latest successful **desktop app** run, and download the file for your system under **Artifacts** (you need to be signed in to GitHub). When a version tag such as `v1.2.0` is pushed, the same files are attached to a **Release** on the repository's main page, which anyone can download.
    - **Windows:** `ATS-Simulator-Windows.zip` holds `ATS-Simulator.exe`.
    - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app`.
    - **Linux:** `ATS-Simulator-Linux.zip` holds `ATS-Simulator`.

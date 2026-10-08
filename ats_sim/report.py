@@ -329,3 +329,76 @@ class Analyzer:
         if gold:
             result["accuracy"] = accuracy(gold, parsed)
         return result
+
+
+# ------------------------------------------------------------------ report
+
+REPORT_ICONS = {"ok": "OK", "info": "Note", "warn": "Warning", "bad": "Problem"}
+
+
+def show(v, width=60) -> str:
+    if v is None or v == [] or v == "":
+        return "*(none)*"
+    s = str(v).replace("|", "\\|").replace("\n", " ")
+    return s if len(s) <= width else s[: width - 3] + "..."
+
+
+def to_markdown(r: dict, authorized: str = "unknown") -> str:
+    """The analysis as a Markdown report (scripts/check_resume.py and the app's
+    Download report button)."""
+    names = list(r["parsers"])
+    md = [f"# Resume check: {r['file']}", "",
+          "A simulator modeled on documented ATS behavior, not a prediction of any real vendor's system.", "",
+          "## Parsing risks", ""]
+    md += [f"- **{REPORT_ICONS[x['level']]}: {x['title']}.** {x['detail']}" for x in r["risks"]] + [""]
+
+    md += ["## What each parser extracted", "", "| field | " + " | ".join(names) + " |",
+           "|---|" + "---|" * len(names)]
+    for f in FIELDS:
+        md.append(f"| {f} | " + " | ".join(show(r["parsers"][n][f]) for n in names) + " |")
+    md.append("| experience | " + " | ".join(
+        show("; ".join(f"{e['title']} @ {e['company']}" for e in r["parsers"][n]["experience"]), 90)
+        for n in names) + " |")
+    md += ["| skills (count) | " + " | ".join(str(len(r["parsers"][n]["skills"])) for n in names) + " |", ""]
+
+    if "accuracy" in r:
+        md += ["## Accuracy against your answer key (lenient matching)", "",
+               "| parser | F1 | " + " | ".join(LENIENT_FIELDS) + " |", "|---|---|" + "---|" * len(LENIENT_FIELDS)]
+        for n, acc in r["accuracy"].items():
+            cells = []
+            for f in LENIENT_FIELDS:
+                c = acc["fields"][f]
+                if c is None:
+                    cells.append("n/a")
+                elif c["tp"] + c["fn"] + c["fp"] == 0:
+                    cells.append("-")
+                else:
+                    cells.append(f"{c['tp']}/{c['tp'] + c['fn']}" + (f" (+{c['fp']} wrong)" if c["fp"] else ""))
+            md.append(f"| {n} | {acc['f1']:.2f} | " + " | ".join(cells) + " |")
+        md += ["", "Cells show correct/expected; '+N wrong' counts extra or incorrect values.", ""]
+
+    md += ["## Skills found in the text", "",
+           f"- Curated list: " + (", ".join(r["skills"]["curated"]) or "none")]
+    if "skillner" in r["skills"]:
+        md.append(f"- SkillNer / EMSI-Lightcast taxonomy ({len(r['skills']['skillner'])} found): "
+                  + ", ".join(r["skills"]["skillner"]))
+    md.append("")
+
+    pool = r["pool"]
+    md += ["## Against each posting", "",
+           f"Ranking pool: your resume plus {pool['size']} others ({pool['synthetic']} synthetic, "
+           f"{pool['public']} public). Rank 1 is best. Knockouts use what the parser extracted, as an uncorrected "
+           f"prefilled form would; work authorization: {authorized}.", ""]
+    for m in r["matches"]:
+        md += [f"### {m['posting']['title']}", ""]
+        for pname, ko in m["knockouts"].items():
+            why = "; ".join(ko["reasons"] + [f"missing {x}" for x in ko["missing"]]) or "all rules passed"
+            md.append(f"- Knockout ({pname} parse): **{ko['status']}** ({why})")
+        md += ["", "| scorer | your score | rank | best other score |", "|---|---|---|---|"]
+        for s in m["scores"]:
+            label = s["name"] if s["name"] != "embedding" else f"embedding ({s['backend']})"
+            best = "n/a" if s["best_other"] is None else f"{s['best_other']:.3f}"
+            md.append(f"| {label} | {s['score']:.3f} | {s['rank']} of {s['of']} | {best} |")
+        md += ["", f"- Posting terms found: {', '.join(m['matched']) or 'none'}",
+               f"- Posting terms not found verbatim: {', '.join(m['missing']) or 'none'}", ""]
+    return "\n".join(md)

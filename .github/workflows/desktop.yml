@@ -2,7 +2,7 @@ name: desktop app
 
 # Builds the one-file desktop app for Windows, macOS and Linux, starts each
 # build once to check it serves, and uploads it. Download the builds from the
-# run's "Artifacts" section, or push a tag like v1.1.0 to attach them to a
+# run's "Artifacts" section, or push a tag like v1.2.0 to attach them to a
 # GitHub Release.
 
 on:
@@ -125,11 +125,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4  # first: checkout cleans the folder
+        with:
+          sparse-checkout: packaging/RELEASE_NOTES.md
       - uses: actions/download-artifact@v4
         with:
           path: assets
+          pattern: ATS-Simulator-*
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          name: ATS Simulator ${{ github.ref_name }}
+          body_path: packaging/RELEASE_NOTES.md
           files: assets/*
-          generate_release_notes: true

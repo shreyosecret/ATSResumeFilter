@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 from ats_sim import __version__  # noqa: E402
 
 NAME = "ATS-Simulator"
+ICON = str(ROOT / "packaging" / "icon.png")  # PyInstaller converts it to .ico / .icns with Pillow
 
 
 def tracked(folder: str, skip: tuple[str, ...]) -> list[tuple[str, str]]:
@@ -92,11 +93,11 @@ a = Analysis(
 pyz = PYZ(a.pure)
 
 if sys.platform == "darwin":
-    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name=NAME, console=False, upx=False)
+    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name=NAME, console=False, upx=False, icon=ICON)
     coll = COLLECT(exe, a.binaries, a.datas, name=NAME, upx=False)
-    app = BUNDLE(coll, name="ATS Simulator.app", bundle_identifier="io.github.atsresumefilter.simulator",
+    app = BUNDLE(coll, name="ATS Simulator.app", icon=ICON, bundle_identifier="io.github.atsresumefilter.simulator",
                  info_plist={"CFBundleShortVersionString": __version__, "NSHighResolutionCapable": True})
 else:
     # One file: a single program to download and double-click.
     exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name=NAME, console=False, upx=False,
-              runtime_tmpdir=None)
+              runtime_tmpdir=None, icon=ICON)

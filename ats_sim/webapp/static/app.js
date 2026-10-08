@@ -37,6 +37,7 @@ const ICONS = {
   table: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
   learn: '<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/>',
   reset: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  download: '<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
 };
 const icon = (name, size = 16) =>
   `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
@@ -97,7 +98,7 @@ const ROUTES = [
   { id: "search", label: "Boolean search", icon: "search", section: "Explore", render: renderSearch,
     title: "Boolean search", sub: "Keyword queries the way recruiters write them" },
   { id: "research", label: "Research", icon: "research", section: "Explore", render: renderResearch,
-    title: "Research", sub: "What 640 controlled resumes revealed" },
+    title: "Research", sub: "What the controlled experiments revealed" },
   { id: "about", label: "About", icon: "about", section: "Info", render: renderAbout,
     title: "About", sub: "What this app models, and what it does not claim" },
 ];
@@ -309,8 +310,16 @@ function renderResult(main) {
   const agree = Object.values(r.agreement).filter((a) => a.agree && a.filled > 1).length;
   const sorted = [...r.matches].sort((a, b) => primary(a).rank - primary(b).rank);
   const top = sorted[0];
-  setHeader("Resume check", r.file, `<button class="btn" id="again">${icon("upload")}New analysis</button>`);
+  setHeader("Resume check", r.file, `${r.report_md ? `<button class="btn" id="report">${icon("download")}Download report</button>` : ""}<button class="btn" id="again">${icon("upload")}New analysis</button>`);
   $("#again").addEventListener("click", () => { state.result = null; route(); });
+  if (r.report_md) $("#report").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([r.report_md], { type: "text/markdown" }));
+    a.download = `${(r.file || "resume").replace(/\.[^.]+$/, "")} ATS report.md`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("Report saved to your downloads folder.");
+  });
 
   const degree = [best.degree_level, best.field_of_study].filter(Boolean).join(", ");
   main.innerHTML = `<div class="page">
@@ -339,7 +348,7 @@ function renderResult(main) {
     </div>
     <section class="card">
       <div class="tabs" role="tablist">
-        ${[["overview", "Overview"], ["matches", "Job matches", r.matches.length], ["parsers", "Parser comparison", Object.keys(r.parsers).length], ["text", "Extracted text"], ...(r.lines ? [["learn", "Teach the model"]] : [])]
+        ${[["overview", "Overview"], ["matches", "Job matches", r.matches.length], ["parsers", "Parser comparison", Object.keys(r.parsers).length], ["text", "Extracted text"], ...(r.lines || r.model_pending ? [["learn", "Teach the model"]] : [])]
           .map(([id, label, n]) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${state.tab === id}">${label}${n != null ? `<span class="count">${n}</span>` : ""}</button>`).join("")}
       </div>
       <div id="tab-body"></div>
@@ -407,6 +416,8 @@ function renderTab() {
     });
   } else if (state.tab === "parsers") {
     body.innerHTML = parserTable(r);
+  } else if (state.tab === "learn" && !r.lines) {
+    body.innerHTML = `<div class="card-body"><div class="notice">${icon("info")}<span>The learned parser is still getting ready (${esc(r.model_pending)}). This happens once; analyze the resume again in a minute to label and teach it.</span></div></div>`;
   } else if (state.tab === "learn") {
     renderLearn(body);
   } else {
@@ -471,7 +482,8 @@ function renderLearn(body) {
           ...(r.lines.every((x) => x.geo) ? { geo: r.lines.map((x) => x.geo) } : {}) }) });
       const ev = out.event;
       r.lines = out.lines; r.model = out.model; r.edits = null;
-      toast(`Learned from this resume. You changed ${ev.changed ?? 0} label${ev.changed === 1 ? "" : "s"}; it now labels ${Math.round(ev.accuracy_after * 100)}% of this resume the way you did. Analyze again to see updated fields.`);
+      if (out.learned && r.parsers.learned) r.parsers.learned = out.learned;
+      toast(`Learned from this resume. You changed ${ev.changed ?? 0} label${ev.changed === 1 ? "" : "s"}; it now labels ${Math.round(ev.accuracy_after * 100)}% of this resume the way you did. The Learned column in Parser comparison is updated.`);
       renderLearn(body);
     } catch (err) { toast(err.message); btn.disabled = false; }
   });
@@ -811,6 +823,32 @@ async function renderResearch(main) {
       barChart({ categories: E.map((e) => e[1]), max: top, ticks: Array.from({ length: Math.round(top / step) + 1 }, (_, i) => i * step), fmt: (v) => (v % 1 ? v.toFixed(1) : String(v)), label: "Rank change by edit",
         series: SC.map(([s, name], i) => ({ name, color: `var(--s${i + 1})`, values: E.map(([e]) => { const r = stab.find((x) => x.edit === e && x.scorer === s); return r ? { v: r.mean_abs_rank_change } : null; }) })) }), fig("stability.png")));
   }
+  const TPL = { modern: "Modern", latex: "LaTeX", career_center: "Career center", hybrid: "Hybrid" };
+  if (S.learning && S.learning.templates) {
+    const T = Object.keys(S.learning.templates);
+    const L = (t, k) => { const x = S.learning.templates[t].line_acc[k]; return x ? { v: x.mean, lo: x.min, hi: x.max } : null; };
+    const n = S.learning.teach || 8;
+    cards.push(chartCard("Learning from corrections", "Lines labeled correctly on a template the network never saw, as corrected resumes arrive (5 runs).",
+      barChart({ categories: T.map((t) => TPL[t] || t), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Line accuracy after teaching",
+        series: [{ name: "No learning", color: "var(--muted)", values: T.map((t) => L(t, "start")) },
+          { name: "1 corrected resume", color: "var(--s1)", values: T.map((t) => L(t, "after_1_corrected")) },
+          { name: `${n} corrected`, color: "var(--s3)", values: T.map((t) => L(t, `after_${n}_corrected`)) },
+          { name: `${n} of its own guesses`, color: "var(--s2)", values: T.map((t) => L(t, `after_${n}_self`)) }] }), fig("learning_curve.png")));
+  }
+  if (S.formats && S.formats.groups) {
+    const G = S.formats.groups, K = Object.keys(G["hand-written"].line_acc);
+    cards.push(chartCard("Training on generated formats", "Lines labeled correctly on templates and people never trained on, by how many of the 40 training formats were used.",
+      barChart({ categories: K.map((k) => `${k} formats`), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Line accuracy by number of training formats",
+        series: [{ name: "Hand-written templates (fair test)", color: "var(--s1)", values: K.map((k) => ({ v: G["hand-written"].line_acc[k] })) },
+          { name: "Held-out generated formats", color: "var(--s2)", values: K.map((k) => ({ v: G.generated.line_acc[k] })) }] }), fig("format_diversity.png")));
+  }
+  if (S.geometry && S.geometry.groups) {
+    const G = S.geometry.groups, GR = [["hand-written", "Hand-written"], ["generated", "Generated"], ["designer", "Designer"], ["reference", "Public templates"]].filter(([g]) => G[g]);
+    const M = [["text", "Text only"], ["geometry", "Geometry for every label"], ["headings", "Geometry for headings (app)"]];
+    cards.push(chartCard("Reading the page", "Lines labeled correctly on formats never trained on. On one real resume the app's version did best; see the README.",
+      barChart({ categories: GR.map((g) => g[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Line accuracy by use of page geometry",
+        series: M.map(([m, name], i) => ({ name, color: ["var(--muted)", "var(--s2)", "var(--s1)"][i], values: GR.map(([g]) => ({ v: G[g][m].line_acc })) })) }), fig("geometry_ablation.png")));
+  }
   main.innerHTML = `<div class="page">
     <div class="grid g4">${d.stats.map((s) => stat(esc(s.label), s.format === "pct" ? `${s.value.toFixed(0)}<small>%</small>` : s.value.toFixed(2), esc(s.detail))).join("")}</div>
     <div class="grid g2">${cards.join("")}</div>
@@ -842,7 +880,7 @@ function renderAbout(main) {
       </div></section>
       <section class="card"><div class="card-head"><h2>This installation</h2></div><div class="card-body">
         <dl class="kv">
-          <dt>Version</dt><dd>${m ? esc(m.version) : "–"}</dd>
+          <dt>Version</dt><dd>${m ? esc(m.version) : "–"} <a class="small" href="https://github.com/shreyosecret/ATSResumeFilter/releases" target="_blank" rel="noopener">Check for updates</a></dd>
           <dt>Semantic model</dt><dd>${m ? esc(m.embedding_backend || "unavailable") : "–"}</dd>
           <dt>Comparison pool</dt><dd>${m ? `${m.pool.size} resumes` : "–"}</dd>
           <dt>OpenResume</dt><dd>${m ? (m.engines.openresume ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
@@ -859,7 +897,7 @@ function renderAbout(main) {
     if (!el) return;
     el.innerHTML = !md.enabled ? '<span class="badge neutral">Off</span>'
       : md.ready ? `<span class="badge good"><span class="dot"></span>Ready</span> <span class="small muted">${md.taught} resume${md.taught === 1 ? "" : "s"} taught here</span>`
-      : `<span class="badge neutral">${esc(md.status)}</span>`;
+      : `<span class="badge neutral" title="${esc(md.status)}">Loading</span>`;
   }).catch(() => {});
 }
 
