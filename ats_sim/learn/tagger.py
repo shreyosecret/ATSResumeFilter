@@ -207,7 +207,14 @@ class LineTagger:
 
     # ------------------------------------------------------------ training
 
-    def _fit_rows(self, X, y, epochs: int) -> None:
+    def _fit_rows(self, X, y, epochs: int, extra_X=None, extra_y=None) -> None:
+        """`extra_X/extra_y` (augmented geometry) train only the network that
+        reads geometry: in "headings" mode the text network would just see
+        duplicates, which cost it accuracy (experiment 7)."""
+        if extra_X is not None and self.struct is None:
+            X, y = sparse.vstack([X, extra_X], format="csr"), np.concatenate([y, extra_y])
+        SX, Sy = (X, y) if extra_X is None or self.struct is None else (
+            sparse.vstack([X, extra_X], format="csr"), np.concatenate([y, extra_y]))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ConvergenceWarning)
             warnings.filterwarnings("ignore", message="Got `batch_size`")  # a short resume is one batch
@@ -215,8 +222,9 @@ class LineTagger:
                 order = self.rng.permutation(X.shape[0])
                 self.model.partial_fit(self._text_only(X[order]), y[order], classes=np.array(LABELS, dtype=object))
                 if self.struct is not None:
-                    ys = np.where(np.isin(y[order], ("heading", "name")), y[order], "body")
-                    self.struct.partial_fit(X[order], ys, classes=np.array(STRUCT_LABELS, dtype=object))
+                    so = self.rng.permutation(SX.shape[0])
+                    ys = np.where(np.isin(Sy[so], ("heading", "name")), Sy[so], "body")
+                    self.struct.partial_fit(SX[so], ys, classes=np.array(STRUCT_LABELS, dtype=object))
         self._fitted = True
 
     def _remember(self, X, y) -> None:
@@ -236,12 +244,16 @@ class LineTagger:
         `augment`, each document is added once as is and once with perturbed
         geometry (augment_geometry)."""
         docs = [d for d in docs if d[0]]
-        if augment and self.use_geometry:
-            docs = docs + [(d[0], d[1], augment_geometry(d[2], d[1], self.rng)) for d in docs if len(d) > 2]
         rows = [self.doc_rows(*d) for d in docs]
         X = sparse.vstack([r[0] for r in rows], format="csr")
         y = np.concatenate([r[1] for r in rows])
-        self._fit_rows(X, y, epochs)
+        extra_X = extra_y = None
+        if augment and self.use_geometry:
+            aug = [self.doc_rows(d[0], d[1], augment_geometry(d[2], d[1], self.rng)) for d in docs if len(d) > 2]
+            if aug:
+                extra_X = sparse.vstack([r[0] for r in aug], format="csr")
+                extra_y = np.concatenate([r[1] for r in aug])
+        self._fit_rows(X, y, epochs, extra_X, extra_y)
         self._remember(X, y)
         self.docs_seen += len(rows)
         self.lines_seen += X.shape[0]
