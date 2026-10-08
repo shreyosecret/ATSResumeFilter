@@ -1,0 +1,29 @@
+{
+  "docs": 24,
+  "readers": {
+    "florence": {
+      "pages": 24,
+      "recall": 0.882,
+      "changed": 0.085,
+      "seconds": 9.1,
+      "found": 0.5,
+      "false_alarms": 6
+    },
+    "rapidocr": {
+      "pages": 24,
+      "recall": 0.99,
+      "changed": 0.009,
+      "seconds": 1.7,
+      "found": 0.961,
+      "false_alarms": 0
+    },
+    "smolvlm": {
+      "pages": 24,
+      "recall": 0.576,
+      "changed": 0.185,
+      "seconds": 22.7,
+      "found": 0.455,
+      "false_alarms": 23
+    }
+  }
+}

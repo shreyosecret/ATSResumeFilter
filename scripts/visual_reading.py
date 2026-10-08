@@ -233,14 +233,14 @@ def chart(s: dict, path: Path) -> None:
     names = [r for r in READERS if r in s]
     panels = [("recall", "Words read (recall)"), ("changed", "Words changed or invented"),
               ("found", "Image text found"), ("seconds", "Seconds per page (CPU)")]
-    fig, axes = plt.subplots(1, 4, figsize=(13, 3.6))
+    fig, axes = plt.subplots(1, 4, figsize=(13, 3.9))
     for ax, (key, title) in zip(axes, panels):
         vals = [s[r][key] for r in names]
         bars = ax.bar(range(len(names)), vals, color=[COLORS[r] for r in names], width=0.6)
         for b, v in zip(bars, vals):
             ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.2f}" if key != "seconds" else f"{v:.0f}",
                     ha="center", va="bottom", fontsize=8.5, color=INK2)
-        ax.set_xticks(range(len(names)), [READERS[r].split(" (")[0] for r in names], fontsize=8.5)
+        ax.set_xticks(range(len(names)), [READERS[r].replace(" (", "\n(") for r in names], fontsize=8)
         ax.set_title(title)
         if key != "seconds":
             ax.set_ylim(0, 1.1)

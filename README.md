@@ -16,7 +16,7 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 | Screen | What it does |
 |---|---|
-| **Resume check** | Drop in a PDF or Word resume and paste the job description you want (or use the sample postings). For a pasted posting, a *Match for this job* panel shows the screening rules read from its text (degree, field, GPA, graduation window, work authorization, sponsorship) checked against your resume with the sentence each came from, your score and rank with each scorer, and the required and preferred terms found and missing. Tabs below hold an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, the extracted text, and **Teach the model** (see [Learning from each resume](#learning-from-each-resume)) |
+| **Resume check** | Drop in a PDF or Word resume and paste the job description you want (or use the sample postings). For a pasted posting, a *Match for this job* panel shows the screening rules read from its text (degree, field, GPA, graduation window, work authorization, sponsorship) checked against your resume with the sentence each came from, your score and rank with each scorer, and the required and preferred terms found and missing. Tabs below hold an overview (parsing checks, worst first, including a visual check that reads the rendered page with OCR and flags text an ATS cannot read; and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, the extracted text, and **Teach the model** (see [Learning from each resume](#learning-from-each-resume)) |
 | **Screening** | The recruiter's view: 16 fictional candidates screened and ranked. Switch template, layout, file format or parser and watch who gets screened out; click a candidate to compare what the parser read with what the resume says |
 | **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
 | **Research** | The headline findings, drawn as interactive charts (hover for values and 95% intervals, or switch any chart to a table) |
@@ -388,11 +388,33 @@ Experiments 5 and 6 were run with the text-only network, before page geometry ex
 4. **The remaining real-resume errors were a layout shortcut.** In synthetic resumes an indented bullet line in the body is almost always experience, so the publications list was filed under experience regardless of its heading.
 5. **Final design:** the text network assigns sections and a small geometry network only finds headings and the name; their heading and name probabilities are averaged. On synthetic formats it is 1 to 3 points below text only. On the real resume it is the best of the three in every seed (0.69 to 0.86).
 
+These numbers were measured before wrapped lines were joined (v1.3.1) and before the word-gap fix (experiment 8). A one-seed rerun with joined lines moved field F1 by at most 0.016 in any group for the app's version, within the spread between seeds, and raised every version's line accuracy on the real resume (headings 0.69 to 0.77).
+
 **What to take from it.**
 
 - A model evaluated only on synthetic data would have shipped the worst of the three versions. Geometry measured on documents from one renderer partly learns that renderer.
 - The app uses the hybrid because it is the only version that held up on a real document. That rests on one resume, which was also used to find the bugs above, so it is weak evidence. Set `ATS_SIM_TAGGER=text` to use the text-only network instead; whichever version runs, corrections in the Teach tab adapt it.
 - On the reference formats the heading-list parser is nearly as good (field F1 0.82, against 0.84 for the networks and a ceiling of 0.86). Real templates mostly use headings the list already knows. The networks matter most for designer formats and unusual headings (0.51 to 0.67).
+
+### 8. Reading the page as an image: OCR vs small vision-language models
+
+![Reading rendered pages](results/visual/visual_reading.png)
+
+An ATS reads the text stored in a PDF; a recruiter reads the rendered page. The app now compares the two (`ats_sim/visual.py`): it renders each page, reads it with OCR, lines the two readings up letter by letter, and reports text that is on the page but not in the file's text (drawn as an image, or a scanned page) and words that run together in the text but not on the page. That only works if the page reader is faithful, so this experiment ([`scripts/visual_reading.py`](scripts/visual_reading.py)) compared three readers on 24 rendered pages whose true text is known (6 each from the hand-written templates, generated, designer and reference formats):
+
+| Reader | Words read | Words changed or invented | Pasted image text found | False alarms (of 24 clean pages) | Seconds per page (CPU) |
+|---|---|---|---|---|---|
+| RapidOCR (PaddleOCR models on onnxruntime, about 15 MB) | **0.99** | **0.01** | **0.96** | **0** | **1.7** |
+| Florence-2-base (vision-language model, 230M) | 0.88 | 0.09 | 0.50 | 6 | 9.1 |
+| SmolVLM-256M-Instruct (vision-language model) | 0.58 | 0.18 | 0.46 | 23 | 22.7 |
+
+*Words read* counts a word when its letters appear in the reading, ignoring spacing. *Changed or invented* is the share of returned words whose letters appear nowhere on the page. *Image text found*: a line of text was pasted onto each page image (visible, but not in the file's text), and the comparison had to report it. A *false alarm* is any missing-text or run-together report on an unmodified page.
+
+**What happened.** On a first trial, both vision-language models changed words: Florence-2 read "Northwind Analytics" as "Northwest Analytics" and "churn" as "chum"; SmolVLM skipped bullets and wrote "scikelist" for scikit-learn. Across the 24 pages that held up: the language model behind each reader writes plausible text instead of copying what is there, which is the one thing a reference reading must not do. Every changed word is a difference that is not real, so they raised false alarms on 6 and 23 of 24 clean pages. OCR reads characters, not meaning, and was both faster and more faithful. Two bugs were found and fixed on the way: OCR's text-direction step sometimes turned a long line upside down (now off, since a rendered PDF page is upright), and the first comparison flagged text that a two-column page simply puts in a different order (a word now counts as missing only if it is nowhere in the extracted text).
+
+**The real finding came from one real resume.** OCR showed that a hand-labeled real resume (the author's, kept out of the repository) had six run-together "words" hiding 37 real ones, such as "Builtasurvivalmodelofpatentabandonment". The PDF was fine: the words were 2.8 points apart, a normal space in tightly set 10.9-point text. pdfplumber, which this project's parsers use, only splits words at gaps over 3 points; pdfminer and PDFium both read the spaces. Words now split at 15% of the font size (`parser.WORD_GAP`), which fixed that resume and changed 2 of 150 synthetic files, both for the better ("CollegeSan" became "College San"). The run-together check stays, as a warning that some extractors read such text as one long word.
+
+**Limits.** The pages are synthetic and rendered by this project; the pasted line is clean black text, easier than a real logo or chart. Small models were run on a laptop-class CPU, the setting the app runs in; a large hosted vision model would read better, but would send the resume off the computer. The VLMs were tested with one prompt or task each.
 
 ## Check your own resume
 
@@ -413,6 +435,7 @@ The report (written to `private/`, which is gitignored) shows what each parser e
 - **Experiments 2 to 4 use the classic single-column PDF** so the scorer is the only moving part; scoring results on other templates may differ.
 - **Third-party engines are run, not reimplemented, but through adapters.** The mapping into this project's schema (and the lenient scoring) is a choice; another mapping could move their numbers a few points. Each engine's raw output is cached under `results/_tmp/engine_cache/` for inspection.
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
+- **The visual check reads PDFs only.** A Word file has no fixed page to render. OCR misreads some characters, so differences shorter than a dozen letters are ignored, and text in a low-contrast image may be missed.
 - **Geometry is validated on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece.
 - **The learned parser is only as good as its corrections.** It learns section boundaries, not fields; a wrong label taught by a user is learned too (Reset undoes everything). Its experiment uses exact synthetic labels and four templates.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
