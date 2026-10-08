@@ -62,7 +62,7 @@ ats-sim                                        # the app (after pip install -e "
 streamlit run app.py                           # older developer dashboard
 python scripts/learning_curve.py               # experiment 5: results/learning/ (about 15 minutes)
 python scripts/format_diversity.py             # experiment 6: results/formats/ (50 generated formats)
-pytest                                         # 69 tests (also run by GitHub Actions on every push)
+pytest                                         # 121 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
 python scripts/fetch_public_resumes.py         # CC0 dataset, no Kaggle account needed
@@ -275,7 +275,7 @@ A big taxonomy halves the synonym penalty (it maps "finite element analysis" to 
 
 The app has a fourth parser that learns: a small neural network (`ats_sim/learn/`, scikit-learn `MLPClassifier`, one hidden layer of 64 units) that labels every line of a resume with its section (name, contact, heading, summary, education, experience, projects, skills, other). The field rules then run on the sections it found. Where the heading-list parser only knows the headings it was given, the network looks at the line, its neighbors, the nearest heading above it and the line's shape (bullets, dates, capitals), so it can follow headings it has never seen, such as "Where I have worked" or "Toolbox".
 
-**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus: the 640 resumes in the five templates plus 1,600 files in [50 generated formats](#6-fifty-generated-formats) (trained on first launch, which takes a few minutes in the background while the rest of the app works, then cached; a starting model cached by an older version is rebuilt automatically).
+**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus: the 640 resumes in the five templates plus 1,600 files in [50 generated formats](#6-fifty-generated-formats) (trained on first launch, which takes roughly 5 to 10 minutes in the background while the rest of the app works, then cached; a starting model cached by an older version is rebuilt automatically).
 
 **What it deliberately does not learn.** You asked for a network that learns from every new resume. I built it to learn only from resumes you confirm, and only where the sections are, for two reasons that the experiment below measures or that the literature already settled:
 
@@ -306,6 +306,38 @@ Means over 5 seeds; ranges are min to max. What this shows:
 - **No forgetting.** After learning each new template, classic-template F1 stayed at 0.99 under every condition, thanks to the replay buffer.
 
 Caveats: these templates are synthetic and the labels are exact, so a real user's corrections will be noisier. The starting network in the app is trained on all five templates, which makes it better on them than the classic-only network above. On one real resume (the author's), the starting network found the projects under "TECHNICAL PROJECTS", a heading the heading list does not know, but called the summary paragraph experience and spread a publications list across experience and education, which is exactly what the Teach tab is for.
+
+### 6. Fifty generated formats
+
+Real resumes from strangers cannot be used without permission, so the variety comes from a generator instead. `ats_sim/formats.py` draws 50 formats from a seed. Each one picks:
+
+- a content style (one of the five templates' line styles);
+- heading wording and capitalization ("Where I Have Worked", "DEGREES", "Toolbox:");
+- section order, and an optional summary or objective;
+- up to three extra sections that hold no parsed field (publications, leadership, awards, volunteering, certifications, languages, interests);
+- the bullet character (including none, and "▪", which standard PDF fonts turn into "n", a real glyph failure), date style, contact style and font.
+
+Each format is rendered for all 16 personas in 2 random layout and file-type combinations, for 1,600 files. The list is in [results/formats/formats.csv](results/formats/formats.csv).
+
+`scripts/format_diversity.py` trains the network on the classic template plus k of the 40 training formats and tests on what it never saw. The fair test is the four hand-written templates, which were written separately from the generator. A second test, the 10 held-out generated formats, comes from the same generator and is expected to look better. Personas are split too (10 train, 6 test), so no test resume belongs to a person the network trained on. Three seeds.
+
+![Format diversity](results/formats/format_diversity.png)
+
+| Formats in training | 0 | 5 | 10 | 20 | 40 |
+|---|---|---|---|---|---|
+| Hand-written templates: lines right | 0.83 | 0.92 | 0.93 | 0.92 | 0.92 |
+| Hand-written templates: field F1 (heading list 0.67, ceiling 0.75) | 0.71 | 0.75 | 0.75 | 0.75 | 0.75 |
+| Held-out generated formats: lines right | 0.71 | 0.91 | 0.95 | 0.97 | 0.97 |
+| Held-out generated formats: field F1 (heading list 0.50, ceiling 0.81) | 0.75 | 0.79 | 0.80 | 0.80 | 0.80 |
+
+- **More formats help, but only the first ten or so.** On the hand-written templates, line accuracy goes from 0.83 to 0.93 by 10 formats and then flattens (0.92 at 40). Field F1 reaches the perfect-sections ceiling (0.75) by 5 to 10 formats, so the tagger is no longer what limits field accuracy.
+- **The biggest gain is the template the classic-only network read worst:** Hybrid lines 0.61 to 0.87, field F1 0.54 to 0.68, now above the heading list (0.60), where before it was below.
+- **The generator flatters itself.** Held-out generated formats reach 0.97, against 0.92 on hand-written templates. That gap is the cost of all the variety coming from one generator. Use the hand-written number when you quote this.
+- **Past 10 formats, more of the same generator does not add new information.** Hand-written accuracy dips slightly from 10 to 40 formats (within the seed range). The next gain would need formats from a different source, such as real resumes that people consent to share. Corrections in the Teach tab supply exactly that.
+
+**On one real resume.** I hand-labeled every line of one real student resume (the author's own, kept out of the repository) and compared the app's starting models. The model trained on the five templates labeled 54% of lines correctly. The one trained on the five templates plus the 50 formats labeled 71%. Its main error, filing publications and leadership lines under experience, fell from 24 lines to 7. That is one resume, and its labels came from the same person who wrote the generator, so read it as a sanity check, not a measurement.
+
+The app's starting model now trains on the five templates and all 50 formats. The first launch takes longer (roughly 5 to 10 minutes in the background, longer on a slow machine); after that it is cached.
 
 ## Check your own resume
 
@@ -353,6 +385,8 @@ ats_sim/webapp/ the app: FastAPI server and a dependency-free HTML/CSS/JS front 
 ats_sim/report.py     resume analysis shared by the app and scripts/check_resume.py
 ats_sim/learn/  the neural line tagger: labels from the corpus, online learning, local model store
 results/learning/     experiment 5: learning curve on new templates
+results/formats/      experiment 6: the 50 generated formats and training on them
+ats_sim/formats.py    the 50-format generator
 launchers/      double-click launchers for macOS, Windows and Linux
 app.py          older Streamlit developer dashboard
 .github/        GitHub Actions: tests on every push
