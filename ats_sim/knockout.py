@@ -37,6 +37,52 @@ def _field_matches(field_of_study: str, accepted: list[str]) -> bool:
     return any(a.lower() in f or f in a.lower() for a in accepted)
 
 
+_LEVEL_NAMES = {"BA": "Bachelor's", "BS": "Bachelor's", "MS": "Master's", "PHD": "Ph.D."}
+
+
+def check_rules(resume: ParsedResume, rules: Knockouts, application: dict | None = None,
+                found: list | None = None) -> list[dict]:
+    """One row per rule, for showing a candidate why they pass or fail:
+    {"rule", "requirement", "resume", "status"} with status pass, fail,
+    missing (the parser could not read it), ask (a form question the resume
+    cannot answer) or info (shown but not enforced)."""
+    application = application or {}
+    rows = []
+    if rules.min_degree_level:
+        lvl = resume.degree_level
+        ok = lvl is not None and DEGREE_RANK[lvl] >= DEGREE_RANK[rules.min_degree_level]
+        rows.append({"rule": "Degree", "requirement": f"{_LEVEL_NAMES[rules.min_degree_level]} or higher",
+                     "resume": _LEVEL_NAMES.get(lvl) if lvl else None,
+                     "status": "missing" if lvl is None else "pass" if ok else "fail"})
+    if rules.degree_fields:
+        f = resume.field_of_study
+        rows.append({"rule": "Field of study", "requirement": ", ".join(rules.degree_fields), "resume": f,
+                     "status": "missing" if f is None else "pass" if _field_matches(f, rules.degree_fields) else "fail"})
+    for item in found or []:
+        if item.get("rule") == "field" and not item.get("enforced"):
+            rows.append({"rule": "Field of study", "requirement": item["value"], "resume": resume.field_of_study,
+                         "status": "info"})
+    if rules.min_gpa is not None:
+        g = resume.gpa
+        rows.append({"rule": "GPA", "requirement": f"{rules.min_gpa:.2f} or higher",
+                     "resume": None if g is None else f"{g:.2f}",
+                     "status": "missing" if g is None else "pass" if g >= rules.min_gpa else "fail"})
+    if rules.grad_window:
+        lo, hi = rules.grad_window
+        d = resume.grad_date
+        rows.append({"rule": "Graduation", "requirement": f"by {hi}" if lo <= "1900-12" else f"{lo} to {hi}",
+                     "resume": d, "status": "missing" if d is None else "pass" if lo <= d <= hi else "fail"})
+    if rules.require_work_authorization:
+        a = application.get("work_authorized")
+        rows.append({"rule": "Work authorization", "requirement": "Authorized to work", "resume": None,
+                     "status": "ask" if a is None else "pass" if a else "fail"})
+    if rules.no_sponsorship:
+        n = application.get("needs_sponsorship")
+        rows.append({"rule": "Visa sponsorship", "requirement": "Not offered", "resume": None,
+                     "status": "ask" if n is None else "fail" if n else "pass"})
+    return rows
+
+
 def apply_knockouts(
     resume: ParsedResume,
     rules: Knockouts,

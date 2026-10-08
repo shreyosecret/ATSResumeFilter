@@ -182,6 +182,7 @@ function renderCheck(main) {
   if (state.result) return renderResult(main);
   const m = state.meta;
   const saved = store.get("ats-check", {});
+  const mode = state.jobMode || saved.mode || "paste";
   const engineCount = (m.engines.openresume ? 1 : 0) + (m.engines.pyresparser ? 1 : 0);
   main.innerHTML = `<div class="page">
     <section class="card">
@@ -197,11 +198,19 @@ function renderCheck(main) {
           <input type="file" id="file" accept=".pdf,.docx" hidden>
         </div>
         <div class="upload-right">
-          <label class="field"><span>Compare against</span>
-            <select id="posting">${options([["all", `All built-in postings (${m.postings.length})`], ...m.postings.map((p) => [p.id, p.title]), ["paste", "Paste a real job posting…"]], saved.posting || "all")}</select>
-          </label>
-          <label class="field" id="paste-wrap" hidden><span>Job posting <span class="hint">Include the requirements section</span></span>
-            <textarea id="paste" placeholder="Paste the full job description here"></textarea>
+          <div class="field"><span>Job to score against</span>
+            <div class="seg seg-wide" role="tablist" aria-label="Job to score against">
+              <button type="button" data-mode="paste" aria-selected="${mode === "paste"}">Paste a job description</button>
+              <button type="button" data-mode="builtin" aria-selected="${mode === "builtin"}">Sample postings</button>
+            </div></div>
+          <div id="paste-wrap" ${mode === "paste" ? "" : "hidden"}>
+            <label class="field"><span>Job title <span class="hint">Optional</span></span>
+              <input type="text" id="paste-title" placeholder="For example: Data Analyst Intern" value="${esc(state.pasteTitle || "")}"></label>
+            <label class="field" style="margin-top:12px"><span>Job description <span class="hint" id="paste-count"></span></span>
+              <textarea id="paste" rows="10" placeholder="Copy the whole posting from the job site and paste it here: the duties, the requirements and the preferred qualifications. Screening rules such as degree, GPA, graduation date and work authorization are read from it.">${esc(state.pasteText || "")}</textarea></label>
+          </div>
+          <label class="field" id="builtin-wrap" ${mode === "builtin" ? "" : "hidden"}><span>Sample postings</span>
+            <select id="posting">${options([["all", `All sample postings (${m.postings.length})`], ...m.postings.map((p) => [p.id, p.title])], saved.posting && saved.posting !== "paste" ? saved.posting : "all")}</select>
           </label>
           <div class="grid g2" style="gap:14px">
             <label class="field"><span>Authorized to work in the US</span>
@@ -248,21 +257,36 @@ function renderCheck(main) {
   ["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("over"); }));
   ["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("over"); }));
   dz.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
-  const posting = $("#posting");
-  const syncPaste = () => { $("#paste-wrap").hidden = posting.value !== "paste"; };
-  posting.addEventListener("change", syncPaste);
-  syncPaste();
+  $$("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    state.jobMode = b.dataset.mode;
+    $$("[data-mode]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    $("#paste-wrap").hidden = state.jobMode !== "paste";
+    $("#builtin-wrap").hidden = state.jobMode !== "builtin";
+    if (state.jobMode === "paste") $("#paste").focus();
+  }));
+  const paste = $("#paste"), count = () => {
+    const n = paste.value.trim().split(/\s+/).filter(Boolean).length;
+    $("#paste-count").textContent = n ? `${n} words` : "";
+  };
+  paste.addEventListener("input", () => { state.pasteText = paste.value; count(); });
+  $("#paste-title").addEventListener("input", (e) => { state.pasteTitle = e.target.value; });
+  count();
   go.addEventListener("click", runAnalysis);
 }
 
 async function runAnalysis() {
+  const mode = state.jobMode || (($("#paste-wrap").hidden) ? "builtin" : "paste");
   const posting = $("#posting").value, paste = $("#paste").value;
-  if (posting === "paste" && paste.trim().length < 40) return toast("Paste the job posting first.");
-  store.set("ats-check", { posting, auth: $("#auth").value, spons: $("#spons").value });
+  if (mode === "paste" && paste.trim().split(/\s+/).length < 20) {
+    $("#paste").focus();
+    return toast("Paste the job description first (at least a few sentences), or choose Sample postings.");
+  }
+  store.set("ats-check", { mode, posting, auth: $("#auth").value, spons: $("#spons").value });
   const fd = new FormData();
   fd.append("file", state.file);
-  fd.append("posting_id", posting === "paste" ? "all" : posting);
-  fd.append("posting_text", posting === "paste" ? paste : "");
+  fd.append("posting_id", mode === "paste" ? "all" : posting);
+  fd.append("posting_text", mode === "paste" ? paste : "");
+  fd.append("posting_title", mode === "paste" ? $("#paste-title").value : "");
   fd.append("authorized", $("#auth").value);
   fd.append("sponsorship", $("#spons").value);
   fd.append("engines", $("#engines").checked ? "true" : "false");
@@ -270,7 +294,8 @@ async function runAnalysis() {
   const go = $("#go");
   go.disabled = true;
   go.innerHTML = `<span class="spinner" style="width:16px;height:16px;border-width:2px;border-color:rgba(255,255,255,.35);border-top-color:#fff"></span>Analyzing`;
-  const steps = ["Reading the file", "Parsing with every parser", "Checking for screening risks", "Scoring against postings", "Ranking against other resumes"];
+  const steps = ["Reading the file", "Parsing with every parser", "Checking for screening risks",
+    mode === "paste" ? "Reading the job description's rules" : "Scoring against postings", "Ranking against other resumes"];
   if ($("#deep").checked) steps.push("Scanning 31,000 skills");
   let i = 0;
   const out = $("#check-out");
@@ -340,6 +365,7 @@ function renderResult(main) {
         <span class="badge good"><span class="dot"></span>${counts.ok} passed</span>
       </div>
     </section>
+    ${r.matches.length === 1 ? jobMatchCard(r.matches[0]) : ""}
     <div class="grid g4">
       ${stat("Fields extracted", `${filled}<small> / ${FIELDS.length}</small>`, "Contact, education and dates read by the best parse")}
       ${stat("Parser agreement", multi ? `${agree}<small> / ${FIELDS.length}</small>` : "–", multi ? "Fields every parser read identically" : "Install the open-source parsers to compare")}
@@ -496,6 +522,53 @@ function renderLearn(body) {
       renderLearn(body);
     } catch (err) { toast(err.message); }
   });
+}
+
+// ------------------------------------------------------------------ resume check: one job
+const RULE_STATUS = { pass: ["ok", "Meets it"], fail: ["bad", "Fails it"], missing: ["warn", "Not found on resume"],
+  ask: ["info", "Answer on the form"], info: ["info", "Not used as a rule"] };
+
+function jobMatchCard(m) {
+  const ko = Object.values(m.knockouts).pop();
+  const status = !m.posting.has_knockouts ? '<span class="badge neutral">No screening rules found</span>' : koBadge(ko.status);
+  const req = m.requirements.filter((q) => q.level === "required").map((q) => q.term.toLowerCase());
+  const isReq = (t) => t.split(" / ").some((x) => req.includes(x.toLowerCase()));
+  const found = { req: m.matched.filter(isReq), pref: m.matched.filter((t) => !isReq(t)) };
+  const miss = { req: m.missing.filter(isReq), pref: m.missing.filter((t) => !isReq(t)) };
+  const src = {};
+  (m.posting.rules_found || []).forEach((x) => { src[{ degree: "Degree", field: "Field of study", gpa: "GPA", graduation: "Graduation", authorization: "Work authorization", sponsorship: "Visa sponsorship" }[x.rule]] = x.source; });
+  const rows = (m.rule_checks || []).map((c) => {
+    const [ic, label] = RULE_STATUS[c.status] || ["info", c.status];
+    return `<tr><td>${esc(c.rule)}</td><td ${src[c.rule] ? `title="From the posting: ${esc(src[c.rule])}"` : ""}>${esc(c.requirement)}${src[c.rule] ? ` <span class="muted">${icon("info", 12)}</span>` : ""}</td>
+      <td>${c.resume ? esc(c.rule === "Graduation" ? fmtDate(c.resume) : c.resume) : '<span class="cell-empty">–</span>'}</td>
+      <td><span class="rule-status ${c.status}">${icon(ic, 14)}${label}</span></td></tr>`;
+  }).join("");
+  const tags = (list, cls) => list.map((t) => `<span class="tag ${cls}">${esc(t)}</span>`).join("") || '<span class="muted small">None</span>';
+  const scoreRows = m.scores.map((x) => `<div class="score-row"><div><div style="font-weight:500">${esc(SCORERS[x.name] ? SCORERS[x.name].label : x.name)}</div>
+      <div class="small muted">${esc(SCORERS[x.name] ? SCORERS[x.name].help : "")}</div></div>
+      <div style="text-align:right"><div class="big">Top ${topPct(x)}<small>%</small></div><div class="small muted tnum">score ${x.score.toFixed(2)} · #${x.rank} of ${x.of}</div></div></div>`).join("");
+  return `<section class="card">
+    <div class="card-head match-head"><div><h2>Match for this job</h2><div class="sub">${esc(m.posting.title)}</div></div>${status}</div>
+    <div class="match-grid">
+      <div>
+        <div class="label" style="margin-bottom:8px">Screening rules read from the posting</div>
+        ${rows ? `<div class="table-wrap"><table class="data rules"><thead><tr><th>Rule</th><th>The posting asks</th><th>Your resume</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+          <p class="small muted" style="margin:10px 0 0">Hover a rule to see the sentence it was read from. Many systems ask these as form questions and prefill the answers from the parsed resume; "Not found" is what an uncorrected prefill would leave blank.</p>`
+          : '<div class="notice">' + icon("info") + "<span>No degree, GPA, graduation or work-authorization rules were found in the text, so only the scores below apply.</span></div>"}
+        <div class="terms-head"><div class="label">Required terms found · ${found.req.length} of ${found.req.length + miss.req.length}</div></div>
+        <div class="tags">${tags(found.req, "hit")}</div>
+        <div class="terms-head"><div class="label">Required terms not found word for word · ${miss.req.length}</div></div>
+        <div class="tags">${tags(miss.req, "miss")}</div>
+        <div class="terms-head"><div class="label">Preferred terms · ${found.pref.length} of ${found.pref.length + miss.pref.length} found</div></div>
+        <div class="tags">${tags(found.pref, "hit")}${miss.pref.length ? tags(miss.pref, "miss") : ""}</div>
+        ${miss.req.length ? `<p class="small muted" style="margin:12px 0 0">Add a missing term only where it is true and you can talk about it; a person reads the resume after the system does.</p>` : ""}
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:4px">How it scores</div>
+        ${scoreRows}
+        <p class="small muted" style="margin:10px 0 0">Ranks compare your resume with the ${m.scores[0] ? m.scores[0].of - 1 : 0} others in the comparison pool for this same posting. Top 1% is best.</p>
+      </div>
+    </div></section>`;
 }
 
 function pctlCell(s) {

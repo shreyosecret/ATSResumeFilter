@@ -194,9 +194,14 @@ def load_posting_file(path: str | Path) -> JobPosting:
     return posting_from_text(path.read_text(encoding="utf-8"), path.stem)
 
 
-def posting_from_text(text: str, posting_id: str = "pasted") -> JobPosting:
-    title = next((l.strip() for l in text.splitlines() if l.strip()), "Pasted posting")[:80]
-    return JobPosting(id=posting_id, title=title, text=text, knockouts=Knockouts())
+def posting_from_text(text: str, posting_id: str = "pasted", title: str = "") -> JobPosting:
+    """A posting pasted by the user. Screening rules are read from its text
+    (jd_rules.extract_knockouts), each with the sentence it came from."""
+    from .jd_rules import extract_knockouts, guess_title
+
+    knockouts, found = extract_knockouts(text)
+    return JobPosting(id=posting_id, title=(title.strip() or guess_title(text))[:90], text=text,
+                      knockouts=knockouts, rules_found=found)
 
 
 def default_postings() -> list[JobPosting]:
@@ -274,8 +279,13 @@ class Analyzer:
                 "backend": getattr(s, "backend", None),
             })
         kw = self.scorers[0].explain(text, a)
+        from .knockout import check_rules
+
+        checked = parsed.get(best_parse(parsed)) or parsed["naive"]
         return {
-            "posting": {"id": job.id, "title": job.title, "has_knockouts": job.knockouts != Knockouts()},
+            "posting": {"id": job.id, "title": job.title, "has_knockouts": job.knockouts != Knockouts(),
+                        "pasted": bool(job.rules_found) or job.id == "pasted", "rules_found": job.rules_found},
+            "rule_checks": check_rules(checked, job.knockouts, application, job.rules_found),
             "knockouts": knockouts, "scores": scores, "matched": kw.matched, "missing": kw.missing,
             "requirements": [{"term": r.surface, "level": r.level, "curated": r.curated} for r in a.requirements],
         }
@@ -396,6 +406,10 @@ def to_markdown(r: dict, authorized: str = "unknown") -> str:
         for pname, ko in m["knockouts"].items():
             why = "; ".join(ko["reasons"] + [f"missing {x}" for x in ko["missing"]]) or "all rules passed"
             md.append(f"- Knockout ({pname} parse): **{ko['status']}** ({why})")
+        if m.get("rule_checks"):
+            md += ["", "| rule | the posting asks | your resume | result |", "|---|---|---|---|"]
+            for c in m["rule_checks"]:
+                md.append(f"| {c['rule']} | {show(c['requirement'], 80)} | {show(c['resume'])} | {c['status']} |")
         md += ["", "| scorer | your score | rank | best other score |", "|---|---|---|---|"]
         for s in m["scores"]:
             label = s["name"] if s["name"] != "embedding" else f"embedding ({s['backend']})"

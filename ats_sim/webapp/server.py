@@ -136,6 +136,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
 
     @app.post("/api/analyze")
     async def analyze(file: UploadFile = File(...), posting_id: str = Form("all"), posting_text: str = Form(""),
+                      posting_title: str = Form(""),
                       authorized: str = Form("unknown"), sponsorship: str = Form("unknown"),
                       engines: bool = Form(True), deep_skills: bool = Form(False)):
         a = state.require()
@@ -146,7 +147,9 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
         if len(data) > MAX_UPLOAD:
             raise HTTPException(413, detail="That file is over 10 MB.")
         if posting_text.strip():
-            postings = [posting_from_text(posting_text)]
+            if len(posting_text) > 50_000:
+                raise HTTPException(413, detail="That job description is over 50,000 characters.")
+            postings = [posting_from_text(posting_text, title=posting_title)]
         elif posting_id != "all":
             postings = [j for j in a.postings if j.id == posting_id] or a.postings
         else:

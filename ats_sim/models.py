@@ -61,6 +61,7 @@ class JobPosting:
     title: str
     text: str
     knockouts: Knockouts = field(default_factory=Knockouts)
+    rules_found: list = field(default_factory=list)  # for a pasted posting: each rule and the sentence it came from
 
 
 @dataclass

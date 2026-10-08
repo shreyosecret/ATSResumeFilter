@@ -23,7 +23,8 @@ JD_HEADINGS = {
     "about": {"about the role", "about us", "about the team", "overview"},
 }
 _JD_LOOKUP = {h: s for s, hs in JD_HEADINGS.items() for h in hs}
-DEGREE_LINE = re.compile(r"\b(B\.\s?S\.|M\.\s?S\.|B\.\s?A\.|Ph\.?\s?D|degree|graduat\w*)", re.IGNORECASE)
+DEGREE_LINE = re.compile(r"\b(B\.\s?S\.|M\.\s?S\.|B\.\s?A\.|Ph\.?\s?D|degree|graduat\w*|GPA|authori[sz]\w*|sponsor\w*)",
+                         re.IGNORECASE)  # lines that state screening rules, not skills
 ALTERNATIVE_SEP = re.compile(r"^\s*,?\s*(?:or|/)\s*$", re.IGNORECASE)
 PREFERRED_CUES = re.compile(r"\b(ideally|preferred|a plus|nice to have|bonus|desirable)\b", re.IGNORECASE)
 

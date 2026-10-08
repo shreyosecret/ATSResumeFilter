@@ -16,7 +16,8 @@ The first launch takes about 20 seconds. The app opens in its own window on Wind
 
 ### In this version
 
-- Resume check: parsing risks, what each parser read, knockouts, and percentile ranks against built-in or pasted postings. New: **Download report** saves the whole analysis as a Markdown file.
+- **Score your resume against any job.** Copy a job description from a job site and paste it into *Resume check*. The app reads its screening rules (degree level and field, minimum GPA, graduation window, work authorization, visa sponsorship), shows the sentence each rule came from, checks your resume against each one, and scores and ranks the resume against that posting with the three scorers. It lists the required and preferred terms it found and the ones it did not. A field list that allows "a related field" is shown but not used to reject.
+- Resume check: parsing risks, what each parser read, knockouts, and percentile ranks. **Download report** saves the whole analysis as a Markdown file.
 - Learned parser: a small neural network that labels each line with its section, reads page layout to find headings, and learns from resumes you correct in the *Teach the model* tab. New: its fields refresh as soon as you teach it, and the tab says when it is still loading.
 - Research: charts for all seven experiments, including learning from corrections, training on 50 generated formats, and reading page geometry.
 - An app icon, and a *Check for updates* link on the About page.

@@ -136,3 +136,20 @@ def test_teaching_returns_the_refreshed_learned_parse(client):
     j = client.post("/api/learn", json={"lines": lines, "labels": labels}).json()
     assert j["learned"]["name"] == "Ana Ruiz" and "Python" in j["learned"]["skills"]
     client.post("/api/model/reset")
+
+
+def test_pasted_job_description_gets_rules_read_from_it(client, tmp_path):
+    p = next(x for x in load_personas() if x["id"] == "p12")
+    path = render(p, "single", "pdf", tmp_path / "r.pdf", RenderOptions())
+    jd = ("Junior Mechanical Engineer\n\nRequirements\n- B.S. in Mechanical Engineering, graduating by June 2030\n"
+          "- Experience with SolidWorks and GD&T\n- Minimum GPA of 2.5\n\nPreferred\n- ANSYS or FEA\n\n"
+          "Applicants must be authorized to work in the United States.")
+    with open(path, "rb") as fh:
+        j = client.post("/api/analyze", files={"file": ("r.pdf", fh)},
+                        data={"posting_text": jd, "posting_title": "", "authorized": "yes", "engines": "false"}).json()
+    m = j["matches"][0]
+    assert m["posting"]["title"] == "Junior Mechanical Engineer" and m["posting"]["has_knockouts"]
+    checks = {c["rule"]: c for c in m["rule_checks"]}
+    assert {"Degree", "Field of study", "GPA", "Graduation", "Work authorization"} <= set(checks)
+    assert checks["Work authorization"]["status"] == "pass"
+    assert "| rule | the posting asks |" in j["report_md"]

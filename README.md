@@ -14,7 +14,7 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 | Screen | What it does |
 |---|---|
-| **Resume check** | Drop in a PDF or Word resume. Tabs for an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, the extracted text, and **Teach the model** (see [Learning from each resume](#learning-from-each-resume)) |
+| **Resume check** | Drop in a PDF or Word resume and paste the job description you want (or use the sample postings). For a pasted posting, a *Match for this job* panel shows the screening rules read from its text (degree, field, GPA, graduation window, work authorization, sponsorship) checked against your resume with the sentence each came from, your score and rank with each scorer, and the required and preferred terms found and missing. Tabs below hold an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, the extracted text, and **Teach the model** (see [Learning from each resume](#learning-from-each-resume)) |
 | **Screening** | The recruiter's view: 16 fictional candidates screened and ranked. Switch template, layout, file format or parser and watch who gets screened out; click a candidate to compare what the parser read with what the resume says |
 | **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
 | **Research** | The headline findings, drawn as interactive charts (hover for values and 95% intervals, or switch any chart to a table) |
@@ -23,7 +23,7 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 The app is built as a single program for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
 
-1. Open the repository's **Actions** tab, pick the latest successful **desktop app** run, and download the file for your system under **Artifacts** (you need to be signed in to GitHub). When a version tag such as `v1.2.0` is pushed, the same files are attached to a **Release** on the repository's main page, which anyone can download.
+1. Download the file for your system from the [latest release](https://github.com/shreyosecret/ATSResumeFilter/releases/latest). (Builds of unreleased changes are under the **Actions** tab, in each successful *desktop app* run's **Artifacts**.)
    - **Windows:** `ATS-Simulator-Windows.zip` holds `ATS-Simulator.exe`.
    - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app`.
    - **Linux:** `ATS-Simulator-Linux.zip` holds `ATS-Simulator`.
