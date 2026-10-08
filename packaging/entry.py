@@ -2,23 +2,43 @@
 import multiprocessing
 import os
 import sys
+import traceback
+from pathlib import Path
 
 
-def _log_to_file() -> None:
-    # A windowed app has no console: send output to a log file the user can find.
-    if sys.stdout is None or sys.stderr is None:
-        from ats_sim.data import user_dir
+def _user_dir() -> Path:
+    # Same rule as ats_sim.data.user_dir, repeated here so the log opens before
+    # anything that could fail is imported.
+    base = os.environ.get("APPDATA") if os.name == "nt" else os.environ.get("XDG_DATA_HOME")
+    return Path(base) / "ats_sim" if base else Path.home() / ".ats_sim"
 
-        user_dir().mkdir(parents=True, exist_ok=True)
-        log = open(user_dir() / "ats-sim.log", "a", buffering=1, encoding="utf-8")
-        sys.stdout = sys.stdout or log
-        sys.stderr = sys.stderr or log
+
+def _open_log():
+    try:
+        _user_dir().mkdir(parents=True, exist_ok=True)
+        return open(_user_dir() / "ats-sim.log", "a", buffering=1, encoding="utf-8")
+    except OSError:
+        return None
 
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    os.environ.setdefault("ATS_SIM_EMBEDDING_BACKEND", "onnx")  # no PyTorch inside: MiniLM runs on onnxruntime
-    _log_to_file()
-    from ats_sim.desktop import main
+    log = _open_log()
+    # A windowed app has no console: its output goes to the log the user can find.
+    if log is not None:
+        sys.stdout = sys.stdout or log
+        sys.stderr = sys.stderr or log
+        import faulthandler
 
-    sys.exit(main())
+        faulthandler.enable(log)
+    os.environ.setdefault("ATS_SIM_EMBEDDING_BACKEND", "onnx")  # no PyTorch inside: MiniLM runs on onnxruntime
+    try:
+        from ats_sim.desktop import main
+
+        code = main()
+    except SystemExit as e:
+        code = e.code
+    except BaseException:
+        traceback.print_exc(file=log or sys.stderr)
+        code = 1
+    sys.exit(code)

@@ -68,7 +68,10 @@ jobs:
           kill %1 || true
           if [ "$ok" != 1 ]; then
             echo "The app did not come up. Its log:"
-            cat "${APPDATA:-$HOME/.ats_sim}/ats_sim/ats-sim.log" "$HOME/.ats_sim/ats-sim.log" 2>/dev/null || true
+            for f in "$APPDATA/ats_sim/ats-sim.log" "$HOME/.ats_sim/ats-sim.log" "$HOME/Library/Application Support/ats_sim/ats-sim.log"; do
+              [ -f "$f" ] && { echo "== $f"; cat "$f"; }
+            done
+            ls -la "$APPDATA/ats_sim" "$HOME/.ats_sim" 2>/dev/null || true
             exit 1
           fi
       - name: Zip
