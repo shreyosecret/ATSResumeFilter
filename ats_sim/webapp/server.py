@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from ..data import DATA_DIR, RESUME_DIR, load_personas, resume_path
 from ..engines import OpenResumeParser, PyresparserParser, skillner_available
 from ..jd import analyze_job
+from ..learn.geometry import N_GEO
 from ..learn.labels import LABELS
 from ..learn.store import ModelStore
 from ..pipeline import Candidate, screen
@@ -173,8 +174,12 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
             raise HTTPException(400, detail="Send matching, non-empty lists of lines and labels.")
         if set(labels) - set(LABELS):
             raise HTTPException(400, detail=f"Labels must be one of: {', '.join(LABELS)}.")
-        event = m.learn(lines, labels)
-        return {"event": event, "lines": m.predict(lines), "model": m.info()}
+        geo = payload.get("geo")
+        if geo is not None and (not isinstance(geo, list) or len(geo) != len(lines) or not all(
+                isinstance(g, list) and len(g) == N_GEO and all(isinstance(v, (int, float)) for v in g) for g in geo)):
+            raise HTTPException(400, detail=f"Geometry must be one list of {N_GEO} numbers per line.")
+        event = m.learn(lines, labels, geo)
+        return {"event": event, "lines": m.predict(lines, geo), "model": m.info()}
 
     @app.post("/api/model/reset")
     def model_reset():

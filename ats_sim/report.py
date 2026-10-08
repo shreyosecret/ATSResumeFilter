@@ -313,12 +313,13 @@ class Analyzer:
                      "public": len(self.pool) - self.n_synthetic},
         }
         if store is not None and store.ready():
-            from .learn.labels import split_lines
+            from .learn.geometry import read
             from .learn.tagger import sections_from_labels
             from .parser import parse_with_sections
 
-            lines = split_lines(extract_text(path, layout_aware=True))
-            items = store.predict(lines)
+            rows = read(path)
+            lines = [r.text for r in rows]
+            items = store.predict(lines, [r.geo for r in rows])
             sections, name = sections_from_labels(lines, [x["label"] for x in items])
             parsed["learned"] = parse_with_sections("\n".join(lines), sections, str(path), name=name)
             result["parsers"]["learned"] = fields_of(parsed["learned"])

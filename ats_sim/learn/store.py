@@ -28,8 +28,8 @@ def model_dir() -> Path:
 
 
 # Bump when the starting model's training set changes, so cached starting
-# models are rebuilt. 2: added the 50 generated formats.
-CORPUS_VERSION = 2
+# models are rebuilt. 2: added the 50 generated formats. 3: page geometry.
+CORPUS_VERSION = 3
 
 
 class ModelStore:
@@ -83,16 +83,17 @@ class ModelStore:
             self.status = "ready"
         return self
 
-    def predict(self, lines: list[str]) -> list[dict]:
-        P = self.tagger.predict_proba(lines)
-        return [{"text": l, "label": LABELS[p.argmax()], "confidence": round(float(p.max()), 3)}
-                for l, p in zip(lines, P)]
+    def predict(self, lines: list[str], geo: list[list[float]] | None = None) -> list[dict]:
+        P = self.tagger.predict_proba(lines, geo)
+        return [{"text": l, "label": LABELS[p.argmax()], "confidence": round(float(p.max()), 3),
+                 **({"geo": [round(float(v), 4) for v in geo[i]]} if geo is not None else {})}
+                for i, (l, p) in enumerate(zip(lines, P))]
 
-    def learn(self, lines: list[str], labels: list[str]) -> dict:
+    def learn(self, lines: list[str], labels: list[str], geo: list[list[float]] | None = None) -> dict:
         with self._lock:
             if self.tagger is None:
                 raise RuntimeError("model not loaded")
-            event = self.tagger.learn(lines, labels)
+            event = self.tagger.learn(lines, labels, geo)
             event["at"] = time.strftime("%Y-%m-%d %H:%M")
             T.save(self.tagger, self.current_path)
             return event

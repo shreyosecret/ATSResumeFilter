@@ -284,6 +284,22 @@ HEADINGS = {
 SIDEBAR = ("contact", "education", "skills")
 
 
+def _design(template: str) -> dict:
+    from .formats import design
+
+    return design(template)
+
+
+def heading_display(key: str, template: str = "classic") -> str:
+    """The heading as printed in a PDF: letter-spaced in designer formats that
+    track their headings (a PDF has no other way to show tracking to a reader
+    that only sees characters)."""
+    h = heading_for(key, template)
+    if _design(template).get("tracked"):
+        return "   ".join(" ".join(w) for w in h.split())
+    return h
+
+
 def heading_for(key: str, template: str = "classic") -> str:
     if template not in HEADINGS:
         from .formats import heading
@@ -298,6 +314,9 @@ def section_order(b: dict) -> list[str]:
 
 
 def line_text(kind: str, text: str, unicode_icons: bool = True) -> str:
+    if kind == "rating":
+        skill, n = text.split("\t")
+        return f"{skill} {'●' * int(n)}{'○' * (5 - int(n))}"
     if kind in ("split", "splitplain"):
         return text.replace("\t", "  ")
     if kind == "icon":
@@ -316,17 +335,23 @@ def contact_line(b: dict) -> str:
 _BOLD = {"Helvetica": "Helvetica-Bold", "Times-Roman": "Times-Bold", "Courier": "Courier-Bold"}
 
 
-def _pdf_styles(font: str = "Helvetica", heading_size: float = 11):
+def _pdf_styles(font: str = "Helvetica", heading_size: float = 11, heading_color: str | None = None,
+                name_size: float = 18):
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
     ss = getSampleStyleSheet()
+    from reportlab.lib import colors
+
     bold = _BOLD[font]
+    hcolor = colors.HexColor(heading_color) if heading_color else colors.black
     return {
-        "name": ParagraphStyle("name", parent=ss["Title"], fontName=bold, fontSize=18, leading=22, alignment=0,
-                               spaceAfter=2),
+        "name": ParagraphStyle("name", parent=ss["Title"], fontName=bold, fontSize=name_size,
+                               leading=name_size + 4, alignment=0, spaceAfter=2),
+        "tagline": ParagraphStyle("tagline", parent=ss["Normal"], fontName=font, fontSize=11, leading=14,
+                                  textColor=hcolor, spaceAfter=3),
         "contact": ParagraphStyle("contact", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12),
         "heading": ParagraphStyle("heading", parent=ss["Heading2"], fontName=bold, fontSize=heading_size,
-                                  leading=heading_size + 3, spaceBefore=6, spaceAfter=2),
+                                  leading=heading_size + 3, spaceBefore=6, spaceAfter=2, textColor=hcolor),
         "text": ParagraphStyle("text", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12),
         "bold": ParagraphStyle("bold", parent=ss["Normal"], fontName=bold, fontSize=9.5, leading=12, spaceBefore=3),
         "bullet": ParagraphStyle("bullet", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12,
@@ -352,6 +377,11 @@ def _flow(lines, st, width: float):
                                    ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
                                    ("VALIGN", (0, 0), (-1, -1), "BOTTOM")]))
             out.append(t)
+        elif kind == "rating":
+            skill, n = text.split("\t")
+            dots = (f'<font name="ZapfDingbats">{"l" * int(n)}</font>'
+                    f'<font name="ZapfDingbats" color="#BBBBBB">{"l" * (5 - int(n))}</font>')
+            out.append(Paragraph(f"{html.escape(skill)}&nbsp;&nbsp;{dots}", st["text"]))
         elif kind == "icon":
             key, value = text.split("\t")
             glyph = CONTACT_ICONS[key][0]
@@ -375,9 +405,13 @@ def _contact_flow(b, st):
 
 
 def _section_flow(key, b, st, width, template):
-    from reportlab.platypus import Paragraph
+    from reportlab.platypus import HRFlowable, Paragraph
 
-    return [Paragraph(html.escape(heading_for(key, template)), st["heading"]), *_flow(b[key], st, width)]
+    head = [Paragraph(html.escape(heading_display(key, template)), st["heading"])]
+    if _design(template).get("rule"):
+        head.append(HRFlowable(width="100%", thickness=0.8, color=st["heading"].textColor, spaceBefore=0,
+                               spaceAfter=3))
+    return [*head, *_flow(b[key], st, width)]
 
 
 def _hidden_painter(opts: RenderOptions):
@@ -427,11 +461,15 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
     body_w = W - 2 * margin
     hidden = _hidden_painter(opts)
     name = Paragraph(html.escape(p["name"]), st["name"])
+    from .formats import tagline
+
+    tag = tagline(p, tpl)
+    tag_flow = [Paragraph(html.escape(tag), st["tagline"])] if tag else []
 
     if layout == "single":
         doc = SimpleDocTemplate(str(path), pagesize=letter, leftMargin=margin, rightMargin=margin,
                                 topMargin=margin, bottomMargin=margin)
-        story = [name, _contact_flow(b, st)]
+        story = [name, *tag_flow, _contact_flow(b, st)]
         for key in section_order(b):
             story += _section_flow(key, b, st, body_w, tpl)
         doc.build(story, onFirstPage=hidden, onLaterPages=hidden)
@@ -439,7 +477,7 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
     elif layout == "two_column":
         doc = BaseDocTemplate(str(path), pagesize=letter, leftMargin=margin, rightMargin=margin,
                               topMargin=margin, bottomMargin=margin)
-        header_h = 0.55 * inch
+        header_h = (0.55 + 0.1 * (st["name"].fontSize > 18) + 0.25 * bool(tag)) * inch
         body_top = H - margin - header_h
         side_w = 2.2 * inch
         gap = 0.25 * inch
@@ -449,8 +487,19 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
             Frame(margin, margin, side_w, body_top - margin, id="side"),
             Frame(margin + side_w + gap, margin, main_w, body_top - margin, id="main"),
         ]
-        doc.addPageTemplates([PageTemplate(id="two", frames=frames, onPage=hidden)])
-        story = [name, FrameBreak()]
+        shaded = _design(tpl).get("shaded")
+
+        def two_page(canvas, doc_):
+            if shaded:  # a tinted sidebar panel behind the left column
+                canvas.saveState()
+                canvas.setFillColor(colors.HexColor("#EEF2F6"))
+                canvas.setStrokeColor(colors.HexColor("#EEF2F6"))
+                canvas.rect(margin - 6, margin - 6, side_w + 6, body_top - margin + 6, stroke=0, fill=1)
+                canvas.restoreState()
+            hidden(canvas, doc_)
+
+        doc.addPageTemplates([PageTemplate(id="two", frames=frames, onPage=two_page)])
+        story = [name, *tag_flow, FrameBreak()]
         for key in SIDEBAR:
             story += _section_flow(key, b, st, side_w - 12, tpl)
         story.append(FrameBreak())
@@ -463,10 +512,10 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
                                 topMargin=margin, bottomMargin=margin)
         label_w = 1.3 * inch
         content_w = body_w - label_w - 12
-        rows = [[name, ""],
+        rows = [[[name, *tag_flow], ""],
                 [Paragraph(html.escape(heading_for("contact", tpl)), st["bold"]), _contact_flow(b, st)]]
         for key in section_order(b):
-            rows.append([Paragraph(html.escape(heading_for(key, tpl)), st["bold"]), _flow(b[key], st, content_w)])
+            rows.append([Paragraph(html.escape(heading_display(key, tpl)), st["bold"]), _flow(b[key], st, content_w)])
         t = Table(rows, colWidths=[label_w, body_w - label_w])
         t.setStyle(TableStyle([
             ("SPAN", (0, 0), (1, 0)),
@@ -488,7 +537,7 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
         def draw_box(canvas, x, top, key):
             from reportlab.platypus import Frame as F
 
-            items = [Paragraph(html.escape(heading_for(key, tpl)), st["bold"]), *_flow(b[key], st, box_w - 12)]
+            items = [Paragraph(html.escape(heading_display(key, tpl)), st["bold"]), *_flow(b[key], st, box_w - 12)]
             h = sum(i.wrap(box_w - 12, H)[1] + i.getSpaceBefore() for i in items) + 14
             canvas.setStrokeColor(colors.grey)
             canvas.setFillColor(colors.HexColor("#F2F4F7"))
@@ -503,7 +552,7 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
 
         frame = Frame(margin, margin, main_w, H - 2 * margin, id="main")
         doc.addPageTemplates([PageTemplate(id="tb", frames=[frame], onPage=on_page)])
-        story = [name]
+        story = [name, *tag_flow]
         for key in [k for k in section_order(b) if k != "skills"]:
             story += _section_flow(key, b, st, main_w - 12, tpl)
         doc.build(story)
@@ -545,7 +594,9 @@ def _docx_lines(container, lines, width_in: float = 7.3):
     from docx.shared import Inches, Pt
 
     for kind, text in lines:
-        if kind == "bullet":
+        if kind == "rating":
+            para = container.add_paragraph(line_text(kind, text))
+        elif kind == "bullet":
             para = container.add_paragraph(f"• {text}")
             para.paragraph_format.left_indent = Pt(10)
         elif kind in ("split", "splitplain"):
@@ -562,13 +613,23 @@ def _docx_lines(container, lines, width_in: float = 7.3):
 
 
 def _docx_heading(container, key, template):
-    from docx.shared import Pt
+    from docx.oxml import parse_xml
+    from docx.shared import Pt, RGBColor
 
+    d = _design(template)
     para = container.add_paragraph()
     run = para.add_run(heading_for(key, template))
     run.bold = True
     run.font.size = Pt(12)
     para.paragraph_format.space_before = Pt(6)
+    w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+    if d.get("heading_color"):
+        run.font.color.rgb = RGBColor.from_string(d["heading_color"].lstrip("#"))
+    if d.get("tracked"):  # Word's character spacing (in twentieths of a point): tracking with no spaces
+        run._r.get_or_add_rPr().append(parse_xml(f'<w:spacing {w} w:val="60"/>'))
+    if d.get("rule"):
+        para._p.get_or_add_pPr().append(parse_xml(
+            f'<w:pBdr {w}><w:bottom w:val="single" w:sz="6" w:space="1" w:color="{d["heading_color"].lstrip("#")}"/></w:pBdr>'))
 
 
 def _first_para(cell):
@@ -596,7 +657,12 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
     name_para = d.add_paragraph()
     name_run = name_para.add_run(p["name"])
     name_run.bold = True
-    name_run.font.size = Pt(18)
+    name_run.font.size = Pt(_design(tpl).get("name_size", 18))
+    from .formats import tagline
+
+    if tagline(p, tpl):
+        tag_run = d.add_paragraph().add_run(tagline(p, tpl))
+        tag_run.font.size = Pt(11)
 
     if layout == "single":
         d.add_paragraph(contact_line(b))
@@ -611,6 +677,12 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
         for col, w in zip(t.columns, (Inches(2.3), Inches(5.0))):
             col.width = w
         left.width, right.width = Inches(2.3), Inches(5.0)
+        if _design(tpl).get("shaded"):
+            from docx.oxml import parse_xml
+
+            left._tc.get_or_add_tcPr().append(parse_xml(
+                '<w:shd xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                'w:val="clear" w:color="auto" w:fill="EEF2F6"/>'))
         for cell, keys, w in ((left, SIDEBAR, 2.1),
                               (right, [k for k in section_order(b) if k not in SIDEBAR], 4.8)):
             cell._tc.remove(_first_para(cell)._p)
@@ -669,7 +741,9 @@ def plain_text(p: dict, opts: RenderOptions | None = None) -> str:
     """Single-column text with no file round trip (used for fast scorer-only checks)."""
     opts = opts or RenderOptions()
     b = blocks(p, opts)
-    lines = [p["name"], contact_line(b)]
+    from .formats import tagline
+
+    lines = [p["name"], *([tagline(p, opts.template)] if tagline(p, opts.template) else []), contact_line(b)]
     for key in section_order(b):
         lines.append(heading_for(key, opts.template))
         lines += [("• " + t) if k == "bullet" else line_text(k, t) for k, t in b[key]]

@@ -26,7 +26,11 @@ def reference(persona: dict, template: str) -> tuple[list[tuple[str, list[str]]]
     """(label, tokens) for every source line, and the normalized heading strings."""
     opts = RenderOptions(template=template)
     b = blocks(persona, opts)
+    from ..formats import tagline
+
     refs: list[tuple[str, list[str]]] = [("name", tokens(persona["name"]))]
+    if tagline(persona, template):  # the title under the name belongs to the header
+        refs.append(("contact", tokens(tagline(persona, template))))
     for kind, text in b["contact"]:
         refs.append(("contact", tokens(line_text(kind, text))))
     headings = {" ".join(tokens(heading_for("contact", template)))}
@@ -44,6 +48,15 @@ def _is_heading_fragment(t: list[str], headings: set[str]) -> bool:
     """A heading wrapped onto two lines (narrow table cells) arrives in pieces."""
     line = " ".join(t)
     return any(f" {line} " in f" {h} " for h in headings if len(h.split()) > len(t))
+
+
+def _concat_of(s: str, parts: set[str]) -> bool:
+    """True if `s` is two or more of `parts` run together (headings from two
+    columns read as one line)."""
+    ok = [True] + [False] * len(s)
+    for i in range(1, len(s) + 1):
+        ok[i] = any(ok[i - len(p)] and s[i - len(p):i] == p for p in parts if 0 < len(p) <= i)
+    return ok[-1] and s not in parts
 
 
 def label_lines(lines: list[str], persona: dict, template: str) -> list[str]:
@@ -65,7 +78,11 @@ def label_lines(lines: list[str], persona: dict, template: str) -> list[str]:
         if not t:
             out.append("other")
             continue
-        if " ".join(t) in headings or _is_heading_fragment(t, headings):
+        compact = "".join(t)
+        if (" ".join(t) in headings or _is_heading_fragment(t, headings)
+                or (len(t) >= 2 and all(len(x) == 1 for x in t)  # letter-spaced, possibly wrapped or merged
+                    and (any(compact in h.replace(" ", "") for h in headings)
+                         or _concat_of(compact, {h.replace(" ", "") for h in headings})))):
             out.append("heading")
             continue
         best, best_key = "other", (0.0, 0.0)

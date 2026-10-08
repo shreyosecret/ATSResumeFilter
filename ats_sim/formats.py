@@ -11,6 +11,13 @@ bullet and date style, how the contact line is written, and the font.
 They come from one generator written by one person, so they share its blind
 spots; that is why the learned tagger is still evaluated on the hand-written
 held-out templates and on generated formats it never trained on.
+
+Twelve more, d01 to d12, are "designer" formats: the visual habits of
+drag-and-drop resume builders, implemented here from a description (no
+template from any builder is copied): letter-spaced headings, colored headings
+with a rule under them, a large name with a one-line tagline, skills with
+rating dots, and a shaded sidebar. These are the features that most often
+confuse text-only parsers.
 """
 from __future__ import annotations
 
@@ -21,6 +28,9 @@ N_FORMATS = 50
 GENERATED_FORMATS = tuple(f"f{i:02d}" for i in range(1, N_FORMATS + 1))
 TRAIN_FORMATS = GENERATED_FORMATS[:40]
 HELD_OUT_FORMATS = GENERATED_FORMATS[40:]
+DESIGNER_FORMATS = tuple(f"d{i:02d}" for i in range(1, 13))
+TRAIN_DESIGNER = DESIGNER_FORMATS[:8]
+HELD_OUT_DESIGNER = DESIGNER_FORMATS[8:]
 
 STYLES = ("classic", "modern", "latex", "career_center", "hybrid")
 HEADING_POOLS = {
@@ -74,6 +84,8 @@ class FormatSpec:
     docx_font: str
     heading_size: float
     notes: dict = field(default_factory=dict)
+    design: dict = field(default_factory=dict)  # designer features (d01 to d12 only)
+    layouts: tuple = ()  # preferred layouts for the training corpus; () means any
 
 
 def _case(s: str, case: str) -> str:
@@ -112,7 +124,42 @@ def make_spec(name: str) -> FormatSpec:
         heading_size=rng.choice((10.5, 11, 12, 13)), notes={"case": case})
 
 
+HEADING_COLORS = ("#1F4E79", "#2E7D6B", "#7A2E8E", "#B5472B", "#3A3A3A", "#0B6E99")
+
+
+def make_design_spec(name: str) -> FormatSpec:
+    spec = make_spec(name)
+    rng = random.Random(f"ats-sim-design-{name}")
+    spec.design = {
+        "tracked": rng.random() < 0.6, "heading_color": rng.choice(HEADING_COLORS), "rule": rng.random() < 0.6,
+        "tagline": rng.random() < 0.8, "ratings": rng.random() < 0.5, "shaded": rng.random() < 0.6,
+        "name_size": rng.choice((22, 24, 26, 28)),
+    }
+    if spec.design["tracked"]:
+        spec.notes["case"] = "upper"
+        spec.headings = {k: v.rstrip(":").upper() for k, v in spec.headings.items()}
+    spec.bullet = rng.choice(("•", "▪", "–", ""))
+    spec.layouts = ("two_column", "two_column", "single")
+    return spec
+
+
 SPECS = {n: make_spec(n) for n in GENERATED_FORMATS}
+SPECS.update({n: make_design_spec(n) for n in DESIGNER_FORMATS})
+
+
+def design(name: str) -> dict:
+    s = SPECS.get(name)
+    return s.design if s is not None else {}
+
+
+def tagline(p: dict, name: str) -> str | None:
+    """The one-line title under the name in designer formats."""
+    if not design(name).get("tagline"):
+        return None
+    from .render import REFERENCE_DATE
+
+    e = p["education"]
+    return f"{e['field']} {'Student' if e['grad_date'] > REFERENCE_DATE else 'Graduate'}"
 
 
 def heading(key: str, name: str) -> str:
@@ -191,6 +238,8 @@ def build(p: dict, opts) -> dict[str, list[tuple[str, str]]]:
             lines = _extra_lines(key, p, rng)
         else:
             lines = base.get(key, [])
+        if key == "skills" and spec.design.get("ratings"):
+            lines = [("rating", f"{sk}\t{rng.randint(3, 5)}") for sk in p["skills"]]
         if spec.bullet != "•":
             lines = [("text", f"{spec.bullet} {t}".strip()) if k == "bullet" else (k, t) for k, t in lines]
         out[key] = lines
@@ -199,7 +248,12 @@ def build(p: dict, opts) -> dict[str, list[tuple[str, str]]]:
 
 def pdf_style(name: str) -> dict:
     s = SPECS.get(name)
-    return {} if s is None else {"font": s.pdf_font, "heading_size": s.heading_size}
+    if s is None:
+        return {}
+    out = {"font": s.pdf_font, "heading_size": s.heading_size}
+    if s.design:
+        out.update(heading_color=s.design["heading_color"], name_size=s.design["name_size"])
+    return out
 
 
 def docx_font(name: str) -> str | None:
@@ -212,4 +266,5 @@ def describe() -> list[dict]:
     return [{"format": s.name, "style": s.style, "headings": " / ".join(s.headings[k] for k in s.order),
              "case": s.notes["case"], "bullet": s.bullet or "none", "dates": s.date_style, "contact": s.contact,
              "extras": ", ".join(s.extras) or "none", "pdf_font": s.pdf_font, "docx_font": s.docx_font,
-             "split": "train" if s.name in TRAIN_FORMATS else "held out"} for s in SPECS.values()]
+             "design": ", ".join(k for k, v in s.design.items() if v is True) or "none",
+             "split": "train" if s.name in TRAIN_FORMATS + TRAIN_DESIGNER else "held out"} for s in SPECS.values()]

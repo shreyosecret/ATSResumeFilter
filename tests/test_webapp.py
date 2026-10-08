@@ -67,6 +67,7 @@ def test_analyze_upload(client, tmp_path, fmt):
     assert j["parsers"][j["best"]]["name"] == "Tomas Lindqvist"
     assert j["parsers"]["learned"]["name"] == "Tomas Lindqvist"
     assert j["lines"][0] == {**j["lines"][0], "text": "Tomas Lindqvist", "label": "name"}
+    assert all(len(x["geo"]) == 22 for x in j["lines"])
     m = j["matches"][0]
     assert m["posting"]["id"] == "mechanical_design" and m["scores"][0]["rank"] <= 2
     assert any(x["level"] == "ok" for x in j["risks"])
@@ -103,7 +104,12 @@ def test_teach_and_reset(client):
     assert client.get("/api/model").json()["taught"] == 1
     assert client.post("/api/learn", json={"lines": lines, "labels": labels[:2]}).status_code == 400
     assert client.post("/api/learn", json={"lines": ["x"], "labels": ["salary"]}).status_code == 400
+    assert client.post("/api/learn", json={"lines": lines, "labels": labels, "geo": [[0.0] * 3] * 6}).status_code == 400
+    geo = [[1.0] + [0.0] * 21 for _ in lines]
+    r = client.post("/api/learn", json={"lines": lines, "labels": labels, "geo": geo})
+    assert r.status_code == 200 and r.json()["lines"][0]["geo"] == geo[0]
     assert client.post("/api/model/reset").json()["model"]["taught"] == 0
+    assert True
 
 
 def test_learning_can_be_turned_off():

@@ -466,7 +466,8 @@ function renderLearn(body) {
     btn.disabled = true;
     try {
       const out = await api("/api/learn", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines: r.lines.map((x) => x.text), labels: r.edits }) });
+        body: JSON.stringify({ lines: r.lines.map((x) => x.text), labels: r.edits,
+          ...(r.lines.every((x) => x.geo) ? { geo: r.lines.map((x) => x.geo) } : {}) }) });
       const ev = out.event;
       r.lines = out.lines; r.model = out.model; r.edits = null;
       toast(`Learned from this resume. You changed ${ev.changed ?? 0} label${ev.changed === 1 ? "" : "s"}; it now labels ${Math.round(ev.accuracy_after * 100)}% of this resume the way you did. Analyze again to see updated fields.`);
