@@ -19,7 +19,22 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 | **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
 | **Research** | The headline findings, drawn as interactive charts (hover for values and 95% intervals, or switch any chart to a table) |
 
-**Run it**
+**Download it (no Python needed)**
+
+The app is built as a single program for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
+
+1. Open the repository's **Actions** tab, pick the latest successful **desktop app** run, and download the file for your system under **Artifacts** (you need to be signed in to GitHub). When a version tag such as `v1.1.0` is pushed, the same files are attached to a **Release** on the repository's main page, which anyone can download.
+   - **Windows:** `ATS-Simulator-Windows.zip` holds `ATS-Simulator.exe`.
+   - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app`.
+   - **Linux:** `ATS-Simulator-Linux.zip` holds `ATS-Simulator`.
+2. Unzip and double-click. The builds are not signed with a paid developer certificate, so the system will warn you the first time:
+   - **Windows SmartScreen:** click *More info*, then *Run anyway*.
+   - **macOS:** right-click the app, choose *Open*, then confirm (or allow it in System Settings, Privacy & Security).
+3. The first launch takes about 20 seconds to open. In the background it then spends 5 to 10 minutes building the learned parser's starting model; everything else works meanwhile. Later launches are fast.
+
+Each download is about 300 MB. It contains Python, every library and the MiniLM language model. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows).
+
+**Run it from the source**
 
 - Double-click `launchers/ATS Simulator.command` (macOS) or `launchers/ATS Simulator.bat` (Windows), or run `bash launchers/run.sh` (Linux). The first run creates a private Python environment and installs everything (a few minutes, once); later runs open in seconds.
 - Or by hand: `pip install -e ".[embeddings,desktop]"`, `python -m spacy download en_core_web_sm`, then `ats-sim`.
@@ -34,7 +49,7 @@ With `pywebview` installed (the `desktop` extra) the app opens in its own window
 <td><img src="docs/screenshots/candidate-dark.png" alt="Candidate details, dark theme"></td>
 </tr></table>
 
-**Shipping notes.** The app installs with pip from a checkout of this repository; the launchers wrap that so non-technical users can double-click. It is not yet a signed stand-alone installer: bundling it with PyInstaller is possible but would carry PyTorch (for the semantic scorer, roughly 1 to 2 GB) and must be built on each operating system. Without the `embeddings` extra the app still works, using a lighter LSA fallback that it labels as such. The older Streamlit developer dashboard is still available with `streamlit run app.py`.
+**Shipping notes.** The stand-alone builds come from `packaging/ats_sim.spec` (PyInstaller); `python scripts/fetch_minilm_onnx.py --out build/minilm-onnx && pyinstaller packaging/ats_sim.spec` builds one locally for the system you run it on. They are not code-signed, which is why the operating system warns on first launch; signing needs paid Apple and Windows developer certificates. There is no Intel-Mac build yet. Without the `embeddings` or `onnx` extra, a source install still works, using a lighter LSA fallback that it labels as such. The older Streamlit developer dashboard is still available with `streamlit run app.py`.
 
 ## What it models (and what it deliberately does not)
 
