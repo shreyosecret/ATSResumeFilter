@@ -37,4 +37,4 @@ ats-sim = "ats_sim.desktop:main"
 include = ["ats_sim*"]
 
 [tool.setuptools.package-data]
-"ats_sim.webapp" = ["static/*"]
+"ats_sim.webapp" = ["static/*", "static/fonts/*"]

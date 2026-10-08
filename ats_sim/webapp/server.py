@@ -251,6 +251,7 @@ def research_summary(results: Path) -> dict:
             stats.append({"value": float(row.f1.iloc[0]), "format": "f1", "label": "Combined parsers, single column",
                           "detail": "Majority vote of ours, OpenResume and pyresparser."})
     out["stats"] = [s for s in stats if s["value"] is not None]
+    out["series"] = research_series(results)
     charts = [
         ("layout_f1.png", "Layout robustness", "Same content in four layouts: what a simple parser recovers."),
         ("layout_templates.png", "Across five templates", "Template, parser and format all matter."),
@@ -261,4 +262,44 @@ def research_summary(results: Path) -> dict:
     ]
     out["charts"] = [{"src": f"/results/{c}", "title": t, "caption": cap} for c, t, cap in charts
                      if (results / c).exists()]
+    return out
+
+
+def _records(df, cols):
+    return [{c: (None if v != v else (float(v) if isinstance(v, (int, float)) else v))
+             for c, v in zip(cols, row)} for row in df[cols].itertuples(index=False)]
+
+
+def research_series(results: Path) -> dict:
+    """Numbers for the app's native charts (each with its 95% interval where one exists)."""
+    import pandas as pd
+
+    out: dict = {}
+    lay_path = results / "layout_summary.csv"
+    if lay_path.exists():
+        lay = pd.read_csv(lay_path)
+        lay = lay[(lay.parser == "naive") & lay.template.isin(["classic", "held_out_pooled"])]
+        out["layout"] = _records(lay, ["template", "format", "layout", "f1", "f1_lo", "f1_hi"])
+    p = results / "parsers" / "parser_common_fields.csv"
+    if p.exists():
+        pc = pd.read_csv(p)
+        out["parsers"] = _records(pc[pc.format == "pdf"], ["parser", "layout", "f1", "f1_lo", "f1_hi"])
+    p = results / "synonyms_summary.csv"
+    if p.exists():
+        sy = pd.read_csv(p)
+        cols = ["scorer", "mean_rel_delta"] + [c for c in ("rel_delta_lo", "rel_delta_hi") if c in sy.columns]
+        out["synonyms"] = _records(sy, cols)
+    p = results / "stuffing_summary.csv"
+    if p.exists():
+        st = pd.read_csv(p)
+        st = st[st.defense == "none"]
+        cols = ["attack", "scorer", "beats_best_genuine"] + [c for c in ("beats_best_genuine_lo", "beats_best_genuine_hi")
+                                                             if c in st.columns]
+        out["stuffing"] = _records(st, cols)
+    for folder, key in ((results / "public_pool", "stability_public"), (results, "stability")):
+        p = folder / "stability_summary.csv"
+        if p.exists():
+            sb = pd.read_csv(p)
+            out[key] = _records(sb, ["scorer", "edit", "mean_abs_rank_change", "top_k_flips", "cases"])
+            break
     return out

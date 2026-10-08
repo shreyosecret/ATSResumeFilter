@@ -14,19 +14,22 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 | Screen | What it does |
 |---|---|
-| **Resume check** | Drop in a PDF or Word resume. See what every parser read side by side, what could trip a screening rule (worst first), skills found, and how it scores and ranks against each posting, including one you paste in |
+| **Resume check** | Drop in a PDF or Word resume. Tabs for an overview (parsing checks, worst first, and skills found), job matches (screening result and percentile rank per scorer for every posting, including one you paste in, expandable to the terms found and missing), a parser-by-parser comparison, and the extracted text |
 | **Screening** | The recruiter's view: 16 fictional candidates screened and ranked. Switch template, layout, file format or parser and watch who gets screened out; click a candidate to compare what the parser read with what the resume says |
 | **Boolean search** | Recruiter-style keyword queries with AND, OR, NOT, quotes and parentheses |
-| **Research** | The headline findings and charts from the experiments below |
+| **Research** | The headline findings, drawn as interactive charts (hover for values and 95% intervals, or switch any chart to a table) |
 
 **Run it**
 
 - Double-click `launchers/ATS Simulator.command` (macOS) or `launchers/ATS Simulator.bat` (Windows), or run `bash launchers/run.sh` (Linux). The first run creates a private Python environment and installs everything (a few minutes, once); later runs open in seconds.
 - Or by hand: `pip install -e ".[embeddings,desktop]"`, `python -m spacy download en_core_web_sm`, then `ats-sim`.
 
-With `pywebview` installed (the `desktop` extra) the app opens in its own window; otherwise it opens in your browser. `ats-sim --browser` forces the browser. Light and dark themes follow the system, with a toggle. The first launch takes about a minute while the language model indexes the comparison resumes; that index is cached, so later launches take seconds. The open-source parsers and SkillNer appear automatically when installed (`scripts/setup_external.sh`).
+With `pywebview` installed (the `desktop` extra) the app opens in its own window; otherwise it opens in your browser. `ats-sim --browser` forces the browser. Light and dark themes follow the system, with a toggle. The interface uses the Inter typeface (SIL Open Font License), bundled so the app works offline. The first launch takes about a minute while the language model indexes the comparison resumes; that index is cached, so later launches take seconds. The open-source parsers and SkillNer appear automatically when installed (`scripts/setup_external.sh`).
 
 <table><tr>
+<td><img src="docs/screenshots/job-matches.png" alt="Job matches: percentile rank per scorer, expandable details"></td>
+<td><img src="docs/screenshots/research-dark.png" alt="Research charts, dark theme"></td>
+</tr><tr>
 <td><img src="docs/screenshots/screening.png" alt="Screening view"></td>
 <td><img src="docs/screenshots/candidate-dark.png" alt="Candidate details, dark theme"></td>
 </tr></table>

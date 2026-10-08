@@ -80,6 +80,8 @@ def test_analyze_pasted_posting_and_bad_files(client, tmp_path):
 def test_research_and_image_guard(client):
     d = client.get("/api/research").json()
     assert d["available"] and d["charts"]
+    assert {"layout", "synonyms", "stuffing"} <= set(d["series"])
+    assert all("f1" in r and "f1_lo" in r for r in d["series"]["layout"])
     assert client.get(d["charts"][0]["src"]).status_code == 200
     assert client.get("/results/../README.md").status_code == 404
     assert client.get("/results/summary.json").status_code == 404

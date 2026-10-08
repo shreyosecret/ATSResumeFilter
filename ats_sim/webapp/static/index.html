@@ -5,38 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ATS Simulator</title>
   <meta name="description" content="See how applicant tracking systems parse, screen and rank a resume. Runs entirely on your computer.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a78d6'/%3E%3Cpath d='M10 9h8l4 4v10a1 1 0 0 1-1 1H10a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M12 16h7M12 20h5' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232457c5'/%3E%3Cpath d='M11 8h7l4 4v11a1 1 0 0 1-1 1H11a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='m12.5 17 2.5 2.5 4.5-5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="app.css">
   <script>
-    try { const t = localStorage.getItem("ats-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+    try { const t = localStorage.getItem("ats-theme"); if (t === '"light"' || t === '"dark"') document.documentElement.dataset.theme = JSON.parse(t); } catch (e) {}
   </script>
 </head>
 <body>
   <div class="app">
     <aside class="sidebar" aria-label="Main navigation">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="m13.4 16.4 2.1 2.1"/></svg>
-        </div>
-        <div>
-          <div class="brand-name">ATS Simulator</div>
-          <div class="brand-sub">Resume screening, explained</div>
-        </div>
-      </div>
+      <a class="brand" href="#/check">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m9 14 2 2 4-4"/></svg>
+        </span>
+        <span class="brand-text"><span class="brand-name">ATS Simulator</span><span class="brand-sub">Screening, explained</span></span>
+      </a>
       <nav id="nav"></nav>
       <div class="sidebar-foot">
-        <div class="status-pill" id="status" role="status"><span class="dot busy"></span><span>Starting</span></div>
-        <div class="theme-toggle" role="group" aria-label="Theme">
-          <button type="button" data-theme-choice="system">Auto</button>
-          <button type="button" data-theme-choice="light">Light</button>
-          <button type="button" data-theme-choice="dark">Dark</button>
+        <div class="privacy-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <span>Runs on this computer</span>
         </div>
+        <div class="version" id="version"></div>
       </div>
     </aside>
-    <main id="main" tabindex="-1"></main>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-title"><h1 id="page-title">ATS Simulator</h1><p id="page-sub"></p></div>
+        <div class="topbar-actions">
+          <div id="page-actions" class="row"></div>
+          <div class="status-chip" id="status" role="status"><span class="dot busy"></span><span>Starting</span></div>
+          <div class="seg" role="group" aria-label="Theme">
+            <button type="button" data-theme-choice="system" title="Match system">Auto</button>
+            <button type="button" data-theme-choice="light" title="Light">Light</button>
+            <button type="button" data-theme-choice="dark" title="Dark">Dark</button>
+          </div>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"></main>
+    </div>
   </div>
   <div class="drawer-backdrop" id="drawer-backdrop"></div>
   <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Candidate details"></aside>
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
   <div class="toast" id="toast" role="alert"></div>
   <script src="app.js"></script>
 </body>
