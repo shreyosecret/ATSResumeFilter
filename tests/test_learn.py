@@ -117,3 +117,19 @@ def test_text_only_tagger_ignores_geometry(base):
     a = text_only.predict_proba(lines, [[1.0] * 20] * 4)
     b = text_only.predict_proba(lines, None)
     assert np.allclose(a, b)
+
+
+def test_store_uses_a_bundled_starting_model(tmp_path, monkeypatch):
+    import sys
+
+    from ats_sim.learn.store import CORPUS_VERSION
+
+    lines = ["Ana Ruiz", "ana@x.com", "EDUCATION", "B.S. in Biology"]
+    shipped = LineTagger().fit([(lines, ["name", "contact", "heading", "education"])], epochs=2)
+    shipped.corpus_version = CORPUS_VERSION
+    save(shipped, tmp_path / "bundle" / "model" / "base.joblib")
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "bundle"), raising=False)
+    store = ModelStore(tmp_path / "model", corpus={"templates": (), "formats": ()})
+    monkeypatch.setattr(store, "build_base", lambda: (_ for _ in ()).throw(AssertionError("trained instead")))
+    store.load()
+    assert store.ready() and store.base_path.exists()

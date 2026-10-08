@@ -24,12 +24,12 @@ def _frozen_root() -> Path:
     bundle = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
     home = user_dir() / "home"
     marker = home / ".version"
-    if not marker.exists() or marker.read_text() != __version__:
+    if not marker.exists() or marker.read_text(encoding="utf-8") != __version__:
         for name in ("data", "results"):
             if (bundle / name).exists():
                 shutil.copytree(bundle / name, home / name, dirs_exist_ok=True)
         marker.parent.mkdir(parents=True, exist_ok=True)
-        marker.write_text(__version__)
+        marker.write_text(__version__, encoding="utf-8")
     return home
 
 
@@ -49,7 +49,7 @@ def load_personas(path: str | Path | None = None) -> list[dict]:
         raise FileNotFoundError(
             f"Data files not found at {DATA_DIR}. Install from a checkout of the repository "
             "(pip install -e .) or set ATS_SIM_HOME to the repository folder.")
-    return json.loads(Path(path).read_text())["personas"]
+    return json.loads(Path(path).read_text(encoding="utf-8"))["personas"]
 
 
 def resume_path(persona_id: str, layout: str, fmt: str, root: Path = RESUME_DIR, template: str = "classic") -> Path:

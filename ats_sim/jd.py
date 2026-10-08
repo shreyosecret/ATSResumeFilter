@@ -38,7 +38,7 @@ STRIP_MODIFIERS = {"strong", "working", "hands-on", "solid", "excellent", "good"
 
 
 def load_job(path: str | Path) -> JobPosting:
-    raw = json.loads(Path(path).read_text())
+    raw = json.loads(Path(path).read_text(encoding="utf-8"))
     k = raw.get("knockouts", {})
     knockouts = Knockouts(
         grad_window=tuple(k["grad_window"]) if k.get("grad_window") else None,

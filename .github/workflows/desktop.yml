@@ -22,7 +22,30 @@ permissions:
   contents: write  # only used by the release step, which runs on tags
 
 jobs:
+  model:
+    # The learned parser's starting model is trained once here and shipped in
+    # every build, so the app does not train it on a user's first launch.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          pip install .
+          python -m spacy download en_core_web_sm
+      - name: Train the starting model
+        run: python scripts/build_starting_model.py --out build/model
+      - uses: actions/upload-artifact@v4
+        with:
+          name: starting-model
+          path: build/model/base.joblib
+          retention-days: 7
+
   build:
+    needs: model
     strategy:
       fail-fast: false
       matrix:
@@ -48,6 +71,10 @@ jobs:
           python -m spacy download en_core_web_sm
       - name: Fetch the ONNX copy of MiniLM
         run: python scripts/fetch_minilm_onnx.py --out build/minilm-onnx
+      - uses: actions/download-artifact@v4
+        with:
+          name: starting-model
+          path: build/model
       - name: Build
         run: pyinstaller packaging/ats_sim.spec --noconfirm
       - name: Start the build once (smoke test)
@@ -58,11 +85,11 @@ jobs:
             macOS)   BIN="dist/ATS Simulator.app/Contents/MacOS/ATS-Simulator" ;;
             *)       BIN="dist/ATS-Simulator" ;;
           esac
-          ATS_SIM_DUMP_AFTER=120 "$BIN" --no-open --no-learning --port 8799 &
+          ATS_SIM_DUMP_AFTER=120 "$BIN" --no-open --port 8799 &
           for i in $(seq 1 150); do
             st=$(curl -s http://127.0.0.1:8799/api/status || true)
-            if echo "$st" | grep -q '"ready":true'; then echo "$st"; ok=1; break; fi
-            if echo "$st" | grep -q '"status":"error"'; then break; fi
+            if echo "$st" | grep -q '"ready":true,.*"model":{"ready":true'; then echo "$st"; ok=1; break; fi
+            if echo "$st" | grep -q '"status":"error'; then break; fi
             sleep 2
           done
           if [ "$ok" != 1 ]; then

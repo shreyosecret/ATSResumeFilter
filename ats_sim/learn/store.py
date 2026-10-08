@@ -73,13 +73,30 @@ class ModelStore:
         shutil.rmtree(self.dir / "corpus", ignore_errors=True)
         return tg
 
+    def _bundled_base(self) -> T.LineTagger | None:
+        """The packaged desktop app ships a starting model trained at build time
+        (scripts/build_starting_model.py), so a first launch does not spend many
+        minutes rendering and reading the corpus."""
+        import sys
+
+        bundle = getattr(sys, "_MEIPASS", None)
+        path = Path(bundle) / "model" / "base.joblib" if bundle else None
+        if path is None or not path.exists():
+            return None
+        tg = T.load(path)
+        if tg is None or getattr(tg, "corpus_version", 1) != CORPUS_VERSION:
+            return None
+        self.dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, self.base_path)
+        return tg
+
     def load(self) -> "ModelStore":
         with self._lock:
             tg = T.load(self.current_path) if self.current_path.exists() else None
             if tg is None:
                 base = T.load(self.base_path) if self.base_path.exists() else None
                 if base is None or getattr(base, "corpus_version", 1) != CORPUS_VERSION:
-                    base = self.build_base()
+                    base = self._bundled_base() or self.build_base()
                 tg = base
             self.tagger = tg
             self.status = "ready"

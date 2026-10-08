@@ -191,7 +191,7 @@ def load_posting_file(path: str | Path) -> JobPosting:
     path = Path(path)
     if path.suffix == ".json":
         return load_job(path)
-    return posting_from_text(path.read_text(), path.stem)
+    return posting_from_text(path.read_text(encoding="utf-8"), path.stem)
 
 
 def posting_from_text(text: str, posting_id: str = "pasted") -> JobPosting:

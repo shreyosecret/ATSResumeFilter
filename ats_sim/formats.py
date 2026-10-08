@@ -216,7 +216,7 @@ def _load_reference() -> dict[str, FormatSpec]:
     path = Path(__file__).resolve().parent.parent / "data" / "format_sources.json"
     if not path.exists():
         return {}
-    records = json.loads(path.read_text())
+    records = json.loads(path.read_text(encoding="utf-8"))
     return {f"r{i:02d}": make_reference_spec(f"r{i:02d}", r) for i, r in enumerate(records, 1)}
 
 

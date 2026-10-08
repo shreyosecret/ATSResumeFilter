@@ -330,7 +330,7 @@ def extract_text(path: str | Path, drop_invisible: bool = False, layout_aware: b
     if suffix == ".docx":
         return extract_text_docx(path, layout_aware=layout_aware)
     if suffix in {".txt", ".md"}:
-        return Path(path).read_text()
+        return Path(path).read_text(encoding="utf-8")
     raise ValueError(f"Unsupported resume format: {suffix}")
 
 

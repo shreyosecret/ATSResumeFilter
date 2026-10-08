@@ -29,7 +29,7 @@ class SkillTaxonomy:
     @classmethod
     def load(cls, path: str | Path | None = None) -> "SkillTaxonomy":
         path = Path(path) if path else DATA_DIR / "skills.json"
-        raw = json.loads(Path(path).read_text())
+        raw = json.loads(Path(path).read_text(encoding="utf-8"))
         skills = [
             Skill(
                 name=s["name"],

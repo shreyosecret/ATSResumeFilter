@@ -1,6 +1,7 @@
 # PyInstaller spec for the ATS Simulator desktop app.
 #
 #   python scripts/fetch_minilm_onnx.py --out build/minilm-onnx
+#   python scripts/build_starting_model.py --out build/model
 #   pyinstaller packaging/ats_sim.spec --noconfirm
 #
 # Produces dist/ATS-Simulator (Linux), dist/ATS-Simulator.exe (Windows) or
@@ -42,6 +43,12 @@ if (onnx / "model.onnx").exists():
     datas += [(str(onnx / "model.onnx"), "minilm-onnx"), (str(onnx / "tokenizer.json"), "minilm-onnx")]
 else:
     print("WARNING: build/minilm-onnx missing; the app will use the LSA fallback for semantic scores")
+
+model = ROOT / "build" / "model" / "base.joblib"  # scripts/build_starting_model.py
+if model.exists():
+    datas += [(str(model), "model")]
+else:
+    print("WARNING: build/model/base.joblib missing; the app will train its starting model on first launch")
 
 binaries, hiddenimports = [], collect_submodules("ats_sim")
 for pkg in ("en_core_web_sm", "spacy", "thinc", "pdfplumber", "pdfminer", "reportlab", "docx", "uvicorn",

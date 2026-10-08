@@ -298,4 +298,4 @@ def read(path: str | Path) -> list[Line]:
         return read_docx(path)
     from .labels import split_lines
 
-    return [Line(t, [0.0] * N_GEO) for t in split_lines(Path(path).read_text())]
+    return [Line(t, [0.0] * N_GEO) for t in split_lines(Path(path).read_text(encoding="utf-8"))]
