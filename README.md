@@ -77,7 +77,8 @@ ats-sim                                        # the app (after pip install -e "
 streamlit run app.py                           # older developer dashboard
 python scripts/learning_curve.py               # experiment 5: results/learning/ (about 15 minutes)
 python scripts/format_diversity.py             # experiment 6: results/formats/ (50 generated formats)
-pytest                                         # 121 tests (also run by GitHub Actions on every push)
+python scripts/geometry_ablation.py            # experiment 7: results/geometry/ (about an hour)
+pytest                                         # 158 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
 python scripts/fetch_public_resumes.py         # CC0 dataset, no Kaggle account needed
@@ -288,9 +289,9 @@ A big taxonomy halves the synonym penalty (it maps "finite element analysis" to 
 
 ![Teach the model](docs/screenshots/teach-the-model.png)
 
-The app has a fourth parser that learns: a small neural network (`ats_sim/learn/`, scikit-learn `MLPClassifier`, one hidden layer of 64 units) that labels every line of a resume with its section (name, contact, heading, summary, education, experience, projects, skills, other). The field rules then run on the sections it found. Where the heading-list parser only knows the headings it was given, the network looks at the line, its neighbors, the nearest heading above it and the line's shape (bullets, dates, capitals), so it can follow headings it has never seen, such as "Where I have worked" or "Toolbox".
+The app has a fourth parser that learns: a small neural network (`ats_sim/learn/`, scikit-learn `MLPClassifier`, one hidden layer of 64 units) that labels every line of a resume with its section (name, contact, heading, summary, education, experience, projects, skills, other). The field rules then run on the sections it found. Where the heading-list parser only knows the headings it was given, the network looks at the line, its neighbors, the nearest heading above it and the line's shape (bullets, dates, capitals), so it can follow headings it has never seen, such as "Where I have worked" or "Toolbox". A second, smaller network reads how each line looks on the page (size, weight, color, spacing, margins; see [experiment 7](#7-reading-the-page-geometry-designer-and-reference-formats)) and helps decide which lines are headings and which is the name.
 
-**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus: the 640 resumes in the five templates plus 1,600 files in [50 generated formats](#6-fifty-generated-formats) (trained on first launch, which takes roughly 5 to 10 minutes in the background while the rest of the app works, then cached; a starting model cached by an older version is rebuilt automatically).
+**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus: the 640 resumes in the five templates plus about 2,700 files in [50 generated](#6-fifty-generated-formats), 12 designer and 22 reference formats. The desktop download ships this starting model already trained. A source install trains it on first launch, which takes 10 minutes or more in the background while the rest of the app works, then caches it. A starting model cached by an older version is rebuilt automatically.
 
 **What it deliberately does not learn.** You asked for a network that learns from every new resume. I built it to learn only from resumes you confirm, and only where the sections are, for two reasons that the experiment below measures or that the literature already settled:
 
@@ -332,7 +333,7 @@ Real resumes from strangers cannot be used without permission, so the variety co
 - up to three extra sections that hold no parsed field (publications, leadership, awards, volunteering, certifications, languages, interests);
 - the bullet character (including none, and "▪", which standard PDF fonts turn into "n", a real glyph failure), date style, contact style and font.
 
-Each format is rendered for all 16 personas in 2 random layout and file-type combinations, for 1,600 files. The list is in [results/formats/formats.csv](results/formats/formats.csv).
+Each format is rendered for all 16 personas in 2 random layout and file-type combinations, for 1,600 files. The list, with the designer and reference formats, is in [results/formats/formats.csv](results/formats/formats.csv).
 
 `scripts/format_diversity.py` trains the network on the classic template plus k of the 40 training formats and tests on what it never saw. The fair test is the four hand-written templates, which were written separately from the generator. A second test, the 10 held-out generated formats, comes from the same generator and is expected to look better. Personas are split too (10 train, 6 test), so no test resume belongs to a person the network trained on. Three seeds.
 
@@ -352,7 +353,44 @@ Each format is rendered for all 16 personas in 2 random layout and file-type com
 
 **On one real resume.** I hand-labeled every line of one real student resume (the author's own, kept out of the repository) and compared the app's starting models. The model trained on the five templates labeled 54% of lines correctly. The one trained on the five templates plus the 50 formats labeled 71%. Its main error, filing publications and leadership lines under experience, fell from 24 lines to 7. That is one resume, and its labels came from the same person who wrote the generator, so read it as a sanity check, not a measurement.
 
-The app's starting model now trains on the five templates and all 50 formats. The first launch takes longer (roughly 5 to 10 minutes in the background, longer on a slow machine); after that it is cached.
+Experiments 5 and 6 were run with the text-only network, before page geometry existed. The app's starting model now also trains on the designer and reference formats below.
+
+### 7. Reading the page: geometry, designer and reference formats
+
+**What was added.**
+
+- `ats_sim/learn/geometry.py` measures every line from the smallest unit the file offers. In a PDF that is each character's position, size, font and color. In a Word file it is paragraph and run formatting. From those it computes the line's left margin and indent, size relative to body text, bold, italic, color, letter spacing, gaps above and below, right alignment, a rule under it, and whether it sits on a shaded panel, in a table or in a box. It returns exactly the lines the text reader produces, verified on 420 files.
+- **12 designer formats** (d01 to d12) imitate the visual habits of drag-and-drop builders such as Canva. They are implemented from a description, without copying any template, because Canva's license forbids reusing its templates: letter-spaced and colored headings with rules, a large name with a one-line title under it, skills with rating dots, and shaded sidebars.
+- **22 reference formats** (r01 to r22) follow the exact headings and section order of public templates, each mapped onto the closest entry style here. Every source and license is listed in [data/format_sources.json](data/format_sources.json). Only structure is used; no template text or code is copied. The sources are:
+  - open-source templates whose licenses allow reuse: Jake's Resume (MIT), Awesome-CV (LPPL), Deedy-Resume (Apache-2.0), moderncv (LPPL), six RenderCV themes (MIT) and a JSON Resume theme (MIT);
+  - five Google Docs gallery templates, described from public articles because Google publishes no open-source resume template, so their order and date style are approximate;
+  - Harvard, MIT, UC Berkeley and Purdue career-center samples.
+
+**The experiment.** `scripts/geometry_ablation.py` trains three versions of the network on the classic template plus 40 generated and 8 designer formats, for 10 of the 16 personas. It tests them on the other 6 personas in formats none of them trained on. The reference formats are held out entirely. Three seeds.
+
+![Geometry ablation](results/geometry/geometry_ablation.png)
+
+| Lines labeled correctly | Text only | Geometry for every label | Geometry for headings (app) |
+|---|---|---|---|
+| Hand-written templates | 0.92 | 0.92 | 0.92 |
+| Held-out generated formats | 0.96 | 0.95 | 0.94 |
+| Held-out designer formats | 0.92 | 0.90 | 0.88 |
+| Reference formats (public templates) | 0.90 | 0.90 | 0.89 |
+| One real resume, hand-labeled (see below) | 0.71 | 0.58 | 0.79 |
+
+**What happened, in order.** The order matters more than the final table:
+
+1. **The first version looked like a clear win on synthetic data.** Geometry for every label raised line accuracy from 0.89 to 0.95 on the reference formats and from 0.91 to 0.94 on designer formats.
+2. **On a real resume it was much worse.** It got 0.52 of lines right, against 0.69 for text only (three seeds), on a hand-labeled two-page student resume (the author's own, kept out of the repository). Every line it got wrong was on page 2. All synthetic resumes are one page, so the page-number feature never varied in training, kept its random starting weights, and pushed every page-2 line toward "experience".
+3. **Fix:** remove page number and height on the page, and train on a second, randomly perturbed copy of each resume's geometry. This closed most of the gap on the real resume but erased the synthetic gains (the table's middle column). In other words, much of the early gain was the network recognizing this project's own renderer.
+4. **The remaining real-resume errors were a layout shortcut.** In synthetic resumes an indented bullet line in the body is almost always experience, so the publications list was filed under experience regardless of its heading.
+5. **Final design:** the text network assigns sections and a small geometry network only finds headings and the name; their heading and name probabilities are averaged. On synthetic formats it is 1 to 3 points below text only. On the real resume it is the best of the three in every seed (0.69 to 0.86).
+
+**What to take from it.**
+
+- A model evaluated only on synthetic data would have shipped the worst of the three versions. Geometry measured on documents from one renderer partly learns that renderer.
+- The app uses the hybrid because it is the only version that held up on a real document. That rests on one resume, which was also used to find the bugs above, so it is weak evidence. Set `ATS_SIM_TAGGER=text` to use the text-only network instead; whichever version runs, corrections in the Teach tab adapt it.
+- On the reference formats the heading-list parser is nearly as good (field F1 0.82, against 0.84 for the networks and a ceiling of 0.86). Real templates mostly use headings the list already knows. The networks matter most for designer formats and unusual headings (0.51 to 0.67).
 
 ## Check your own resume
 
@@ -373,6 +411,7 @@ The report (written to `private/`, which is gitignored) shows what each parser e
 - **Experiments 2 to 4 use the classic single-column PDF** so the scorer is the only moving part; scoring results on other templates may differ.
 - **Third-party engines are run, not reimplemented, but through adapters.** The mapping into this project's schema (and the lenient scoring) is a choice; another mapping could move their numbers a few points. Each engine's raw output is cached under `results/_tmp/engine_cache/` for inspection.
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
+- **Geometry is validated on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece.
 - **The learned parser is only as good as its corrections.** It learns section boundaries, not fields; a wrong label taught by a user is learned too (Reset undoes everything). Its experiment uses exact synthetic labels and four templates.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
 
@@ -401,7 +440,9 @@ ats_sim/report.py     resume analysis shared by the app and scripts/check_resume
 ats_sim/learn/  the neural line tagger: labels from the corpus, online learning, local model store
 results/learning/     experiment 5: learning curve on new templates
 results/formats/      experiment 6: the 50 generated formats and training on them
-ats_sim/formats.py    the 50-format generator
+ats_sim/formats.py    generated (50), designer (12) and reference (22) formats
+results/geometry/     experiment 7: text-only vs page geometry
+packaging/            the desktop build (PyInstaller spec and entry point)
 launchers/      double-click launchers for macOS, Windows and Linux
 app.py          older Streamlit developer dashboard
 .github/        GitHub Actions: tests on every push

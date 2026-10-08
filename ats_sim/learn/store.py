@@ -67,7 +67,10 @@ class ModelStore:
         # corpus folder at the same time, and a half-written file is not a PDF yet.
         docs = list(documents(root=cache, cache=cache, **kw).values())
         docs += list(format_documents(formats, per_persona=per_persona, root=cache, cache=cache).values())
-        tg = T.LineTagger().fit(docs)
+        # ATS_SIM_TAGGER=text|geometry|headings picks how page geometry is used
+        # (experiment 7); the default, "headings", uses it to find headings only.
+        mode = {"text": False, "geometry": True}.get(os.environ.get("ATS_SIM_TAGGER", ""), "headings")
+        tg = T.LineTagger(use_geometry=mode).fit(docs)
         tg.corpus_version = CORPUS_VERSION
         T.save(tg, self.base_path)
         shutil.rmtree(self.dir / "corpus", ignore_errors=True)
@@ -84,7 +87,8 @@ class ModelStore:
         if path is None or not path.exists():
             return None
         tg = T.load(path)
-        if tg is None or getattr(tg, "corpus_version", 1) != CORPUS_VERSION:
+        wanted = {"text": False, "geometry": True}.get(os.environ.get("ATS_SIM_TAGGER", ""), "headings")
+        if tg is None or getattr(tg, "corpus_version", 1) != CORPUS_VERSION or tg.use_geometry != wanted:
             return None
         self.dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, self.base_path)
@@ -95,7 +99,9 @@ class ModelStore:
             tg = T.load(self.current_path) if self.current_path.exists() else None
             if tg is None:
                 base = T.load(self.base_path) if self.base_path.exists() else None
-                if base is None or getattr(base, "corpus_version", 1) != CORPUS_VERSION:
+                wanted = {"text": False, "geometry": True}.get(os.environ.get("ATS_SIM_TAGGER", ""), "headings")
+                if (base is None or getattr(base, "corpus_version", 1) != CORPUS_VERSION
+                        or base.use_geometry != wanted):
                     base = self._bundled_base() or self.build_base()
                 tg = base
             self.tagger = tg

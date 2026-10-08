@@ -1,0 +1,69 @@
+{
+  "seeds": 3,
+  "groups": {
+    "hand-written": {
+      "text": {
+        "line_acc": 0.924,
+        "f1": 0.742
+      },
+      "geometry": {
+        "line_acc": 0.923,
+        "f1": 0.739
+      },
+      "headings": {
+        "line_acc": 0.917,
+        "f1": 0.737
+      },
+      "rules_f1": 0.669,
+      "oracle_f1": 0.752
+    },
+    "generated": {
+      "text": {
+        "line_acc": 0.96,
+        "f1": 0.795
+      },
+      "geometry": {
+        "line_acc": 0.953,
+        "f1": 0.796
+      },
+      "headings": {
+        "line_acc": 0.938,
+        "f1": 0.791
+      },
+      "rules_f1": 0.502,
+      "oracle_f1": 0.805
+    },
+    "designer": {
+      "text": {
+        "line_acc": 0.917,
+        "f1": 0.672
+      },
+      "geometry": {
+        "line_acc": 0.897,
+        "f1": 0.658
+      },
+      "headings": {
+        "line_acc": 0.884,
+        "f1": 0.651
+      },
+      "rules_f1": 0.507,
+      "oracle_f1": 0.684
+    },
+    "reference": {
+      "text": {
+        "line_acc": 0.899,
+        "f1": 0.843
+      },
+      "geometry": {
+        "line_acc": 0.901,
+        "f1": 0.848
+      },
+      "headings": {
+        "line_acc": 0.892,
+        "f1": 0.838
+      },
+      "rules_f1": 0.821,
+      "oracle_f1": 0.857
+    }
+  }
+}

@@ -162,10 +162,11 @@ def chart(df: pd.DataFrame, path: Path) -> None:
         ax.set_xticks(x, [g.replace("-", "-\n") if g == "hand-written" else g for g in GROUPS])
         ax.set_title(title)
         ax.set_ylim(0.4, 1.05)
-    axes[1].legend(loc="lower right", fontsize=8.5)
+    handles, labels = axes[1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=len(labels), fontsize=9)
     fig.suptitle("Reading the page: three ways to use geometry, on formats and people never trained on "
                  "(mean of 3 seeds; whiskers = min to max)", x=0.01, ha="left", fontsize=10.5, color=INK2)
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(path, dpi=150)
     plt.close(fig)
 
