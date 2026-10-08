@@ -1,9 +1,15 @@
 """Experiment 7: does reading the page (geometry) help the line tagger?
 
-Two networks, identical except for their input: one sees only the text of
-each line and its neighbors; the other also sees how each line looks on the
-page, measured from its characters (ats_sim/learn/geometry.py: margin,
-indent, size, bold, color, letter spacing, gaps, rules, shading).
+Three versions of the network, identical except for how they use the page:
+
+  text       only the text of each line and its neighbors
+  geometry   also how each line looks on the page, measured from its characters
+             (ats_sim/learn/geometry.py: margin, indent, size, bold, color,
+             letter spacing, gaps, rules, shading), for every label
+  headings   geometry only in a second small network that finds headings and
+             the name; sections are assigned by the text network (the app's
+             default, chosen after the first run of this experiment showed
+             "geometry" learning a layout shortcut on a real resume)
 
 Both train on the classic template plus the 40 training formats and the 8
 training designer formats, for 10 of the 16 personas. Both are tested on the
@@ -52,9 +58,9 @@ from ats_sim.render import HELD_OUT_TEMPLATES  # noqa: E402
 
 OUT = ROOT / "results" / "geometry"
 GROUPS = ("hand-written", "generated", "designer", "reference")
-MODELS = {"text": "Text only", "geometry": "Text + page geometry"}
+MODELS = {"text": "Text only", "geometry": "Geometry for every label", "headings": "Geometry for headings (app)"}
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
-COLORS = {"text": "#9a9893", "geometry": "#2a78d6"}
+COLORS = {"text": "#9a9893", "geometry": "#eb6834", "headings": "#2a78d6"}
 
 
 def scores(tagger, docs, personas) -> tuple[float, float]:
@@ -115,7 +121,8 @@ def run(n_seeds: int, private: tuple[Path, Path] | None) -> tuple[pd.DataFrame, 
             r, o = reference_f1(docs, personas)
             rows += [dict(seed=seed, group=group, model=m, f1=v, line_acc=None) for m, v in (("rules", r), ("oracle", o))]
         for model in MODELS:
-            tagger = LineTagger(seed=seed, use_geometry=model == "geometry").fit(train)
+            tagger = LineTagger(seed=seed, use_geometry={"text": False, "geometry": True, "headings": "headings"}[model]
+                                ).fit(train)
             for group, docs in tests.items():
                 f1, acc = scores(tagger, docs, personas)
                 rows.append(dict(seed=seed, group=group, model=model, f1=f1, line_acc=acc))
@@ -134,7 +141,7 @@ def chart(df: pd.DataFrame, path: Path) -> None:
         "axes.spines.top": False, "axes.spines.right": False, "axes.spines.left": False, "font.size": 10,
         "axes.titlesize": 11, "axes.titleweight": "bold", "axes.titlelocation": "left", "legend.frameon": False,
     })
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4))
     x = np.arange(len(GROUPS))
     for ax, metric, title in ((axes[0], "line_acc", "Lines labeled correctly"), (axes[1], "f1", "Field F1")):
         for i, m in enumerate(MODELS):
@@ -142,11 +149,11 @@ def chart(df: pd.DataFrame, path: Path) -> None:
             mean = [sub.mean()[g] for g in GROUPS]
             lo = [sub.mean()[g] - sub.min()[g] for g in GROUPS]
             hi = [sub.max()[g] - sub.mean()[g] for g in GROUPS]
-            bars = ax.bar(x + (i - 0.5) * 0.38, mean, 0.36, color=COLORS[m], label=MODELS[m],
+            bars = ax.bar(x + (i - 1) * 0.27, mean, 0.25, color=COLORS[m], label=MODELS[m],
                           yerr=[lo, hi], error_kw=dict(ecolor=INK2, lw=1, capsize=2))
             for b, v in zip(bars, mean):
                 ax.text(b.get_x() + b.get_width() / 2, v + 0.012, f"{v:.2f}", ha="center", va="bottom",
-                        fontsize=8.5, color=INK2)
+                        fontsize=7.5, color=INK2)
         if metric == "f1":
             for j, g in enumerate(GROUPS):
                 o = df[(df.group == g) & (df.model == "oracle")].f1.mean()
@@ -156,7 +163,7 @@ def chart(df: pd.DataFrame, path: Path) -> None:
         ax.set_title(title)
         ax.set_ylim(0.4, 1.05)
     axes[1].legend(loc="lower right", fontsize=8.5)
-    fig.suptitle("Reading the page: text-only vs text + geometry, on formats and people never trained on "
+    fig.suptitle("Reading the page: three ways to use geometry, on formats and people never trained on "
                  "(mean of 3 seeds; whiskers = min to max)", x=0.01, ha="left", fontsize=10.5, color=INK2)
     fig.tight_layout()
     fig.savefig(path, dpi=150)

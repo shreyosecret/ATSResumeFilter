@@ -730,11 +730,17 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
 
 
 def render(p: dict, layout: str, fmt: str, path: str | Path, opts: RenderOptions | None = None) -> Path:
-    if fmt == "pdf":
-        return render_pdf(p, layout, path, opts)
-    if fmt == "docx":
-        return render_docx(p, layout, path, opts)
-    raise ValueError(f"unknown format {fmt!r}")
+    """Write to a temporary name and rename, so a reader never sees a half-written file."""
+    import os
+
+    if fmt not in ("pdf", "docx"):
+        raise ValueError(f"unknown format {fmt!r}")
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.stem}.{os.getpid()}.part.{fmt}")
+    (render_pdf if fmt == "pdf" else render_docx)(p, layout, tmp, opts)
+    os.replace(tmp, path)
+    return path
 
 
 def plain_text(p: dict, opts: RenderOptions | None = None) -> str:

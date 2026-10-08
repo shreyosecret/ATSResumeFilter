@@ -20,11 +20,10 @@ from .labels import LABELS
 
 
 def model_dir() -> Path:
+    from ..data import user_dir
+
     env = os.environ.get("ATS_SIM_MODEL_DIR")
-    if env:
-        return Path(env)
-    base = os.environ.get("APPDATA") if os.name == "nt" else os.environ.get("XDG_DATA_HOME")
-    return (Path(base) / "ats_sim" if base else Path.home() / ".ats_sim") / "model"
+    return Path(env) if env else user_dir() / "model"
 
 
 # Bump when the starting model's training set changes, so cached starting
@@ -64,8 +63,10 @@ class ModelStore:
         formats = kw.pop("formats", tuple(SPECS))  # generated, designer and reference formats
         per_persona = kw.pop("per_persona", 2)
         cache = self.dir / "corpus"
-        docs = list(documents(cache=cache, **kw).values())
-        docs += list(format_documents(formats, per_persona=per_persona, cache=cache).values())
+        # Its own folder (root=cache): the app renders the ranking pool into the shared
+        # corpus folder at the same time, and a half-written file is not a PDF yet.
+        docs = list(documents(root=cache, cache=cache, **kw).values())
+        docs += list(format_documents(formats, per_persona=per_persona, root=cache, cache=cache).values())
         tg = T.LineTagger().fit(docs)
         tg.corpus_version = CORPUS_VERSION
         T.save(tg, self.base_path)

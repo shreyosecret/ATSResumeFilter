@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import tempfile
 import threading
+import time
 import warnings
 from functools import lru_cache
 from pathlib import Path
@@ -36,7 +37,7 @@ STATIC = Path(__file__).resolve().parent / "static"
 RESULTS = DATA_DIR.parent / "results"
 MAX_UPLOAD = 10 * 1024 * 1024
 MAX_LINES = 2000
-VERSION = "1.0.0"
+from .. import __version__ as VERSION  # noqa: E402
 
 
 class State:
@@ -85,6 +86,14 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
     """`model_store`: True for the default local folder, a ModelStore, or
     False to turn learning off."""
     app = FastAPI(title="ATS Simulator", version=VERSION, docs_url=None, redoc_url=None)
+    app.state.last_request = time.time()
+
+    @app.middleware("http")
+    async def note_activity(request, call_next):
+        # the desktop launcher quits a browser-mode app once its page has been closed for a while
+        app.state.last_request = time.time()
+        return await call_next(request)
+
     store = ModelStore() if model_store is True else (model_store or None)
     state = State(store)
     app.state.sim = state

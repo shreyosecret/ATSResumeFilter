@@ -30,7 +30,7 @@ from ..parser import (
 from .geometry import GEO_FEATURES, N_GEO
 from .labels import LABELS, SECTION_LABELS, split_lines, tokens
 
-FORMAT_VERSION = 3  # 2: page geometry features; 3: no page/height features, augmented training
+FORMAT_VERSION = 4  # 2: geometry; 3: no page/height features, augmentation; 4: hybrid mode
 _BULLET_RE = re.compile(r"^\s*(?:\(cid:127\)|[•\-\*·▪◦●■–])")
 _URL_RE = re.compile(r"(?:https?://|www\.|linkedin\.com|github\.com)", re.IGNORECASE)
 _YEAR_RE = re.compile(r"\b(?:19|20)\d\d\b")
@@ -100,6 +100,7 @@ def _geo_block(geo: Geo, n: int, use: bool) -> np.ndarray:
 
 
 _G = {n: i for i, n in enumerate(GEO_FEATURES)}
+STRUCT_LABELS = ("heading", "name", "body")
 
 
 def augment_geometry(geo: Geo, labels: list[str], rng: np.random.Generator) -> Geo:
@@ -137,8 +138,17 @@ class LineTagger:
     plus how the line and its neighbors look on the page (geometry.py)."""
 
     def __init__(self, hidden: tuple[int, ...] = (64,), seed: int = 0, replay_size: int = 30000,
-                 use_geometry: bool = True):
+                 use_geometry: bool | str = "headings"):
+        """`use_geometry`: False reads text only; True feeds page geometry to the
+        one network that assigns every label; "headings" (the default) uses
+        geometry only where it is reliable, in a second small network that finds
+        headings and the name, and leaves section assignment to the text network
+        (see README, experiment 7, for why)."""
         self.use_geometry = use_geometry
+        self.struct = None
+        if use_geometry == "headings":
+            self.struct = MLPClassifier(hidden_layer_sizes=(32,), alpha=1e-4, learning_rate_init=2e-3,
+                                        batch_size=64, random_state=seed)
         self.seed = seed
         self.replay_size = replay_size
         self.model = MLPClassifier(hidden_layer_sizes=hidden, alpha=1e-4, learning_rate_init=2e-3,
@@ -183,8 +193,17 @@ class LineTagger:
             self._v_prev.transform(prev),
             self._v_next.transform(nxt),
             sparse.csr_matrix(_dense(lines, is_heading, ctx)),
-            sparse.csr_matrix(_geo_block(geo, len(lines), self.use_geometry)),
+            sparse.csr_matrix(_geo_block(geo, len(lines), bool(self.use_geometry))),
         ], format="csr")
+
+    def _text_only(self, X):
+        """The same rows with the geometry columns zeroed (for the text network in
+        "headings" mode)."""
+        if self.use_geometry != "headings":
+            return X
+        mask = np.ones(X.shape[1], dtype=np.float32)
+        mask[-3 * N_GEO:] = 0
+        return X @ sparse.diags(mask)
 
     # ------------------------------------------------------------ training
 
@@ -194,7 +213,10 @@ class LineTagger:
             warnings.filterwarnings("ignore", message="Got `batch_size`")  # a short resume is one batch
             for _ in range(epochs):
                 order = self.rng.permutation(X.shape[0])
-                self.model.partial_fit(X[order], y[order], classes=np.array(LABELS, dtype=object))
+                self.model.partial_fit(self._text_only(X[order]), y[order], classes=np.array(LABELS, dtype=object))
+                if self.struct is not None:
+                    ys = np.where(np.isin(y[order], ("heading", "name")), y[order], "body")
+                    self.struct.partial_fit(X[order], ys, classes=np.array(STRUCT_LABELS, dtype=object))
         self._fitted = True
 
     def _remember(self, X, y) -> None:
@@ -268,10 +290,26 @@ class LineTagger:
         classes = list(self.model.classes_)
         h = classes.index("heading")
         for _ in range(2):
-            P = self.model.predict_proba(self.featurize(lines, is_heading, geo))
+            X = self.featurize(lines, is_heading, geo)
+            P = self.model.predict_proba(self._text_only(X))
+            if self.struct is not None:
+                P = self._combine(P, self.struct.predict_proba(X), classes)
             is_heading = list(P[:, h] >= 0.5)
         order = [classes.index(c) for c in LABELS]
         return P[:, order]
+
+    def _combine(self, P, S, classes):
+        """Heading and name probabilities from the geometry network; the rest of
+        the probability split among sections as the text network says."""
+        sc = list(self.struct.classes_)
+        out = P.copy()
+        rest = [i for i, c in enumerate(classes) if c not in ("heading", "name")]
+        body = S[:, sc.index("body")]
+        share = P[:, rest].sum(1, keepdims=True)
+        out[:, rest] = P[:, rest] / np.clip(share, 1e-9, None) * body[:, None]
+        for c in ("heading", "name"):
+            out[:, classes.index(c)] = S[:, sc.index(c)]
+        return out
 
     def predict(self, lines: list[str], geo: Geo = None) -> list[str]:
         P = self.predict_proba(lines, geo)

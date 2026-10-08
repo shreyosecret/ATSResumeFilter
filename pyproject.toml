@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ats-sim"
-version = "1.0.0"
+version = "1.1.0"
 description = "A simulator of applicant tracking systems: see how resumes are parsed, screened and ranked."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,6 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 embeddings = ["sentence-transformers>=2.7"]   # the semantic (AI) scorer; without it an LSA fallback is used
+onnx = ["onnxruntime>=1.17", "tokenizers>=0.15"]  # the same scorer without PyTorch (scripts/fetch_minilm_onnx.py)
 desktop = ["pywebview>=5"]                    # open in a native window instead of the browser
 dashboard = ["streamlit>=1.45"]               # the older developer dashboard (app.py)
 dev = ["pytest>=8", "httpx"]

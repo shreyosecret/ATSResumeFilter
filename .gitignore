@@ -11,3 +11,7 @@ external/openresume/node_modules/
 skill_db_relax_20.json
 token_dist.json
 .venv/
+
+# desktop build output
+build/
+dist/

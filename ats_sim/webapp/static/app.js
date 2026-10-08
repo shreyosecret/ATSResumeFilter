@@ -146,6 +146,7 @@ async function pollStatus() {
   chip.title = s.ready ? `Comparison pool: ${s.pool} resumes. Semantic model: ${s.embedding_backend}` : (s.error || s.status);
   if (s.ready && !state.ready) {
     state.ready = true;
+    setInterval(() => { fetch("/api/status").catch(() => {}); }, 30000); // keep-alive while the page is open
     state.meta = await api("/api/meta");
     $("#version").textContent = `Version ${state.meta.version}`;
     route();

@@ -47,6 +47,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-open", action="store_true", help="do not open anything; just serve")
     ap.add_argument("--no-public-pool", action="store_true", help="rank only against the 16 synthetic resumes")
     ap.add_argument("--no-learning", action="store_true", help="turn off the learned parser and the Teach tab")
+    ap.add_argument("--quit-when-idle", type=float, default=None, metavar="MINUTES",
+                    help="in browser mode, quit after the page has been closed this long "
+                         "(default: 3 in the packaged app, never otherwise)")
     args = ap.parse_args(argv)
 
     import uvicorn
@@ -79,9 +82,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Could not open a native window ({e}); using the browser.")
     if not args.no_open:
         webbrowser.open(url)
+    idle = args.quit_when_idle
+    if idle is None and getattr(sys, "frozen", False) and not args.no_open:
+        idle = 3.0  # a packaged app has no terminal to stop it from, so it stops itself
     try:
         while thread.is_alive():
             thread.join(0.5)
+            if idle and time.time() - app.state.last_request > idle * 60:
+                server.should_exit = True
     except KeyboardInterrupt:
         server.should_exit = True
     return 0

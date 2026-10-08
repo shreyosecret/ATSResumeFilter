@@ -5,8 +5,40 @@ import json
 import os
 from pathlib import Path
 
-ROOT = Path(os.environ["ATS_SIM_HOME"]).resolve() if os.environ.get("ATS_SIM_HOME") \
-    else Path(__file__).resolve().parent.parent
+import shutil
+import sys
+
+
+def user_dir() -> Path:
+    """A writable per-user folder (the learned model also lives under it)."""
+    base = os.environ.get("APPDATA") if os.name == "nt" else os.environ.get("XDG_DATA_HOME")
+    return Path(base) / "ats_sim" if base else Path.home() / ".ats_sim"
+
+
+def _frozen_root() -> Path:
+    """In the packaged desktop app the bundled data is read-only and unpacked to
+    a temporary folder on every launch, so copy it once (per app version) to a
+    user folder, where the app can also write its generated resumes and caches."""
+    from . import __version__
+
+    bundle = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    home = user_dir() / "home"
+    marker = home / ".version"
+    if not marker.exists() or marker.read_text() != __version__:
+        for name in ("data", "results"):
+            if (bundle / name).exists():
+                shutil.copytree(bundle / name, home / name, dirs_exist_ok=True)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(__version__)
+    return home
+
+
+if os.environ.get("ATS_SIM_HOME"):
+    ROOT = Path(os.environ["ATS_SIM_HOME"]).resolve()
+elif getattr(sys, "frozen", False):
+    ROOT = _frozen_root()
+else:
+    ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 RESUME_DIR = DATA_DIR / "resumes"
 

@@ -148,6 +148,61 @@ def chunk_text(text: str, min_words: int = 4, max_words: int = 40) -> list[str]:
     return chunks
 
 
+MINILM_ONNX_FILES = {  # the official ONNX export published alongside the PyTorch weights
+    "model.onnx": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx",
+    "tokenizer.json": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json",
+}
+
+
+def onnx_model_dir() -> Path | None:
+    """Where the ONNX copy of MiniLM is: $ATS_SIM_ONNX_DIR, inside the packaged
+    app, or the user folder (scripts/fetch_minilm_onnx.py puts it there)."""
+    import sys
+
+    from .data import user_dir
+
+    for d in (os.environ.get("ATS_SIM_ONNX_DIR"), getattr(sys, "_MEIPASS", None) and Path(sys._MEIPASS) / "minilm-onnx",
+              user_dir() / "minilm-onnx"):
+        if d and all((Path(d) / f).exists() for f in MINILM_ONNX_FILES):
+            return Path(d)
+    return None
+
+
+class OnnxMiniLM:
+    """all-MiniLM-L6-v2 run through onnxruntime instead of PyTorch: the same
+    weights, tokenizer, 256-token limit, mean pooling and normalization as
+    sentence-transformers, at a fraction of the install size (used by the
+    packaged desktop app)."""
+
+    def __init__(self, directory: Path):
+        import onnxruntime as ort
+        from tokenizers import Tokenizer
+
+        self.tok = Tokenizer.from_file(str(directory / "tokenizer.json"))
+        self.tok.enable_truncation(max_length=256)
+        self.tok.enable_padding(pad_id=0, pad_token="[PAD]")
+        opts = ort.SessionOptions()
+        opts.log_severity_level = 3
+        self.session = ort.InferenceSession(str(directory / "model.onnx"), opts, providers=["CPUExecutionProvider"])
+        self.inputs = {i.name for i in self.session.get_inputs()}
+
+    def encode(self, texts: list[str], normalize_embeddings: bool = True, show_progress_bar: bool = False,
+               batch_size: int = 32) -> np.ndarray:
+        out = []
+        for i in range(0, len(texts), batch_size):
+            enc = self.tok.encode_batch(texts[i:i + batch_size])
+            ids = np.array([e.ids for e in enc], dtype=np.int64)
+            mask = np.array([e.attention_mask for e in enc], dtype=np.int64)
+            feed = {"input_ids": ids, "attention_mask": mask, "token_type_ids": np.zeros_like(ids)}
+            hidden = self.session.run(None, {k: v for k, v in feed.items() if k in self.inputs})[0]
+            m = mask[..., None].astype(np.float32)
+            vec = (hidden * m).sum(1) / np.clip(m.sum(1), 1e-9, None)
+            if normalize_embeddings:
+                vec = vec / np.clip(np.linalg.norm(vec, axis=1, keepdims=True), 1e-12, None)
+            out.append(vec)
+        return np.vstack(out) if out else np.zeros((0, 384), dtype=np.float32)
+
+
 class EmbeddingScorer:
     """Cosine similarity of mean-pooled sentence embeddings.
 
@@ -156,13 +211,16 @@ class EmbeddingScorer:
     model's 256-token limit, which would otherwise silently drop the bottom of
     a resume.
 
-    Backend: sentence-transformers all-MiniLM-L6-v2. If the model cannot be
+    Backend: sentence-transformers all-MiniLM-L6-v2, or the same model through
+    onnxruntime when PyTorch is not installed and the ONNX files are present
+    (backend "all-MiniLM-L6-v2 (onnx)"). If neither can be
     loaded (no internet on first run, package missing) and `allow_fallback`
     is true, the scorer falls back to an LSA embedding (TF-IDF + truncated
     SVD fit on the corpus). The fallback is NOT a semantic model. It is there
     so the pipeline still runs, and `self.backend` records which one was used
     so results are never mislabeled. Set ATS_SIM_EMBEDDING_BACKEND=lsa to
-    force the fallback, or =minilm to make a failed model load an error.
+    force the fallback, =onnx to skip PyTorch, or =minilm to make a failed
+    model load an error.
     """
 
     name = "embedding"
@@ -175,16 +233,26 @@ class EmbeddingScorer:
         forced = os.environ.get("ATS_SIM_EMBEDDING_BACKEND", "").lower()
         if forced == "minilm":
             allow_fallback = False
-        if forced != "lsa":
+        error = None
+        if forced not in ("lsa", "onnx"):
             try:
                 from sentence_transformers import SentenceTransformer
 
                 self.model = SentenceTransformer(model_name)
                 self.backend = model_name
-            except Exception as exc:  # noqa: BLE001 - any load failure triggers the fallback
-                if not allow_fallback:
-                    raise
-                warnings.warn(f"Could not load {model_name} ({type(exc).__name__}); using LSA fallback.")
+            except Exception as exc:  # noqa: BLE001 - any load failure tries the next backend
+                error = exc
+        if self.model is None and forced != "lsa" and model_name == "all-MiniLM-L6-v2" and onnx_model_dir():
+            try:
+                self.model = OnnxMiniLM(onnx_model_dir())
+                self.backend = f"{model_name} (onnx)"
+            except Exception as exc:  # noqa: BLE001
+                error = exc
+        if self.model is None and forced != "lsa" and (forced == "minilm" or not allow_fallback):
+            raise RuntimeError(f"Could not load {model_name}") from error
+        if self.model is None and forced != "lsa":
+            warnings.warn(f"Could not load {model_name} ({type(error).__name__ if error else 'no ONNX copy'}); "
+                          "using LSA fallback.")
         if self.model is None:
             self.backend = "lsa-fallback"
             self._lsa = None

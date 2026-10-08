@@ -1,0 +1,98 @@
+name: desktop app
+
+# Builds the one-file desktop app for Windows, macOS and Linux, starts each
+# build once to check it serves, and uploads it. Download the builds from the
+# run's "Artifacts" section, or push a tag like v1.1.0 to attach them to a
+# GitHub Release.
+
+on:
+  push:
+    paths:
+      - "ats_sim/**"
+      - "packaging/**"
+      - "data/**"
+      - "results/**"
+      - "pyproject.toml"
+      - ".github/workflows/desktop.yml"
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # only used by the release step, which runs on tags
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            asset: ATS-Simulator-Windows.zip
+          - os: macos-14
+            asset: ATS-Simulator-macOS-AppleSilicon.zip
+          - os: ubuntu-22.04
+            asset: ATS-Simulator-Linux.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install the app and the build tools
+        shell: bash
+        run: |
+          pip install . onnxruntime tokenizers "pyinstaller>=6.11"
+          if [ "$RUNNER_OS" != "Linux" ]; then pip install "pywebview>=5"; fi
+          python -m spacy download en_core_web_sm
+      - name: Fetch the ONNX copy of MiniLM
+        run: python scripts/fetch_minilm_onnx.py --out build/minilm-onnx
+      - name: Build
+        run: pyinstaller packaging/ats_sim.spec --noconfirm
+      - name: Start the build once (smoke test)
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) BIN="dist/ATS-Simulator.exe" ;;
+            macOS)   BIN="dist/ATS Simulator.app/Contents/MacOS/ATS-Simulator" ;;
+            *)       BIN="dist/ATS-Simulator" ;;
+          esac
+          "$BIN" --no-open --no-learning --port 8799 &
+          for i in $(seq 1 90); do
+            if curl -s http://127.0.0.1:8799/api/status | grep -q '"ready":true'; then
+              curl -s http://127.0.0.1:8799/api/status; echo; ok=1; break
+            fi
+            sleep 2
+          done
+          kill %1 || true
+          test "$ok" = 1
+      - name: Zip
+        shell: bash
+        run: |
+          cd dist
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a "../${{ matrix.asset }}" ATS-Simulator.exe
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            ditto -c -k --keepParent "ATS Simulator.app" "../${{ matrix.asset }}"
+          else
+            chmod +x ATS-Simulator && zip -9 "../${{ matrix.asset }}" ATS-Simulator
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          generate_release_notes: true
