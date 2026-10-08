@@ -53,7 +53,7 @@ def test_reference_formats_keep_their_published_headings():
     import json
     from pathlib import Path
 
-    records = json.loads((Path(__file__).resolve().parent.parent / "data" / "format_sources.json").read_text())
+    records = json.loads((Path(__file__).resolve().parent.parent / "data" / "format_sources.json").read_text(encoding="utf-8"))
     assert len(REFERENCE_FORMATS) == len(records) >= 15
     for name, r in zip(REFERENCE_FORMATS, records):
         spec = SPECS[name]

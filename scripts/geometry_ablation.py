@@ -86,7 +86,7 @@ def reference_f1(docs, personas) -> tuple[float, float]:
 def private_score(tagger, labels_path: Path, file_path: Path) -> dict:
     from ats_sim.learn.geometry import read
 
-    gold = json.loads(labels_path.read_text())
+    gold = json.loads(labels_path.read_text(encoding="utf-8"))
     rows = read(file_path)
     lines = [r.text for r in rows]
     if lines != gold["lines"]:
@@ -198,11 +198,11 @@ def main() -> None:
     df.to_csv(a.out / "geometry_ablation.csv", index=False)
     chart(df, a.out / "geometry_ablation.png")
     s = summarize(df)
-    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "groups": s}, indent=2))
+    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "groups": s}, indent=2), encoding="utf-8")
     print(json.dumps(s, indent=2))
     if private_rows:
         out = ROOT / "private" / "geometry_ablation_private.json"
-        out.write_text(json.dumps(private_rows, indent=2))
+        out.write_text(json.dumps(private_rows, indent=2), encoding="utf-8")
         print("private result written to", out)
 
 

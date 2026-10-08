@@ -188,7 +188,7 @@ def main() -> None:
     df.to_csv(a.out / "learning_curve.csv", index=False)
     chart(df, a.out / "learning_curve.png")
     s = summarize(df, a.teach)
-    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "teach": a.teach, "templates": s}, indent=2))
+    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "teach": a.teach, "templates": s}, indent=2), encoding="utf-8")
     print(json.dumps(s, indent=2))
 
 

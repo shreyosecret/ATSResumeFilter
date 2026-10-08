@@ -146,9 +146,9 @@ def main():
     result = analyzer.analyze(
         path, application={"work_authorized": answer[args.authorized],
                            "needs_sponsorship": answer[args.needs_sponsorship]},
-        gold=json.loads(Path(args.gold).read_text()) if args.gold else None, store=store)
+        gold=json.loads(Path(args.gold).read_text(encoding="utf-8")) if args.gold else None, store=store)
     out = out_dir / f"{path.stem}.report.md"
-    out.write_text(to_markdown(result, args.authorized))
+    out.write_text(to_markdown(result, args.authorized), encoding="utf-8")
     print(f"wrote {out}")
 
 

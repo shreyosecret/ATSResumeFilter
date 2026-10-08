@@ -169,7 +169,7 @@ def main() -> None:
     df.to_csv(a.out / "format_diversity.csv", index=False)
     chart(df, a.out / "format_diversity.png")
     s = summarize(df)
-    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "groups": s}, indent=2))
+    (a.out / "summary.json").write_text(json.dumps({"seeds": a.seeds, "groups": s}, indent=2), encoding="utf-8")
     print(json.dumps(s, indent=2))
 
 

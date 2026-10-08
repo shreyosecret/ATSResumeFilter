@@ -347,7 +347,7 @@ def main():
             "drop_pct": round(r.f1_drop_vs_single_pct, 1), "drop_ci": [round(r.drop_lo, 1), round(r.drop_hi, 1)],
         } for r in ov.itertuples()},
     }
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     def per_field_md(template):
         return (lay["per_field"].loc[template].reset_index()
@@ -401,7 +401,7 @@ def main():
         md_table(stab_s),
         "",
     ]
-    (out / "RESULTS.md").write_text("\n".join(md))
+    (out / "RESULTS.md").write_text("\n".join(md), encoding="utf-8")
     print(json.dumps({k: v for k, v in summary.items() if k != "layout"}, indent=2))
 
 

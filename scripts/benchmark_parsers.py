@@ -81,12 +81,12 @@ def main():
     for e in engines:
         todo = [f for f, meta in files.items() if meta[2] in e.formats]
         cache = cache_dir / f"{e.name}.json"
-        raw = json.loads(cache.read_text()) if cache.exists() else {}
+        raw = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
         missing = [f for f in todo if f not in raw]
         print(f"running {e.name} on {len(missing)} of {len(todo)} files (rest cached)")
         if missing:
             raw.update(e.raw_many(missing))
-            cache.write_text(json.dumps(raw))
+            cache.write_text(json.dumps(raw), encoding="utf-8")
         parsed[e.name] = {f: e.convert(raw[f].get("resume"), f) for f in todo if f in raw}
 
     members = [m for m in ENSEMBLE_ORDER if m in parsed]
@@ -177,8 +177,8 @@ def main():
         per_field[order].reset_index().to_markdown(index=False, floatfmt=".2f"),
         "",
     ]
-    (OUT / "PARSERS.md").write_text("\n".join(md))
-    (OUT / "summary.json").write_text(json.dumps({"engines": order, "skipped": skipped}, indent=2))
+    (OUT / "PARSERS.md").write_text("\n".join(md), encoding="utf-8")
+    (OUT / "summary.json").write_text(json.dumps({"engines": order, "skipped": skipped}, indent=2), encoding="utf-8")
     print("\n".join(md))
 
 
