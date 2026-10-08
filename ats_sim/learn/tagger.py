@@ -299,16 +299,18 @@ class LineTagger:
         return P[:, order]
 
     def _combine(self, P, S, classes):
-        """Heading and name probabilities from the geometry network; the rest of
+        """Heading and name probabilities averaged between the text network and
+        the geometry network (`struct_weight` is geometry's share); the rest of
         the probability split among sections as the text network says."""
+        w = getattr(self, "struct_weight", 0.5)
         sc = list(self.struct.classes_)
         out = P.copy()
         rest = [i for i, c in enumerate(classes) if c not in ("heading", "name")]
-        body = S[:, sc.index("body")]
-        share = P[:, rest].sum(1, keepdims=True)
-        out[:, rest] = P[:, rest] / np.clip(share, 1e-9, None) * body[:, None]
         for c in ("heading", "name"):
-            out[:, classes.index(c)] = S[:, sc.index(c)]
+            out[:, classes.index(c)] = (1 - w) * P[:, classes.index(c)] + w * S[:, sc.index(c)]
+        body = 1 - out[:, [classes.index("heading"), classes.index("name")]].sum(1)
+        share = P[:, rest].sum(1, keepdims=True)
+        out[:, rest] = P[:, rest] / np.clip(share, 1e-9, None) * np.clip(body, 0, 1)[:, None]
         return out
 
     def predict(self, lines: list[str], geo: Geo = None) -> list[str]:
