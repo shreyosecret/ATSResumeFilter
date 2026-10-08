@@ -2,8 +2,9 @@ name: desktop app
 
 # Builds the one-file desktop app for Windows, macOS and Linux, starts each
 # build once to check it serves, and uploads it. Download the builds from the
-# run's "Artifacts" section, or push a tag like v1.2.0 to attach them to a
-# GitHub Release.
+# run's "Artifacts" section. To publish a GitHub Release, push a tag like
+# v1.2.0, or run the workflow by hand (Actions, desktop app, Run workflow)
+# with release_tag set.
 
 on:
   push:
@@ -17,6 +18,11 @@ on:
       - "pyproject.toml"
       - ".github/workflows/desktop.yml"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a GitHub Release with this tag (for example v1.2.0); leave empty to only build"
+        required: false
+        default: ""
 
 permissions:
   contents: write  # only used by the release step, which runs on tags
@@ -121,7 +127,9 @@ jobs:
           retention-days: 30
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Runs for a pushed v* tag, or when the workflow is started by hand with a
+    # release_tag; then GitHub creates the tag on the commit that was built.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -135,6 +143,8 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          name: ATS Simulator ${{ github.ref_name }}
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: ATS Simulator ${{ inputs.release_tag || github.ref_name }}
           body_path: packaging/RELEASE_NOTES.md
           files: assets/*
