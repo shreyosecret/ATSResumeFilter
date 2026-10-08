@@ -60,20 +60,22 @@ jobs:
           esac
           ATS_SIM_DUMP_AFTER=120 "$BIN" --no-open --no-learning --port 8799 &
           for i in $(seq 1 150); do
-            if curl -s http://127.0.0.1:8799/api/status | grep -q '"ready":true'; then
-              curl -s http://127.0.0.1:8799/api/status; echo; ok=1; break
-            fi
+            st=$(curl -s http://127.0.0.1:8799/api/status || true)
+            if echo "$st" | grep -q '"ready":true'; then echo "$st"; ok=1; break; fi
+            if echo "$st" | grep -q '"status":"error"'; then break; fi
             sleep 2
           done
-          kill %1 || true
           if [ "$ok" != 1 ]; then
-            echo "The app did not come up. Its log:"
+            echo "The app did not come up. Status: $(curl -s http://127.0.0.1:8799/api/status)"
+            echo "Its log:"
             for f in "$APPDATA/ats_sim/ats-sim.log" "$HOME/.ats_sim/ats-sim.log" "$HOME/Library/Application Support/ats_sim/ats-sim.log"; do
               [ -f "$f" ] && { echo "== $f"; cat "$f"; }
             done
             ls -la "$APPDATA/ats_sim" "$HOME/.ats_sim" 2>/dev/null || true
+            kill %1 || true
             exit 1
           fi
+          kill %1 || true
       - name: Zip
         shell: bash
         run: |

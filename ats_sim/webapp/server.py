@@ -59,7 +59,10 @@ class State:
                 self.status = "indexing the ranking pool"
                 a.warm()
                 self.status = "ready"
-            except Exception as e:  # surfaced in the UI
+            except Exception as e:  # surfaced in the UI, and in the log of the packaged app
+                import traceback
+
+                traceback.print_exc()
                 self.error = f"{type(e).__name__}: {e}"
                 self.status = "error"
 
@@ -69,6 +72,9 @@ class State:
             try:
                 self.store.load()
             except Exception as e:
+                import traceback
+
+                traceback.print_exc()
                 self.store.status = f"error: {type(e).__name__}: {e}"
 
         threading.Thread(target=run, daemon=True).start()
