@@ -7,6 +7,8 @@ name: desktop app
 
 on:
   push:
+    branches: ["**"]
+    tags: ["v*"]
     paths:
       - "ats_sim/**"
       - "packaging/**"
@@ -14,7 +16,6 @@ on:
       - "results/**"
       - "pyproject.toml"
       - ".github/workflows/desktop.yml"
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
