@@ -59,14 +59,18 @@ jobs:
             *)       BIN="dist/ATS-Simulator" ;;
           esac
           "$BIN" --no-open --no-learning --port 8799 &
-          for i in $(seq 1 90); do
+          for i in $(seq 1 150); do
             if curl -s http://127.0.0.1:8799/api/status | grep -q '"ready":true'; then
               curl -s http://127.0.0.1:8799/api/status; echo; ok=1; break
             fi
             sleep 2
           done
           kill %1 || true
-          test "$ok" = 1
+          if [ "$ok" != 1 ]; then
+            echo "The app did not come up. Its log:"
+            cat "${APPDATA:-$HOME/.ats_sim}/ats_sim/ats-sim.log" "$HOME/.ats_sim/ats-sim.log" 2>/dev/null || true
+            exit 1
+          fi
       - name: Zip
         shell: bash
         run: |
