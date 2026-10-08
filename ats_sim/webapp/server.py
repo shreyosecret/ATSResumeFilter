@@ -268,7 +268,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
     @app.get("/results/{name:path}")
     def result_image(name: str):
         path = (RESULTS / name).resolve()
-        allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning"))}
+        allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning", "formats"))}
         if path.parent not in allowed or path.suffix != ".png" or not path.exists():
             raise HTTPException(404)
         return FileResponse(path, media_type="image/png")
@@ -317,6 +317,8 @@ def research_summary(results: Path) -> dict:
         ("public_pool/stability.png", "Ranking stability", "Movement after small wording edits, 202-resume pool."),
         ("learning/learning_curve.png", "Learning a new template",
          "The neural line tagger, taught one corrected resume at a time."),
+        ("formats/format_diversity.png", "Training on 50 formats",
+         "More generated formats in training, tested on templates and people never seen."),
     ]
     out["charts"] = [{"src": f"/results/{c}", "title": t, "caption": cap} for c, t, cap in charts
                      if (results / c).exists()]

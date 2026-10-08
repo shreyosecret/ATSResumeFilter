@@ -7,7 +7,8 @@ from ats_sim.learn.labels import LABELS, split_lines
 from ats_sim.learn.store import ModelStore
 from ats_sim.learn.tagger import LineTagger, load, parse_with_tagger, save, sections_from_labels
 
-SMALL = {"templates": ("classic",), "layouts": ("single", "two_column"), "fmts": ("pdf",)}
+SMALL = {"templates": ("classic",), "layouts": ("single", "two_column"), "fmts": ("pdf",), "formats": ("f01", "f02"),
+         "per_persona": 1}
 
 
 @pytest.fixture(scope="module")

@@ -27,10 +27,16 @@ def model_dir() -> Path:
     return (Path(base) / "ats_sim" if base else Path.home() / ".ats_sim") / "model"
 
 
+# Bump when the starting model's training set changes, so cached starting
+# models are rebuilt. 2: added the 50 generated formats.
+CORPUS_VERSION = 2
+
+
 class ModelStore:
     def __init__(self, directory: str | Path | None = None, corpus: dict | None = None):
-        """`corpus` narrows the starting model's training set (keyword arguments
-        of corpus.documents: templates, layouts, fmts); the default is all of it."""
+        """`corpus` narrows the starting model's training set: keyword arguments of
+        corpus.documents (templates, layouts, fmts), plus `formats` (generated
+        formats, default all 50; () for none) and `per_persona`."""
         self.dir = Path(directory) if directory else model_dir()
         self.corpus = corpus or {}
         self.tagger: T.LineTagger | None = None
@@ -49,11 +55,18 @@ class ModelStore:
         return self.tagger is not None
 
     def build_base(self) -> T.LineTagger:
-        from .corpus import documents
+        from ..formats import GENERATED_FORMATS
+        from .corpus import documents, format_documents
 
         self.status = "training the starting model on the synthetic corpus"
-        docs = documents(cache=self.dir / "corpus", **self.corpus)
-        tg = T.LineTagger().fit(list(docs.values()))
+        kw = dict(self.corpus)
+        formats = kw.pop("formats", GENERATED_FORMATS)
+        per_persona = kw.pop("per_persona", 2)
+        cache = self.dir / "corpus"
+        docs = list(documents(cache=cache, **kw).values())
+        docs += list(format_documents(formats, per_persona=per_persona, cache=cache).values())
+        tg = T.LineTagger().fit(docs)
+        tg.corpus_version = CORPUS_VERSION
         T.save(tg, self.base_path)
         shutil.rmtree(self.dir / "corpus", ignore_errors=True)
         return tg
@@ -62,7 +75,10 @@ class ModelStore:
         with self._lock:
             tg = T.load(self.current_path) if self.current_path.exists() else None
             if tg is None:
-                tg = (T.load(self.base_path) if self.base_path.exists() else None) or self.build_base()
+                base = T.load(self.base_path) if self.base_path.exists() else None
+                if base is None or getattr(base, "corpus_version", 1) != CORPUS_VERSION:
+                    base = self.build_base()
+                tg = base
             self.tagger = tg
             self.status = "ready"
         return self
@@ -85,7 +101,9 @@ class ModelStore:
         """Forget everything taught on this computer."""
         with self._lock:
             self.current_path.unlink(missing_ok=True)
-            self.tagger = T.load(self.base_path) if self.base_path.exists() else None
+            base = T.load(self.base_path) if self.base_path.exists() else None
+            ok = base is not None and getattr(base, "corpus_version", 1) == CORPUS_VERSION
+            self.tagger = base if ok else None
         if self.tagger is None:
             self.load()
 

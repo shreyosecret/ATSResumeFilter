@@ -61,6 +61,7 @@ python scripts/run_experiments.py --require-minilm      # results/ (fails rather
 ats-sim                                        # the app (after pip install -e ".[embeddings,desktop]")
 streamlit run app.py                           # older developer dashboard
 python scripts/learning_curve.py               # experiment 5: results/learning/ (about 15 minutes)
+python scripts/format_diversity.py             # experiment 6: results/formats/ (50 generated formats)
 pytest                                         # 69 tests (also run by GitHub Actions on every push)
 
 # optional: rerun the ranking experiments with ~190 public resumes as distractors
@@ -274,7 +275,7 @@ A big taxonomy halves the synonym penalty (it maps "finite element analysis" to 
 
 The app has a fourth parser that learns: a small neural network (`ats_sim/learn/`, scikit-learn `MLPClassifier`, one hidden layer of 64 units) that labels every line of a resume with its section (name, contact, heading, summary, education, experience, projects, skills, other). The field rules then run on the sections it found. Where the heading-list parser only knows the headings it was given, the network looks at the line, its neighbors, the nearest heading above it and the line's shape (bullets, dates, capitals), so it can follow headings it has never seen, such as "Where I have worked" or "Toolbox".
 
-**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus (all 640 resumes; trained on first launch, which takes a few minutes in the background while the rest of the app works, then cached).
+**How it learns.** After an analysis, the *Teach the model* tab shows each line with the network's label and confidence (unsure lines in orange). Fix any wrong labels and click *Confirm and teach*: the network takes a few gradient steps on that resume (`partial_fit`), mixed with a random replay sample of earlier lines so a new resume does not overwrite what it already knew. The next resume is read with the updated weights. It starts from the synthetic corpus: the 640 resumes in the five templates plus 1,600 files in [50 generated formats](#6-fifty-generated-formats) (trained on first launch, which takes a few minutes in the background while the rest of the app works, then cached; a starting model cached by an older version is rebuilt automatically).
 
 **What it deliberately does not learn.** You asked for a network that learns from every new resume. I built it to learn only from resumes you confirm, and only where the sections are, for two reasons that the experiment below measures or that the literature already settled:
 

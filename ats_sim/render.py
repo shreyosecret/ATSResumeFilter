@@ -46,6 +46,8 @@ TEMPLATES = ("classic", "modern", "latex", "career_center", "hybrid")
 HELD_OUT_TEMPLATES = ("modern", "latex", "career_center", "hybrid")
 REFERENCE_DATE = "2026-10"  # "today" for the synthetic data set; later grad dates are "Expected"
 
+_MONTH_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+               "November", "December"]
 _MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 
@@ -63,6 +65,8 @@ def fmt_date(iso: str, style: str = "short") -> str:
     y, m = iso.split("-")
     if style == "numeric":
         return f"{int(m):02d}/{y}"
+    if style == "long":
+        return f"{_MONTH_LONG[int(m) - 1]} {y}"
     return f"{_MONTH_ABBR[int(m) - 1]} {y}"
 
 
@@ -248,10 +252,16 @@ _BUILDERS = {"classic": "_classic_blocks", "modern": "_modern_blocks", "latex": 
 
 
 def blocks(p: dict, opts: RenderOptions) -> dict[str, list[tuple[str, str]]]:
-    """Lines per section as (kind, text), in the template's section order."""
-    if opts.template not in _BUILDERS:
+    """Lines per section as (kind, text), in the template's section order.
+    Also accepts the generated training formats in ats_sim.formats (f01 to f50)."""
+    from .formats import SPECS, build
+
+    if opts.template in SPECS:
+        out = build(p, opts)
+    elif opts.template in _BUILDERS:
+        out = globals()[_BUILDERS[opts.template]](p, opts)
+    else:
         raise ValueError(f"unknown template {opts.template!r}")
-    out = globals()[_BUILDERS[opts.template]](p, opts)
     for heading, body in opts.extra_sections:
         out[heading.lower()] = [("text", body)]
     return out
@@ -275,6 +285,10 @@ SIDEBAR = ("contact", "education", "skills")
 
 
 def heading_for(key: str, template: str = "classic") -> str:
+    if template not in HEADINGS:
+        from .formats import heading
+
+        return heading(key, template)
     return HEADINGS[template].get(key, key.upper() if template == "classic" else key.title())
 
 
@@ -299,18 +313,26 @@ def contact_line(b: dict) -> str:
 
 # ------------------------------------------------------------------- PDF
 
-def _pdf_styles():
+_BOLD = {"Helvetica": "Helvetica-Bold", "Times-Roman": "Times-Bold", "Courier": "Courier-Bold"}
+
+
+def _pdf_styles(font: str = "Helvetica", heading_size: float = 11):
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
     ss = getSampleStyleSheet()
+    bold = _BOLD[font]
     return {
-        "name": ParagraphStyle("name", parent=ss["Title"], fontSize=18, leading=22, alignment=0, spaceAfter=2),
-        "contact": ParagraphStyle("contact", parent=ss["Normal"], fontSize=9.5, leading=12),
-        "heading": ParagraphStyle("heading", parent=ss["Heading2"], fontSize=11, leading=14, spaceBefore=6, spaceAfter=2),
-        "text": ParagraphStyle("text", parent=ss["Normal"], fontSize=9.5, leading=12),
-        "bold": ParagraphStyle("bold", parent=ss["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=12, spaceBefore=3),
-        "bullet": ParagraphStyle("bullet", parent=ss["Normal"], fontSize=9.5, leading=12, leftIndent=10, bulletIndent=2),
-        "right": ParagraphStyle("right", parent=ss["Normal"], fontSize=9.5, leading=12, alignment=2, spaceBefore=3),
+        "name": ParagraphStyle("name", parent=ss["Title"], fontName=bold, fontSize=18, leading=22, alignment=0,
+                               spaceAfter=2),
+        "contact": ParagraphStyle("contact", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12),
+        "heading": ParagraphStyle("heading", parent=ss["Heading2"], fontName=bold, fontSize=heading_size,
+                                  leading=heading_size + 3, spaceBefore=6, spaceAfter=2),
+        "text": ParagraphStyle("text", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12),
+        "bold": ParagraphStyle("bold", parent=ss["Normal"], fontName=bold, fontSize=9.5, leading=12, spaceBefore=3),
+        "bullet": ParagraphStyle("bullet", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12,
+                                 leftIndent=10, bulletIndent=2),
+        "right": ParagraphStyle("right", parent=ss["Normal"], fontName=font, fontSize=9.5, leading=12, alignment=2,
+                                spaceBefore=3),
     }
 
 
@@ -394,7 +416,9 @@ def render_pdf(p: dict, layout: str, path: str | Path, opts: RenderOptions | Non
 
     opts = opts or RenderOptions()
     tpl = opts.template
-    st = _pdf_styles()
+    from .formats import pdf_style
+
+    st = _pdf_styles(**pdf_style(tpl))
     b = blocks(p, opts)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -564,6 +588,10 @@ def render_docx(p: dict, layout: str, path: str | Path, opts: RenderOptions | No
     for s in d.sections:
         s.left_margin = s.right_margin = s.top_margin = s.bottom_margin = Inches(0.6)
     d.styles["Normal"].font.size = Pt(10)
+    from .formats import docx_font
+
+    if docx_font(tpl):
+        d.styles["Normal"].font.name = docx_font(tpl)
 
     name_para = d.add_paragraph()
     name_run = name_para.add_run(p["name"])

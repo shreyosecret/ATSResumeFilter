@@ -14,7 +14,8 @@ from ats_sim.webapp.server import create_app  # noqa: E402
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
     store = ModelStore(tmp_path_factory.mktemp("model"),
-                       corpus={"templates": ("classic",), "layouts": ("single",), "fmts": ("pdf",)})
+                       corpus={"templates": ("classic",), "layouts": ("single",), "fmts": ("pdf",),
+                               "formats": ()})
     c = TestClient(create_app({"public_pool": False}, model_store=store))
     for _ in range(240):
         s = c.get("/api/status").json()
