@@ -1,0 +1,51 @@
+format,style,headings,case,bullet,dates,contact,extras,pdf_font,docx_font,split
+f01,hybrid,Technical Skills / Education and Training / Work Experience / Personal Projects,title,▪,numeric,one_line_labeled,none,Courier,Calibri,train
+f02,career_center,Degrees: / Work Experience: / Technical Projects: / Skill Set:,title_colon,–,short,as_style,none,Courier,Georgia,train
+f03,latex,OBJECTIVE / DEGREES / EXPERTISE / VOLUNTEERING / CAMPUS INVOLVEMENT / HONORS / PORTFOLIO / WORK EXPERIENCE,small_caps_like,-,numeric,one_line_labeled,"volunteering, leadership, awards",Times-Roman,Arial,train
+f04,latex,Professional Overview / Academic Background / Expertise / Career History / Personal Projects / Spoken Languages / Licenses & Certifications,title,*,numeric,as_style,"certifications, languages",Times-Roman,Calibri,train
+f05,latex,Summary: / Expertise: / Employment History: / Schooling: / Project Experience: / Publications and Presentations: / Volunteer Experience: / Activities:,title_colon,–,long,labeled,"leadership, volunteering, publications",Helvetica,Georgia,train
+f06,latex,PERSONAL STATEMENT / SKILL SET / WHERE I HAVE WORKED / ACADEMICS / PORTFOLIO,small_caps_like,•,numeric,one_line_labeled,none,Courier,Garamond,train
+f07,classic,Career Objective / Where I Have Worked / Community Service / Technical Proficiencies / Projects / Academics,title,none,numeric,as_style,volunteering,Times-Roman,Georgia,train
+f08,latex,TECHNICAL SKILLS / CAREER HISTORY / PUBLICATIONS AND PRESENTATIONS / SPOKEN LANGUAGES / ACADEMICS / RESEARCH PROJECTS / CAMPUS INVOLVEMENT,upper,>,short,labeled,"languages, publications, leadership",Helvetica,Garamond,train
+f09,modern,CAREER HISTORY / TECHNICAL PROFICIENCIES / PUBLICATIONS and PRESENTATIONS / CERTIFICATES / SPOKEN LANGUAGES / PORTFOLIO / EDUCATION and TRAINING,small_caps_like,*,short,one_line_labeled,"publications, certifications, languages",Courier,Times New Roman,train
+f10,classic,WHERE I HAVE WORKED / ACADEMIC HISTORY / EXPERTISE / CAMPUS INVOLVEMENT / THINGS I HAVE BUILT,upper,none,numeric,as_style,leadership,Helvetica,Calibri,train
+f11,latex,Summary / Industry Experience / Academic History / Competencies / Projects,title,•,short,as_style,none,Times-Roman,Arial,train
+f12,classic,Skill Set / Technical Projects / Achievements / Education and Training / Spoken Languages / Industry Experience / Volunteering,title,•,numeric,labeled,"languages, awards, volunteering",Times-Roman,Georgia,train
+f13,hybrid,OVERVIEW / WHERE I HAVE WORKED / TECHNICAL PROJECTS / LEADERSHIP & ACTIVITIES / TECHNICAL PROFICIENCIES / EDUCATION / INTERESTS,small_caps_like,•,long,as_style,"leadership, interests",Courier,Calibri,train
+f14,classic,Toolbox: / Academics: / Papers: / Projects: / Industry Experience: / Certificates:,title_colon,-,numeric,one_line_labeled,"publications, certifications",Courier,Times New Roman,train
+f15,modern,ABOUT ME: / PORTFOLIO: / TECHNICAL SKILLS: / ACHIEVEMENTS: / CAREER HISTORY: / CAMPUS INVOLVEMENT: / DEGREES:,upper_colon,-,short,one_line_labeled,"leadership, awards",Times-Roman,Garamond,train
+f16,classic,EDUCATION & HONORS: / PROFESSIONAL EXPERIENCE: / CERTIFICATES: / SOFTWARE & TOOLS: / SELECTED PROJECTS: / AWARDS:,upper_colon,–,numeric,labeled,"awards, certifications",Courier,Garamond,train
+f17,modern,PROFESSIONAL OVERVIEW / ACADEMIC BACKGROUND / INDUSTRY EXPERIENCE / TECHNICAL PROFICIENCIES / TECHNICAL PROJECTS,upper,*,long,labeled,none,Times-Roman,Calibri,train
+f18,hybrid,Personal Statement / Things I Have Built / Toolbox / Academics / Positions Held,title,•,short,as_style,none,Helvetica,Georgia,train
+f19,latex,OBJECTIVE / TECHNICAL SKILLS / SELECTED PROJECTS / RELEVANT EXPERIENCE / EDUCATION and TRAINING / AWARDS,small_caps_like,-,numeric,as_style,awards,Helvetica,Georgia,train
+f20,classic,SCHOOLING / THINGS I HAVE BUILT / TOOLBOX / EXPERIENCE / VOLUNTEERING / ACTIVITIES,small_caps_like,>,short,one_line_labeled,"volunteering, leadership",Helvetica,Arial,train
+f21,career_center,PERSONAL STATEMENT: / CORE SKILLS: / INDUSTRY EXPERIENCE: / ACADEMIC BACKGROUND: / THINGS I HAVE BUILT:,upper_colon,▪,long,as_style,none,Helvetica,Garamond,train
+f22,career_center,Academic Background / Relevant Experience / Outside the Lab / Spoken Languages / Software & Tools / Things I Have Built / Publications,title,*,long,as_style,"publications, interests, languages",Helvetica,Times New Roman,train
+f23,career_center,Professional Overview: / Expertise: / Interests: / Campus Involvement: / Industry Experience: / Achievements: / Education & Honors: / Portfolio:,title_colon,•,numeric,labeled,"interests, leadership, awards",Times-Roman,Calibri,train
+f24,hybrid,INDUSTRY EXPERIENCE / PROJECTS / SOFTWARE & TOOLS / ACADEMIC BACKGROUND / PUBLICATIONS / LEADERSHIP,small_caps_like,-,short,as_style,"publications, leadership",Courier,Georgia,train
+f25,modern,Profile: / Skill Set: / Outside the Lab: / Licenses & Certifications: / Career History: / Education & Honors: / Engineering Projects:,title_colon,-,numeric,one_line_labeled,"interests, certifications",Helvetica,Garamond,train
+f26,career_center,EXPERIENCE / ACADEMIC BACKGROUND / RESEARCH PROJECTS / SKILL SET / HONORS & AWARDS,upper,▪,long,one_line_labeled,awards,Times-Roman,Calibri,train
+f27,hybrid,Profile / Skills / Project Experience / Honors / Papers / Academics / Work Experience,title,–,long,one_line_labeled,"awards, publications",Times-Roman,Times New Roman,train
+f28,hybrid,CAREER OBJECTIVE / SKILLS / WHERE I HAVE WORKED / ENGINEERING PROJECTS / EDUCATIONAL BACKGROUND / RESEARCH OUTPUT / LEADERSHIP & ACTIVITIES,small_caps_like,–,long,labeled,"publications, leadership",Courier,Garamond,train
+f29,career_center,ABOUT ME: / TOOLBOX: / EDUCATION: / LICENSES & CERTIFICATIONS: / WHERE I HAVE WORKED: / HOBBIES: / ENGINEERING PROJECTS:,upper_colon,–,long,labeled,"certifications, interests",Times-Roman,Calibri,train
+f30,hybrid,Professional Summary / Academics / Experience / Personal Projects / Technical Skills / Community Service / Awards,title,*,long,labeled,"volunteering, awards",Helvetica,Georgia,train
+f31,hybrid,OVERVIEW / PERSONAL PROJECTS / TOOLBOX / PUBLICATIONS / WORK HISTORY / ACADEMIC HISTORY,upper,–,short,labeled,publications,Courier,Calibri,train
+f32,latex,Work Experience / Technical Proficiencies / Certificates / Project Experience / Academic History / Spoken Languages,title,–,numeric,as_style,"languages, certifications",Courier,Calibri,train
+f33,hybrid,TECHNICAL PROFICIENCIES / DEGREES / INTERNSHIPS / SPOKEN LANGUAGES / PROJECT EXPERIENCE / RESEARCH OUTPUT,upper,*,numeric,one_line_labeled,"languages, publications",Courier,Calibri,train
+f34,career_center,RELEVANT EXPERIENCE / ACADEMICS / TOOLBOX / PROJECTS / PUBLICATIONS AND PRESENTATIONS,upper,•,long,as_style,publications,Courier,Georgia,train
+f35,classic,ABOUT ME / WHERE I HAVE WORKED / EDUCATIONAL BACKGROUND / LANGUAGES / TOOLBOX / PERSONAL PROJECTS,small_caps_like,–,short,as_style,languages,Courier,Times New Roman,train
+f36,modern,POSITIONS HELD / DEGREES / TECHNICAL PROFICIENCIES / LICENSES & CERTIFICATIONS / ENGINEERING PROJECTS / SPOKEN LANGUAGES,upper,•,numeric,labeled,"certifications, languages",Times-Roman,Arial,train
+f37,modern,CAREER OBJECTIVE: / ENGINEERING PROJECTS: / EXPERTISE: / EDUCATION: / VOLUNTEER EXPERIENCE: / HONORS: / PROFESSIONAL EXPERIENCE:,upper_colon,-,long,labeled,"volunteering, awards",Times-Roman,Calibri,train
+f38,modern,Professional Overview: / Skills: / Schooling: / Research Output: / Professional Experience: / Leadership: / Languages: / Research Projects:,title_colon,▪,numeric,one_line_labeled,"leadership, publications, languages",Courier,Times New Roman,train
+f39,hybrid,Summary / Degrees / Work History / Skills / Volunteering / Engineering Projects / Spoken Languages,title,none,short,as_style,"languages, volunteering",Helvetica,Times New Roman,train
+f40,latex,Project Experience: / Education & Honors: / Where I Have Worked: / Achievements: / Research Output: / Licenses & Certifications: / Core Skills:,title_colon,•,numeric,as_style,"awards, publications, certifications",Helvetica,Arial,train
+f41,latex,OBJECTIVE / PERSONAL PROJECTS / TOOLS & TECHNOLOGIES / WORK EXPERIENCE / EDUCATION AND TRAINING / SPOKEN LANGUAGES / LEADERSHIP & ACTIVITIES,upper,–,long,one_line_labeled,"languages, leadership",Courier,Times New Roman,held out
+f42,classic,SCHOOLING: / TOOLBOX: / PAPERS: / WHERE I HAVE WORKED: / SELECTED PROJECTS:,upper_colon,none,numeric,one_line_labeled,publications,Courier,Arial,held out
+f43,modern,EDUCATIONAL BACKGROUND: / TOOLBOX: / PORTFOLIO: / ACTIVITIES: / INDUSTRY EXPERIENCE: / AWARDS:,upper_colon,none,numeric,one_line_labeled,"leadership, awards",Times-Roman,Arial,held out
+f44,modern,EXPERTISE: / EDUCATIONAL BACKGROUND: / LEADERSHIP: / LICENSES & CERTIFICATIONS: / OUTSIDE THE LAB: / CAREER HISTORY: / TECHNICAL PROJECTS:,upper_colon,*,numeric,as_style,"leadership, interests, certifications",Times-Roman,Garamond,held out
+f45,latex,CAREER OBJECTIVE: / PERSONAL PROJECTS: / EDUCATION AND TRAINING: / CORE SKILLS: / SPOKEN LANGUAGES: / VOLUNTEERING: / RELEVANT EXPERIENCE:,upper_colon,-,numeric,labeled,"volunteering, languages",Helvetica,Garamond,held out
+f46,latex,Profile: / Software & Tools: / Personal Projects: / Degrees: / Career History:,title_colon,•,short,one_line_labeled,none,Courier,Garamond,held out
+f47,modern,Profile: / Career History: / Education and Training: / Honors: / Personal Projects: / Outside the Lab: / Tools & Technologies:,title_colon,none,short,one_line_labeled,"interests, awards",Helvetica,Arial,held out
+f48,modern,DEGREES / POSITIONS HELD / THINGS I HAVE BUILT / SKILLS,small_caps_like,none,numeric,one_line_labeled,none,Helvetica,Times New Roman,held out
+f49,classic,EDUCATION / TECHNICAL PROFICIENCIES / PERSONAL PROJECTS / VOLUNTEERING / WHERE I HAVE WORKED / LANGUAGES,upper,>,numeric,as_style,"volunteering, languages",Helvetica,Times New Roman,held out
+f50,latex,Relevant Experience / Education / Skill Set / Achievements / Interests / Project Experience,title,-,numeric,labeled,"interests, awards",Times-Roman,Times New Roman,held out
