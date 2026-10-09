@@ -35,7 +35,7 @@ The app is built as a single program for each operating system by GitHub Actions
    - **macOS:** right-click the app, choose *Open*, then confirm (or allow it in System Settings, Privacy & Security).
 3. The first launch takes about 20 seconds. The learned parser's starting model ships inside the download, so it is ready at once. Later launches are faster.
 
-Each download is about 350 to 480 MB. It contains Python, every library, the MiniLM language model and the OCR models. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows). The app never goes online unless you turn on *Check for new versions* in About; then it asks GitHub for the latest version number and nothing else.
+Each download is about 340 to 445 MB. It contains Python, every library, the MiniLM language model and the OCR models. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows). The app never goes online unless you turn on *Check for new versions* in About; then it asks GitHub for the latest version number and nothing else.
 
 **Signing the builds**
 
