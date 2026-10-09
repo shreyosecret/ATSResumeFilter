@@ -97,6 +97,9 @@ def references(p: dict) -> list[tuple[str, list[str]]]:
         refs.append(("projects", tokens(x["name"])))
         refs += [("projects", tokens(b)) for b in x["bullets"]]
     refs.append(("skills", tokens(" ".join(p["skills"])) + ["technical"]))
+    # one per skill too: a theme that lists skills one per line ("SQL") must not
+    # match a bullet that happens to mention it
+    refs += [("skills", tokens(x)) for x in p["skills"]]
     return refs
 
 
