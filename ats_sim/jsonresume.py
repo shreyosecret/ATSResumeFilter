@@ -46,13 +46,26 @@ def to_jsonresume(p: dict) -> dict:
         if _iso(x["end"]):
             w["endDate"] = _iso(x["end"])
         work.append(w)
+    handle = re.sub(r"[^a-z]", "", p["name"].lower())
+    edu.update({"startDate": f"{int(e['grad_date'][:4]) - 4}-09-01", "courses": [], "url": ""})
+    for w in work:
+        w.update({"summary": "", "url": "", "description": ""})
+    # Fields many themes read without checking (a job title under the name, a
+    # profile link, empty lists): without them those themes crash.
     return {
-        "basics": {"name": p["name"], "email": p["email"], "phone": p["phone"],
-                   "location": {"city": city, "region": region}, "profiles": []},
+        "basics": {"name": p["name"], "label": f"{e['field']} Student", "email": p["email"], "phone": p["phone"],
+                   "url": "", "image": "", "summary": "",
+                   "location": {"address": "", "postalCode": "", "city": city, "region": region, "countryCode": "US"},
+                   "profiles": [{"network": "LinkedIn", "username": handle, "url": f"https://linkedin.com/in/{handle}"}]},
         "work": work,
+        "volunteer": [], "awards": [], "certificates": [], "publications": [], "languages": [], "interests": [],
+        "references": [],
         "education": [edu],
-        "projects": [{"name": x["name"], "highlights": x["bullets"]} for x in p.get("projects", [])],
-        "skills": [{"name": "Technical", "keywords": p["skills"]}],
+        "projects": [{"name": x["name"], "description": "", "highlights": x["bullets"], "keywords": [],
+                      "startDate": _iso(e["grad_date"][:4] + "-01"), "url": "", "roles": [], "type": "project"}
+                     for x in p.get("projects", [])],
+        "skills": [{"name": "Technical", "level": "", "keywords": p["skills"]}],
+        "meta": {"theme": "", "version": "v1.0.0"},
     }
 
 
@@ -67,9 +80,11 @@ def _date_tokens(ym: str | None) -> list[str]:
 def references(p: dict) -> list[tuple[str, list[str]]]:
     """(label, tokens) for every piece of the persona a theme may print."""
     e = p["education"]
+    handle = re.sub(r"[^a-z]", "", p["name"].lower())
     refs = [("name", tokens(p["name"])),
-            ("contact", tokens(p["email"]) + tokens(p["phone"]) + tokens(p["location"]))]
-    for part in (p["email"], p["phone"], p["location"]):
+            ("contact", tokens(p["email"]) + tokens(p["phone"]) + tokens(p["location"]) + ["us", "linkedin", handle])]
+    for part in (p["email"], p["phone"], p["location"], f"{e['field']} Student",
+                 f"LinkedIn {handle} linkedin.com/in/{handle}"):
         refs.append(("contact", tokens(part)))
     edu = tokens(" ".join([e["school"], e["field"], DEGREE_WORDS.get(e["degree_level"], ""), e["degree"],
                            e.get("location", ""), f"{e.get('gpa') or ''}", "gpa score"]))
