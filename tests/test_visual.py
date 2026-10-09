@@ -94,3 +94,14 @@ def test_a_scanned_resume_is_read_with_ocr(tmp_path):
     # what OCR reads varies a little across platforms; the email and degree are the stable signals
     assert r["parsers"]["ocr"]["email"] == "ana.ruiz@example.com"
     assert "Biology" in r["visual"]["text"] and r["parser_labels"]["ocr"] == "With OCR (scanned)"
+
+
+def test_doubled_letters_are_reported(tmp_path):
+    from ats_sim.report import diagnose
+    from ats_sim.parser import parse_text
+
+    text = "PPrriiyyaa RRaammaann\nEEDDUUCCAATTIIOONN\nBBaacchheelloorr ooff SScciieennccee\nPPyytthhoonn SSQQLL"
+    path = tmp_path / "x.txt"
+    path.write_text(text, encoding="utf-8")
+    parsed = {"naive": parse_text(text)}
+    assert any(r["title"] == "Every letter is read twice" for r in diagnose(path, parsed))

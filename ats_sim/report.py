@@ -142,6 +142,13 @@ def diagnose(path: str | Path, parsed: dict[str, ParsedResume]) -> list[dict]:
         risks.append(_risk("info", f"{cid} unmappable glyphs",
                            "Characters the PDF does not map to text, usually bullets or icons. Harmless unless "
                            "a list relies on them as separators."))
+    words = [w for w in re.findall(r"[A-Za-z]{4,}", text)]
+    doubled = [w for w in words if w[0::2] == w[1::2]]
+    if words and len(doubled) >= max(5, 0.2 * len(words)):
+        risks.append(_risk("bad", "Every letter is read twice",
+                           f"{len(doubled)} of {len(words)} words come out doubled, like "
+                           f"\u201c{doubled[0]}\u201d: the design draws its text twice (a fake bold or "
+                           "shadow), and a parser reads both copies. Keyword search finds nothing."))
     if path.suffix.lower() == ".pdf":
         import pdfplumber
 

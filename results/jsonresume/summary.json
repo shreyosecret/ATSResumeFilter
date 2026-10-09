@@ -1,33 +1,28 @@
 {
-  "themes": 50,
-  "resumes": 800,
-  "partial_themes_left_out": [
-    "bzdev",
-    "class",
-    "github-styled",
-    "grande"
-  ],
-  "naive": 0.475,
-  "layout_aware": 0.485,
-  "network": 0.569,
-  "oracle": 0.571,
-  "line_acc": 0.68,
-  "naive_below_0_5": 36,
+  "themes": 54,
+  "resumes": 864,
+  "partial_themes_left_out": [],
+  "naive": 0.469,
+  "layout_aware": 0.477,
+  "network": 0.553,
+  "oracle": 0.552,
+  "line_acc": 0.682,
+  "naive_below_0_5": 40,
   "per_theme_median": {
-    "naive": 0.37849999999999995,
-    "layout_aware": 0.37849999999999995,
-    "network": 0.472
+    "naive": 0.404,
+    "layout_aware": 0.384,
+    "network": 0.4525
   },
   "field_recall_layout_aware": {
-    "name": 0.799,
-    "email": 0.98,
-    "phone": 0.78,
+    "name": 0.795,
+    "email": 0.947,
+    "phone": 0.741,
     "degree_level": 0.5,
-    "field_of_study": 0.1,
-    "school": 0.502,
-    "grad_date": 0.223,
-    "gpa": 0.06,
-    "skills": 0.246,
+    "field_of_study": 0.111,
+    "school": 0.501,
+    "grad_date": 0.358,
+    "gpa": 0.056,
+    "skills": 0.228,
     "experience": 0.0
   }
 }

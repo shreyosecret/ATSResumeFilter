@@ -428,6 +428,28 @@ An ATS reads the text stored in a PDF; a recruiter reads the rendered page. The 
 
 **Limits.** The pages are synthetic and rendered by this project; the pasted line is clean black text, easier than a real logo or chart. Small models were run on a laptop-class CPU, the setting the app runs in; a large hosted vision model would read better, but would send the resume off the computer. The VLMs were tested with one prompt or task each.
 
+### 10. Fifty-four real resume themes from npm
+
+![JSON Resume themes](results/jsonresume/jsonresume_themes.png)
+
+Every format so far was written by this project, even the ones copied from public templates. [JSON Resume](https://jsonresume.org) is an open resume format with community themes published on npm. [`scripts/jsonresume_formats.py`](scripts/jsonresume_formats.py) takes every theme tagged `jsonresume-theme` (72, of which 70 are MIT-licensed; list in [data/jsonresume_themes.json](data/jsonresume_themes.json)), installs it with install scripts off, renders each of the 16 personas through it with Node, and prints the HTML to a Letter PDF with Chromium. 55 themes rendered; 54 rendered all 16 personas (864 resumes). Nothing from the themes is committed, only the list and aggregate results. The answer key is still the persona, so field F1 is exact; line labels come from matching each line to the persona and the theme's own HTML headings (`ats_sim/jsonresume.py`).
+
+| On 54 themes nobody here designed | Simple parser | Layout-aware parser | Network (app, text only) | Perfect sections (ceiling) |
+|---|---|---|---|---|
+| Field F1, all 864 resumes | 0.47 | 0.48 | **0.55** | 0.55 |
+| Median theme | 0.40 | 0.38 | 0.45 | |
+
+**What it shows.**
+
+- **Most real designs defeat the simple parser.** 40 of 54 themes score below 0.5. The best (profesh, engineering, student, executive-slate) reach 0.82 to 0.84, about what this project's own clean templates score.
+- **The network helps where headings are the problem.** It gains 0.15 or more over the layout-aware parser on 12 themes (developpez 0.21 to 0.57, academic 0.30 to 0.81, kiss 0.45 to 0.83), mostly themes with unusual or non-English section titles, and it reaches the perfect-section ceiling overall. It is worse by more than 0.05 on only 2.
+- **The ceiling is the field rules, not the sections.** With perfect sections the score is still 0.55. Recall of the layout-aware parser by field: email 0.95, name 0.80, phone 0.74, degree 0.50, school 0.50, grad date 0.36, skills 0.23, field of study 0.11, GPA 0.06, **experience entries 0.00**. The simple parser's rules expect "Title, Company" on one line, "B.S. in Field" and a labeled "GPA"; JSON Resume themes put the company on its own line or first, print the degree and field apart, show the GPA as a bare score, and often print dates as 2026-06-01. These are limits of this simulator's simple parser, which models a basic ATS; commercial parsers handle more formats, so read this as "which designs break simple rules", not as a measurement of any product.
+- **One theme breaks text extraction outright.** bzdev draws every character twice (a fake-bold effect), so the text layer reads "PPrriiyyaa RRaammaann" and every parser scores 0. A new parsing check now reports this ("Every letter is read twice"); before, the visual check caught it only as unreadable text.
+
+**A bug found on the way (disclosed because it changed the numbers).** The first run rendered every theme in one Node process. Themes share moment.js, and a French or Russian theme set its global locale, so every theme rendered after it printed its dates as "juin 2026" or "сент. 2025", and the parsers could not read them. Each theme now renders in its own process. The fix raised grad-date recall from 0.22 to 0.36 and let 4 more themes render.
+
+**Limits.** 16 personas per theme, so per-theme numbers are noisy (each is 16 resumes). Some themes print headings in French, Spanish, Russian or Indonesian; the English heading list cannot read those, which is realistic for those themes but makes them harder than an English resume in the same design. The themes are what is on npm today, a convenience sample of developer-made designs.
+
 ## Check your own resume
 
 ```bash
