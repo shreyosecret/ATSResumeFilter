@@ -79,12 +79,22 @@ def render_all() -> None:
         rp.write_text(json.dumps(to_jsonresume(p), indent=1), encoding="utf-8")
         for t in themes:
             jobs.append({"theme": t["name"], "resume": str(rp), "out": str(BUILD / "html" / slug(t["name"]) / f"{p['id']}.html")})
-    (BUILD / "jobs.json").write_text(json.dumps(jobs), encoding="utf-8")
-    r = subprocess.run(["node", str(ROOT / "scripts" / "jsonresume" / "render.js"), str(BUILD / "jobs.json")],
-                       cwd=BUILD, capture_output=True, text=True, timeout=3600)
-    fails = sorted({line.split(" ", 2)[1] + ": " + line.split(" ", 2)[2] for line in r.stdout.splitlines()
+    # One Node process per theme: themes share libraries (moment.js), and a theme
+    # that sets a global locale would otherwise print every later theme's dates
+    # in French or Russian.
+    stdout = ""
+    for t in themes:
+        mine = [j for j in jobs if j["theme"] == t["name"]]
+        (BUILD / "jobs.json").write_text(json.dumps(mine), encoding="utf-8")
+        try:
+            r = subprocess.run(["node", str(ROOT / "scripts" / "jsonresume" / "render.js"), str(BUILD / "jobs.json")],
+                               cwd=BUILD, capture_output=True, text=True, timeout=600)
+            stdout += r.stdout
+        except subprocess.TimeoutExpired:
+            stdout += f"fail {t['name']} timeout\n"
+    fails = sorted({line.split(" ", 2)[1] + ": " + line.split(" ", 2)[2] for line in stdout.splitlines()
                     if line.startswith("fail")})
-    print(f"rendered {r.stdout.count('ok ')} of {len(jobs)}; failing themes:", *fails[:80], sep="\n  ")
+    print(f"rendered {stdout.count('ok ')} of {len(jobs)}; failing themes:", *fails[:80], sep="\n  ")
     import os
 
     exe = os.environ.get("ATS_SIM_CHROMIUM")
