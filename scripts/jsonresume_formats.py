@@ -137,6 +137,10 @@ def evaluate(seed: int = 0) -> dict:
                 "network": score_resume(p, parsed), "oracle": score_resume(p, parse_with_sections(text, sections, name=name)),
                 "line_hits": sum(a == b for a, b in zip(pred, gold)), "lines": len(gold),
             })
+    # only themes that rendered every persona, so each theme is the same 16 people
+    counts = {t: sum(r["theme"] == t for r in rows) for t in {r["theme"] for r in rows}}
+    partial = sorted(t for t, n in counts.items() if n < len(personas))
+    rows = [r for r in rows if r["theme"] not in partial]
     themes = sorted({r["theme"] for r in rows})
     per = []
     for t in themes:
@@ -147,7 +151,7 @@ def evaluate(seed: int = 0) -> dict:
     df = pd.DataFrame(per)
     OUT.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUT / "jsonresume_themes.csv", index=False)
-    s = {"themes": len(themes), "resumes": len(rows),
+    s = {"themes": len(themes), "resumes": len(rows), "partial_themes_left_out": partial,
          **{k: round(micro([r[k] for r in rows]).f1, 3) for k in ("naive", "layout_aware", "network", "oracle")},
          "line_acc": round(sum(r["line_hits"] for r in rows) / sum(r["lines"] for r in rows), 3),
          "naive_below_0_5": int((df.naive < 0.5).sum()),
