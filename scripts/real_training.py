@@ -45,6 +45,8 @@ def real_docs(docs: list[dict]) -> list[tuple]:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--mix", default="0,300,1500")
+    ap.add_argument("--draw", type=int, default=1, help="seed for which real resumes are added")
+    ap.add_argument("--out-name", default="mix.json")
     ap.add_argument("--private-labels", type=Path)
     ap.add_argument("--private-file", type=Path)
     a = ap.parse_args()
@@ -75,11 +77,11 @@ def main() -> None:
     train += [d for k, d in generated.items() if k[1] in set(TRAIN_FORMATS) | set(TRAIN_DESIGNER) and k[0] in train_ids]
 
     rows, private = [], []
-    rng = np.random.default_rng(1)
+    rng = np.random.default_rng(a.draw)
     for n in map(int, a.mix.split(",")):
         extra = [pool[i] for i in rng.choice(len(pool), size=n, replace=False)] if n else []
         tagger = LineTagger(use_geometry=False, seed=0).fit(train + extra)
-        row = {"real_resumes_in_training": n,
+        row = {"real_resumes_in_training": n, "draw": a.draw,
                "real_line_acc": R.score([tagger.predict(d["lines"], d["geo"]) for d in test], test)["line_acc"]}
         for g, d in tests.items():
             f1, acc = G.scores(tagger, d, personas)
@@ -90,9 +92,9 @@ def main() -> None:
             private.append({"real_resumes_in_training": n, **G.private_score(tagger, a.private_labels, a.private_file)})
             print("  your resume:", private[-1], flush=True)
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "mix.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    (OUT / a.out_name).write_text(json.dumps(rows, indent=2), encoding="utf-8")
     if private:
-        (ROOT / "private" / "real_training_private.json").write_text(json.dumps(private, indent=2), encoding="utf-8")
+        (ROOT / "private" / f"real_training_private_{a.out_name}").write_text(json.dumps(private, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -38,8 +38,8 @@ def tagger_mode() -> bool | str:
 
 # Bump when the starting model's training set changes, so cached starting
 # models are rebuilt. 2: added the 50 generated formats. 3: page geometry,
-# designer and reference formats. 4: wrapped lines joined into whole bullets. 5: font-relative word gaps.
-CORPUS_VERSION = 5
+# designer and reference formats. 4: wrapped lines joined into whole bullets. 5: font-relative word gaps. 6: real LiveCareer resumes added.
+CORPUS_VERSION = 6
 
 
 class ModelStore:
@@ -70,6 +70,7 @@ class ModelStore:
 
         self.status = "training the starting model on the synthetic corpus"
         kw = dict(self.corpus)
+        kw.pop("real", None)
         formats = kw.pop("formats", tuple(SPECS))  # generated, designer and reference formats
         per_persona = kw.pop("per_persona", 2)
         cache = self.dir / "corpus"
@@ -77,7 +78,17 @@ class ModelStore:
         # corpus folder at the same time, and a half-written file is not a PDF yet.
         docs = list(documents(root=cache, cache=cache, **kw).values())
         docs += list(format_documents(formats, per_persona=per_persona, root=cache, cache=cache).values())
+        if self.corpus.get("real", not self.corpus):  # the full corpus only (tests narrow it)
+            # A few real resumes from the public LiveCareer dataset (experiment 9b),
+            # when it has been downloaded; the desktop build always includes them.
+            from ..data import DATA_DIR
+            from .livecareer import training_docs
+
+            real = training_docs(DATA_DIR)
+            docs += real
+            self.real_docs = len(real)
         tg = T.LineTagger(use_geometry=tagger_mode()).fit(docs)
+        tg.real_docs = getattr(self, "real_docs", 0)
         tg.corpus_version = CORPUS_VERSION
         T.save(tg, self.base_path)
         shutil.rmtree(self.dir / "corpus", ignore_errors=True)

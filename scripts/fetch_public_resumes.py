@@ -2,7 +2,8 @@
 license CC0 1.0) from its Hugging Face mirror, so no Kaggle account is needed.
 
     python scripts/fetch_public_resumes.py          # -> data/kaggle/Resume.csv (gitignored)
-    python scripts/fetch_public_resumes.py --pdfs   # also the 2,484 PDFs -> data/kaggle/pdf/ (about 120 MB)
+    python scripts/fetch_public_resumes.py --pdfs   # also the 2,484 PDFs -> data/kaggle/pdf/ (about 64 MB)
+    python scripts/fetch_public_resumes.py --train-pdfs  # only those in data/livecareer_train_ids.json
 
 The resumes are real (scraped from livecareer.com by the dataset author and
 released as CC0). They are used as anonymous distractors in ranking pools
@@ -36,13 +37,17 @@ def main() -> Path:
     return DEST
 
 
-def fetch_pdfs(workers: int = 8) -> int:
-    """Every resume's PDF, as data/kaggle/pdf/<CATEGORY>/<ID>.pdf."""
+def fetch_pdfs(workers: int = 8, only: set[str] | None = None) -> int:
+    """Every resume's PDF (or those named in `only`, as CATEGORY/ID), as
+    data/kaggle/pdf/<CATEGORY>/<ID>.pdf."""
     import json
     from concurrent.futures import ThreadPoolExecutor
 
-    with urllib.request.urlopen(API, timeout=60) as r:
-        files = [s["rfilename"] for s in json.loads(r.read())["siblings"] if s["rfilename"].endswith(".pdf")]
+    if only is not None:
+        files = [f"data/data/{x}.pdf" for x in sorted(only)]
+    else:
+        with urllib.request.urlopen(API, timeout=60) as r:
+            files = [s["rfilename"] for s in json.loads(r.read())["siblings"] if s["rfilename"].endswith(".pdf")]
 
     def one(name: str) -> bool:
         dest = PDF_DIR / Path(name).parent.name / Path(name).name
@@ -72,4 +77,9 @@ if __name__ == "__main__":
     main()
     if "--pdfs" in sys.argv:
         fetch_pdfs()
+    if "--train-pdfs" in sys.argv:
+        import json
+
+        ids = json.loads((DEST.parent.parent / "livecareer_train_ids.json").read_text(encoding="utf-8"))["resumes"]
+        fetch_pdfs(only={f"{x['category']}/{x['id']}" for x in ids})
     sys.exit(0)

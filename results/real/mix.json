@@ -1,0 +1,67 @@
+[
+  {
+    "real_resumes_in_training": 0,
+    "real_line_acc": 0.831,
+    "hand-written_line_acc": 0.923,
+    "hand-written_f1": 0.743,
+    "generated_line_acc": 0.972,
+    "generated_f1": 0.8,
+    "designer_line_acc": 0.932,
+    "designer_f1": 0.68,
+    "reference_line_acc": 0.912,
+    "reference_f1": 0.842,
+    "draw": 1
+  },
+  {
+    "real_resumes_in_training": 30,
+    "real_line_acc": 0.908,
+    "hand-written_line_acc": 0.941,
+    "hand-written_f1": 0.744,
+    "generated_line_acc": 0.966,
+    "generated_f1": 0.8,
+    "designer_line_acc": 0.918,
+    "designer_f1": 0.685,
+    "reference_line_acc": 0.903,
+    "reference_f1": 0.837,
+    "draw": 1
+  },
+  {
+    "real_resumes_in_training": 100,
+    "real_line_acc": 0.914,
+    "hand-written_line_acc": 0.925,
+    "hand-written_f1": 0.737,
+    "generated_line_acc": 0.937,
+    "generated_f1": 0.787,
+    "designer_line_acc": 0.878,
+    "designer_f1": 0.638,
+    "reference_line_acc": 0.861,
+    "reference_f1": 0.824,
+    "draw": 1
+  },
+  {
+    "real_resumes_in_training": 300,
+    "real_line_acc": 0.903,
+    "hand-written_line_acc": 0.906,
+    "hand-written_f1": 0.731,
+    "generated_line_acc": 0.89,
+    "generated_f1": 0.771,
+    "designer_line_acc": 0.813,
+    "designer_f1": 0.609,
+    "reference_line_acc": 0.89,
+    "reference_f1": 0.824,
+    "draw": 1
+  },
+  {
+    "real_resumes_in_training": 1500,
+    "real_line_acc": 0.898,
+    "hand-written_line_acc": 0.887,
+    "hand-written_f1": 0.711,
+    "generated_line_acc": 0.88,
+    "generated_f1": 0.776,
+    "designer_line_acc": 0.792,
+    "designer_f1": 0.67,
+    "reference_line_acc": 0.888,
+    "reference_f1": 0.832,
+    "draw": 1
+  }
+]

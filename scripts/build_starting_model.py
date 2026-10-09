@@ -26,7 +26,7 @@ def main() -> None:
         tagger = store.build_base()
         a.out.mkdir(parents=True, exist_ok=True)
         (a.out / "base.joblib").write_bytes(store.base_path.read_bytes())
-    print(f"starting model (corpus version {CORPUS_VERSION}): {tagger.info()} in {time.time() - t:.0f}s -> "
+    print(f"starting model (corpus version {CORPUS_VERSION}, {getattr(tagger, 'real_docs', 0)} real resumes): {tagger.info()} in {time.time() - t:.0f}s -> "
           f"{a.out / 'base.joblib'}")
 
 

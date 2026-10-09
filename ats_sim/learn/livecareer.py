@@ -115,3 +115,38 @@ def gold_labels(lines: list[str], html: str) -> list[str | None]:
         else:
             out.append(CODE_LABEL.get(code, "other"))
     return out
+
+
+TRAIN_IDS = "livecareer_train_ids.json"  # in data/: the resumes the starting model learns from
+
+
+def training_docs(data_dir) -> list[tuple]:
+    """(lines, labels, geometry) for the real resumes listed in
+    data/livecareer_train_ids.json, when the dataset has been downloaded
+    (scripts/fetch_public_resumes.py --pdfs, or --train-pdfs for just these).
+    Lines whose label cannot be told are left out. Empty if unavailable."""
+    import json
+    from pathlib import Path
+
+    data_dir = Path(data_dir)
+    ids_path, csv = data_dir / TRAIN_IDS, data_dir / "kaggle" / "Resume.csv"
+    if not ids_path.exists() or not csv.exists():
+        return []
+    import pandas as pd
+
+    from .geometry import read
+
+    wanted = {int(x["id"]): x["category"] for x in json.loads(ids_path.read_text(encoding="utf-8"))["resumes"]}
+    df = pd.read_csv(csv)
+    out = []
+    for r in df[df.ID.isin(wanted)].itertuples():
+        pdf = data_dir / "kaggle" / "pdf" / r.Category / f"{r.ID}.pdf"
+        if not pdf.exists():
+            continue
+        rows = read(pdf)
+        lines = [x.text for x in rows]
+        gold = gold_labels(lines, r.Resume_html)
+        keep = [j for j, g in enumerate(gold) if g is not None]
+        if keep:
+            out.append(([lines[j] for j in keep], [gold[j] for j in keep], [rows[j].geo for j in keep]))
+    return out
