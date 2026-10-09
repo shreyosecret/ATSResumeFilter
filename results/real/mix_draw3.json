@@ -1,0 +1,15 @@
+[
+  {
+    "real_resumes_in_training": 30,
+    "draw": 3,
+    "real_line_acc": 0.909,
+    "hand-written_line_acc": 0.944,
+    "hand-written_f1": 0.746,
+    "generated_line_acc": 0.966,
+    "generated_f1": 0.8,
+    "designer_line_acc": 0.911,
+    "designer_f1": 0.682,
+    "reference_line_acc": 0.879,
+    "reference_f1": 0.835
+  }
+]
