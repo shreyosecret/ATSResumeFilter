@@ -17,17 +17,14 @@ The first launch takes about 20 seconds. The app opens in its own window on Wind
 
 ### New in this version
 
-- **Scanned resumes are read with OCR.** When a PDF is only a picture of a page, an ATS without OCR reads nothing. The app says so and now also shows what an ATS that runs OCR would read, in a *With OCR* column of the parser comparison.
-- **Export labels.** In *Teach the model*, save a resume's lines and your corrected labels to a file, with your name, email, phone and links replaced by placeholders. Nothing is sent: you choose whether to share it, for example to help test the parser on real resumes.
-- **Optional update check.** Turn it on in About and the app tells you when a newer version is out. It is off by default; when on, it asks GitHub for the latest version number and sends nothing else.
-- **An Intel Mac build**, alongside Apple Silicon.
-- **The learned parser now reads text only.** Experiment 7 was rerun on the current reader (joined wrapped lines, font-relative word gaps). The text-only network matched or beat the version that also used page layout in every test group and on a real resume (0.83 of its lines right, against 0.81), so it is now the default. Page layout is still used to join wrapped lines and in the visual check.
-- A slightly smaller download (the OCR image library without a GUI toolkit), and an automated browser test that clicks through the app on every change.
+- **The learned parser has read real resumes.** Its starting model now also learns from 90 public, anonymized real resumes (the CC0 LiveCareer dataset). On 500 other real resumes it labels 89% of lines correctly, up from 79%, with no real loss on unusual designs. Before, it had only ever seen fictional resumes.
+- **Two new research experiments, both on real data.** Experiment 9 tests every parser on 2,482 real resumes, labeled automatically from their own web pages: the heading list labels 82% of lines, and only 68% of real section headings are in it ("Highlights", "Accomplishments" and "Additional Information" are the most common misses). Experiment 10 renders the fictional resumes through 54 real third-party designs (JSON Resume themes from npm): the simple parser scores below 0.5 on 40 of them.
+- **A new check: "Every letter is read twice"**, for designs that draw text twice for a bold or shadow effect, which a parser reads as "PPrriiyyaa".
 
 ### What the app does
 
 - **Resume check:** upload a PDF or Word resume and paste a job description. See the screening rules read from the posting and how your resume meets each one, your score and rank with three scorers, the terms found and missing, what each parser read, and a list of parsing risks, including a visual check that compares the page with the text an ATS extracts. **Download report** saves it all.
 - **Learned parser:** a small neural network that labels each line with its section and learns from your corrections in *Teach the model*, on this computer only.
-- **Screening, Boolean search and Research:** a recruiter's view of 16 fictional candidates, keyword search, and charts for all eight experiments.
+- **Screening, Boolean search and Research:** a recruiter's view of 16 fictional candidates, keyword search, and charts for all ten experiments.
 
 Full methods, results and limitations are in the repository README.

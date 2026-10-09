@@ -948,6 +948,20 @@ async function renderResearch(main) {
       barChart({ categories: K.map((k) => k[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Reading rendered resume pages",
         series: RD.map(([r, name], i) => ({ name, color: ["var(--s1)", "var(--s2)", "var(--s3)"][i], values: K.map(([k]) => ({ v: R[r][k] })) })) }), fig("visual_reading.png")));
   }
+  if (S.real && S.real.models) {
+    const M = S.real.models, K = [["rules", "Heading list"], ["text", "Network (synthetic only)"]];
+    const T = S.real.taught || {};
+    cards.push(chartCard("Real resumes", `Lines labeled correctly on ${S.real.resumes.toLocaleString()} real resumes (public LiveCareer dataset), and on 500 of them after teaching the network corrected real resumes.`,
+      barChart({ categories: ["All lines", "Summary", "Education", "Skills"], max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Lines labeled correctly on real resumes",
+        series: [...K.map(([k, name], i) => ({ name, color: ["var(--muted)", "var(--s1)"][i], values: ["line_acc", "recall_summary", "recall_education", "recall_skills"].map((f) => ({ v: M[k][f] })) })),
+          ...(T["10"] ? [{ name: "Network after 10 taught", color: "var(--s3)", values: [{ v: T["10"].mean }, { v: null }, { v: null }, { v: null }] }] : [])] }), fig("real_resumes.png")));
+  }
+  if (S.jsonresume && S.jsonresume.themes) {
+    const J = S.jsonresume, P = [["naive", "Simple parser"], ["layout_aware", "Layout-aware"], ["network", "Network (app)"], ["oracle", "Perfect sections"]];
+    cards.push(chartCard("Real resume designs", `Field F1 on ${J.resumes} resumes: the 16 fictional people rendered through ${J.themes} JSON Resume themes from npm that no model trained on.`,
+      barChart({ categories: P.map((p) => p[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Field F1 on third-party themes",
+        series: [{ name: "All themes", color: "var(--s1)", values: P.map(([k]) => ({ v: J[k] })) }] }), fig("jsonresume_themes.png")));
+  }
   main.innerHTML = `<div class="page">
     <div class="grid g4">${d.stats.map((s) => stat(esc(s.label), s.format === "pct" ? `${s.value.toFixed(0)}<small>%</small>` : s.value.toFixed(2), esc(s.detail))).join("")}</div>
     <div class="grid g2">${cards.join("")}</div>

@@ -351,7 +351,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
     def result_image(name: str):
         path = (RESULTS / name).resolve()
         allowed = {RESULTS.resolve(), *((RESULTS / d).resolve() for d in ("parsers", "public_pool", "learning", "formats", "geometry",
-                                                                    "visual"))}
+                                                                    "visual", "real", "jsonresume"))}
         if path.parent not in allowed or path.suffix != ".png" or not path.exists():
             raise HTTPException(404)
         return FileResponse(path, media_type="image/png")
@@ -406,6 +406,10 @@ def research_summary(results: Path) -> dict:
          "Text only vs page geometry, on formats and people never trained on."),
         ("visual/visual_reading.png", "Reading the page as an image",
          "OCR vs small vision-language models on rendered pages with known text."),
+        ("real/real_resumes.png", "2,482 real resumes",
+         "Every parser on real resumes labeled from their own HTML, and teaching the network."),
+        ("jsonresume/jsonresume_themes.png", "54 real designs",
+         "The fictional resumes rendered through third-party JSON Resume themes."),
     ]
     out["charts"] = [{"src": f"/results/{c}", "title": t, "caption": cap} for c, t, cap in charts
                      if (results / c).exists()]
@@ -446,7 +450,7 @@ def research_series(results: Path) -> dict:
     import json
 
     for name, key in (("learning", "learning"), ("formats", "formats"), ("geometry", "geometry"),
-                      ("visual", "visual")):
+                      ("visual", "visual"), ("real", "real"), ("jsonresume", "jsonresume")):
         p = results / name / "summary.json"
         if p.exists():
             try:

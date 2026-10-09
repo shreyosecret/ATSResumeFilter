@@ -447,6 +447,26 @@ Every other test used fictional people. The public LiveCareer dataset (Kaggle "R
 - **Where each fails is different.** The heading list never finds a summary (no "Summary" in its list) and misses skills behind "Highlights" or "Core Qualifications". Only 68% of real heading lines are in the list; the most common misses are Highlights (849 resumes), Accomplishments (741), Additional Information (435), Languages, Interests, Professional Affiliations, Core Qualifications and Skill Highlights. The network finds summaries (0.75 to 0.80) but labels half the education lines as something else: real education entries ("Bachelor of Science : Accounting 2010 University of ... City , State") look nothing like the synthetic ones.
 - **A little teaching fixes most of it.** The Teach tab's update on 10 corrected real resumes lifts the network from 0.79 to **0.86** of lines in 500 other real resumes (0.85 to 0.88 over three draws), past the heading list. 50 give 0.86, 200 give 0.88. This is the strongest evidence so far that the Teach tab works on real documents.
 
+**So the starting model now learns from a few real resumes (experiments 9b and 9c).** [`scripts/real_training.py`](scripts/real_training.py) retrained the network with experiment 7's training set plus 0 to 1,500 real resumes, tested on 500 real resumes it never saw and on experiment 7's held-out synthetic groups:
+
+| Real resumes added | Real lines (500 unseen) | Hand-written F1 | Generated F1 | Designer F1 | Reference F1 |
+|---|---|---|---|---|---|
+| 0 | 0.83 | 0.74 | 0.80 | 0.68 | 0.84 |
+| 30 (3 draws) | **0.90 to 0.91** | 0.74 to 0.75 | 0.79 to 0.80 | 0.66 to 0.69 | 0.83 to 0.84 |
+| 100 | 0.91 | 0.74 | 0.79 | 0.64 | 0.82 |
+| 300 | 0.90 | 0.73 | 0.77 | 0.61 | 0.82 |
+| 1,500 | 0.90 | 0.71 | 0.78 | 0.67 | 0.83 |
+
+About 3% real documents gets almost all of the gain on real resumes at no cost on the synthetic layouts; more starts to cost the unusual designs, because nearly all the real resumes share one plain layout. [`scripts/real_shipping_check.py`](scripts/real_shipping_check.py) then checked the model the app actually ships (the full synthetic corpus, about 3,300 documents) with 0, 30 or 90 real resumes, on data none of them trained on:
+
+| App's starting model | Real resumes, lines (500 unseen) | 54 themes, field F1 | 54 themes, lines | The hand-labeled real resume, lines |
+|---|---|---|---|---|
+| Synthetic only | 0.79 | 0.553 | 0.68 | 0.83 |
+| + 30 real | 0.86 | 0.533 | 0.71 | 0.94 |
+| **+ 90 real (shipped)** | **0.89** | 0.544 | 0.68 | 1.00 |
+
+The desktop build's starting model now includes the 90 resumes listed in [data/livecareer_train_ids.json](data/livecareer_train_ids.json) (IDs only; CI downloads those PDFs to train, and none is among the 500 test resumes). A source install includes them after `python scripts/fetch_public_resumes.py --train-pdfs`, and trains on synthetic resumes alone otherwise. The perfect score on the hand-labeled resume is one document, also used to find earlier bugs; the 500-resume result is the one to trust.
+
 ### 10. Fifty-four real resume themes from npm
 
 ![JSON Resume themes](results/jsonresume/jsonresume_themes.png)
