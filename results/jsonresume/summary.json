@@ -1,15 +1,33 @@
 {
-  "themes": 54,
-  "resumes": 804,
-  "naive": 0.474,
-  "layout_aware": 0.484,
-  "network": 0.568,
-  "oracle": 0.57,
-  "line_acc": 0.679,
-  "naive_below_0_5": 40,
+  "themes": 50,
+  "resumes": 800,
+  "partial_themes_left_out": [
+    "bzdev",
+    "class",
+    "github-styled",
+    "grande"
+  ],
+  "naive": 0.475,
+  "layout_aware": 0.485,
+  "network": 0.569,
+  "oracle": 0.571,
+  "line_acc": 0.68,
+  "naive_below_0_5": 36,
   "per_theme_median": {
-    "naive": 0.3655,
-    "layout_aware": 0.3655,
-    "network": 0.4415
+    "naive": 0.37849999999999995,
+    "layout_aware": 0.37849999999999995,
+    "network": 0.472
+  },
+  "field_recall_layout_aware": {
+    "name": 0.799,
+    "email": 0.98,
+    "phone": 0.78,
+    "degree_level": 0.5,
+    "field_of_study": 0.1,
+    "school": 0.502,
+    "grad_date": 0.223,
+    "gpa": 0.06,
+    "skills": 0.246,
+    "experience": 0.0
   }
 }
