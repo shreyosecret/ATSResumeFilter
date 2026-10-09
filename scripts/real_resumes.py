@@ -196,11 +196,14 @@ def main() -> None:
     print("rules", s["models"]["rules"], flush=True)
 
     print("training the three networks on the synthetic corpus ...", flush=True)
-    corpus = base_corpus()
-    taggers = {}
+    tcache = CACHE.with_name("livecareer_taggers.joblib")
+    taggers = joblib.load(tcache) if tcache.exists() else {}
+    corpus = None if len(taggers) == 3 else base_corpus()
     for name, mode in (("text", False), ("headings", "headings"), ("geometry", True)):
-        tg = LineTagger(use_geometry=mode).fit(corpus)
-        taggers[name] = tg
+        if name not in taggers:
+            taggers[name] = LineTagger(use_geometry=mode).fit(corpus)
+            joblib.dump(taggers, tcache)
+        tg = taggers[name]
         s["models"][name] = score([tg.predict(d["lines"], d["geo"]) for d in docs], docs)
         print(name, s["models"][name], flush=True)
 
