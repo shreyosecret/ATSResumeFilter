@@ -1,0 +1,355 @@
+{
+ "source": "npm registry, keyword jsonresume-theme",
+ "themes": [
+  {
+   "name": "@anthonyjdella/jsonresume-theme-anthonyjdella-simple-red",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "@borgius/jsonresume-theme-engineering",
+   "version": "0.6.2",
+   "license": "MIT"
+  },
+  {
+   "name": "@briankung/jsonresume-theme-onepage-wide",
+   "version": "3.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "@fmarcosdev/jsonresume-theme-dev-ats-es",
+   "version": "1.2.1",
+   "license": "MIT"
+  },
+  {
+   "name": "@jsonresume/jsonresume-theme-class",
+   "version": "0.7.0",
+   "license": "MIT"
+  },
+  {
+   "name": "@jsonresume/theme-papirus",
+   "version": "1.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "@randy.tarampi/resume",
+   "version": "7.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-a11y",
+   "version": "2.5.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-academic",
+   "version": "1.3.3",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-apage",
+   "version": "1.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-azure-split",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-basic",
+   "version": "1.0.3",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-basic-fr",
+   "version": "1.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-berlin-grid-ats",
+   "version": "1.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-bzdev",
+   "version": "0.0.5",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-calm",
+   "version": "1.1.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-cjean",
+   "version": "1.4.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-class-yaucp",
+   "version": "0.2.8",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-classy",
+   "version": "1.0.9",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-classy-vforesee",
+   "version": "0.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-claude",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-colophon",
+   "version": "0.2.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-cora",
+   "version": "0.1.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-creative-confidence",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-dev-ats",
+   "version": "1.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-developpez",
+   "version": "1.1.3",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-elite",
+   "version": "1.2.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-eloquent-mod",
+   "version": "4.24.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-eloquent-ru",
+   "version": "5.1.0-ru",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-engineering",
+   "version": "0.8.48",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-engineering-leader",
+   "version": "1.0.38",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-eternal",
+   "version": "0.0.45",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-executive-slate",
+   "version": "1.1.4",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-github-styled",
+   "version": "1.4.4",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-grande",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-jaxxstorm",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-kiss",
+   "version": "0.5.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-kittyfarren",
+   "version": "1.0.15",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-light-classy-responsive-fr",
+   "version": "1.0.8",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-lowmess",
+   "version": "0.0.11",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-minimal-classy",
+   "version": "0.1.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-modern-plain",
+   "version": "1.4.6",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-msresume",
+   "version": "0.1.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-onepage-simplified",
+   "version": "1.3.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-papirus",
+   "version": "0.0.5",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-papirus-ru",
+   "version": "0.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-pico",
+   "version": "0.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-profesh",
+   "version": "0.4.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-randytarampi",
+   "version": "7.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-react",
+   "version": "1.0.7",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-react-tailwind",
+   "version": "1.3.3",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-resu",
+   "version": "0.0.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-sceptile",
+   "version": "1.0.5",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-scholar",
+   "version": "1.0.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-sided-light",
+   "version": "0.1.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-signal",
+   "version": "1.1.1",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-simple-red",
+   "version": "1.0.4",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-striking",
+   "version": "0.0.8",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-student",
+   "version": "1.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-two-column",
+   "version": "0.2.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-verbum",
+   "version": "0.0.5",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-vitae",
+   "version": "1.1.0",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-waterfall",
+   "version": "1.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "jsonresume-theme-wintermuted",
+   "version": "0.1.0",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-cora",
+   "version": "0.1.2",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-eternal",
+   "version": "0.0.18",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-papirus-ru",
+   "version": "0.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-resu",
+   "version": "0.0.2",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-simple-red",
+   "version": "1.0.5",
+   "license": "MIT"
+  },
+  {
+   "name": "kcv-theme-striking",
+   "version": "0.0.9",
+   "license": "MIT"
+  }
+ ]
+}
