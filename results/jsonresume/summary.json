@@ -1,0 +1,15 @@
+{
+  "themes": 54,
+  "resumes": 804,
+  "naive": 0.474,
+  "layout_aware": 0.484,
+  "network": 0.568,
+  "oracle": 0.57,
+  "line_acc": 0.679,
+  "naive_below_0_5": 40,
+  "per_theme_median": {
+    "naive": 0.3655,
+    "layout_aware": 0.3655,
+    "network": 0.4415
+  }
+}
