@@ -1,0 +1,132 @@
+{
+  "resumes": 2482,
+  "lines": 156701,
+  "labeled_lines": 152628,
+  "gold_mix": {
+    "heading": 14356,
+    "summary": 3235,
+    "skills": 21156,
+    "other": 8931,
+    "experience": 94891,
+    "education": 9773,
+    "contact": 286
+  },
+  "headings": {
+    "heading_lines": 14356,
+    "in_heading_list": 0.683,
+    "most_common_unknown": [
+      [
+        "highlights",
+        849
+      ],
+      [
+        "accomplishments",
+        741
+      ],
+      [
+        "additional information",
+        435
+      ],
+      [
+        "languages",
+        226
+      ],
+      [
+        "interests",
+        225
+      ],
+      [
+        "professional affiliations",
+        203
+      ],
+      [
+        "core qualifications",
+        198
+      ],
+      [
+        "skill highlights",
+        184
+      ],
+      [
+        "affiliations",
+        153
+      ],
+      [
+        "executive profile",
+        130
+      ],
+      [
+        "personal information",
+        128
+      ],
+      [
+        "core accomplishments",
+        93
+      ]
+    ]
+  },
+  "models": {
+    "rules": {
+      "line_acc": 0.82,
+      "lines": 152628,
+      "recall_summary": 0.0,
+      "recall_experience": 0.973,
+      "recall_education": 0.962,
+      "recall_skills": 0.427,
+      "recall_heading": 0.683,
+      "recall_other": 0.513
+    },
+    "text": {
+      "line_acc": 0.788,
+      "lines": 152628,
+      "recall_summary": 0.745,
+      "recall_experience": 0.967,
+      "recall_education": 0.531,
+      "recall_skills": 0.425,
+      "recall_heading": 0.717,
+      "recall_other": 0.184
+    },
+    "headings": {
+      "line_acc": 0.79,
+      "lines": 152628,
+      "recall_summary": 0.737,
+      "recall_experience": 0.967,
+      "recall_education": 0.606,
+      "recall_skills": 0.44,
+      "recall_heading": 0.685,
+      "recall_other": 0.148
+    },
+    "geometry": {
+      "line_acc": 0.788,
+      "lines": 152628,
+      "recall_summary": 0.801,
+      "recall_experience": 0.971,
+      "recall_education": 0.492,
+      "recall_skills": 0.463,
+      "recall_heading": 0.684,
+      "recall_other": 0.12
+    }
+  },
+  "taught": {
+    "0": {
+      "mean": 0.793,
+      "min": 0.793,
+      "max": 0.793
+    },
+    "10": {
+      "mean": 0.861,
+      "min": 0.846,
+      "max": 0.879
+    },
+    "50": {
+      "mean": 0.864,
+      "min": 0.863,
+      "max": 0.866
+    },
+    "200": {
+      "mean": 0.879,
+      "min": 0.875,
+      "max": 0.884
+    }
+  }
+}

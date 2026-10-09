@@ -428,6 +428,25 @@ An ATS reads the text stored in a PDF; a recruiter reads the rendered page. The 
 
 **Limits.** The pages are synthetic and rendered by this project; the pasted line is clean black text, easier than a real logo or chart. Small models were run on a laptop-class CPU, the setting the app runs in; a large hosted vision model would read better, but would send the resume off the computer. The VLMs were tested with one prompt or task each.
 
+### 9. 2,482 real resumes, labeled from their own HTML
+
+![Real resumes](results/real/real_resumes.png)
+
+Every other test used fictional people. The public LiveCareer dataset (Kaggle "Resume Dataset", snehaanbhawal/resume-dataset, CC0 1.0, anonymized by its author) keeps each resume's HTML beside its PDF, and the HTML marks every section with a code (`SECTION_EXPR`, `SECTNAME_...` for the heading). [`ats_sim/learn/livecareer.py`](ats_sim/learn/livecareer.py) finds each PDF line's text in the HTML, in reading order, and takes its section, so 2,482 real resumes get line labels without anyone reading them: 152,628 of 156,701 lines (97.4%; the rest are the name slot, which holds a job title, stray characters, and two list items merged onto one line). Real wording and real headings, but not real layouts: nearly all are the same plain single-column page. [`scripts/real_resumes.py`](scripts/real_resumes.py) writes only aggregate numbers; the PDFs and per-resume labels stay in gitignored folders (`python scripts/fetch_public_resumes.py --pdfs`).
+
+| Lines labeled correctly | All | Summary | Experience | Education | Skills | Headings |
+|---|---|---|---|---|---|---|
+| Heading-list parser | **0.82** | 0.00 | 0.97 | **0.96** | 0.43 | 0.68 |
+| Network, text only (app) | 0.79 | 0.75 | 0.97 | 0.53 | 0.43 | 0.72 |
+| Network, headings | 0.79 | 0.74 | 0.97 | 0.61 | 0.44 | 0.69 |
+| Network, geometry | 0.79 | **0.80** | 0.97 | 0.49 | 0.46 | 0.68 |
+
+**What it shows.**
+
+- **On real resumes the heading list beats the network trained only on synthetic ones** (0.82 against 0.79). Real resumes mostly use the common headings ("Experience", "Education"), which the list knows, and 62% of all lines are experience, which both get right.
+- **Where each fails is different.** The heading list never finds a summary (no "Summary" in its list) and misses skills behind "Highlights" or "Core Qualifications". Only 68% of real heading lines are in the list; the most common misses are Highlights (849 resumes), Accomplishments (741), Additional Information (435), Languages, Interests, Professional Affiliations, Core Qualifications and Skill Highlights. The network finds summaries (0.75 to 0.80) but labels half the education lines as something else: real education entries ("Bachelor of Science : Accounting 2010 University of ... City , State") look nothing like the synthetic ones.
+- **A little teaching fixes most of it.** The Teach tab's update on 10 corrected real resumes lifts the network from 0.79 to **0.86** of lines in 500 other real resumes (0.85 to 0.88 over three draws), past the heading list. 50 give 0.86, 200 give 0.88. This is the strongest evidence so far that the Teach tab works on real documents.
+
 ### 10. Fifty-four real resume themes from npm
 
 ![JSON Resume themes](results/jsonresume/jsonresume_themes.png)
