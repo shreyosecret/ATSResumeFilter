@@ -73,6 +73,11 @@ jobs:
           cache: pip
       - name: Install the app and the build tools
         shell: bash
+        env:
+          # A prebuilt cryptography (needed by pdfminer) bundles its own OpenSSL. Built from
+          # source (as pip did on the Intel Mac runner) it links the system's, which then
+          # clashes with the one PyInstaller ships.
+          PIP_ONLY_BINARY: cryptography
         run: |
           pip install ".[visual]" onnxruntime tokenizers "pyinstaller>=6.11"
           # OCR only needs OpenCV's image functions: the headless build leaves out
