@@ -143,6 +143,24 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
             "pool": {"size": len(a.pool), "synthetic": a.n_synthetic, "public": len(a.pool) - a.n_synthetic},
         }
 
+    @app.get("/api/settings")
+    def get_settings():
+        from ..updates import settings
+
+        return settings()
+
+    @app.post("/api/settings")
+    def set_settings(payload: dict = Body(...)):
+        from ..updates import save_settings
+
+        return save_settings(**{k: v for k, v in payload.items() if isinstance(v, bool)})
+
+    @app.get("/api/update")
+    def update_check():
+        from ..updates import check
+
+        return check()
+
     # ---------------------------------------------------------------- resume check
 
     @app.post("/api/analyze")
@@ -220,6 +238,25 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
         learned = fields_of(parse_with_sections("\n".join(lines), sections, name=name))
         return JSONResponse(json.loads(json.dumps({"event": event, "lines": items, "learned": learned,
                                                    "model": m.info()}, default=str)))
+
+    @app.post("/api/corrections/export")
+    def corrections_export(payload: dict = Body(...)):
+        """A resume's confirmed labels with contact details masked, for the
+        person to save and share for research if they choose. Nothing is sent."""
+        from .. import __version__
+        from ..learn.export import export
+
+        lines, labels, geo = payload.get("lines"), payload.get("labels"), payload.get("geo")
+        if (not isinstance(lines, list) or not isinstance(labels, list) or not lines or len(lines) > MAX_LINES
+                or not all(isinstance(x, str) for x in lines)):
+            raise HTTPException(400, detail="Send matching, non-empty lists of lines and labels.")
+        if geo is not None and (not isinstance(geo, list) or not all(
+                isinstance(g, list) and len(g) == N_GEO and all(isinstance(v, (int, float)) for v in g) for g in geo)):
+            raise HTTPException(400, detail=f"Geometry must be one list of {N_GEO} numbers per line.")
+        try:
+            return export(lines, labels, geo, __version__)
+        except ValueError as e:
+            raise HTTPException(400, detail=str(e))
 
     @app.post("/api/model/reset")
     def model_reset():

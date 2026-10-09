@@ -66,3 +66,29 @@ def test_text_drawn_as_an_image_is_seen(tmp_path):
     r = check(path, extract_text(path))
     assert any("SolidWorks" in m for m in r["missing"])
     assert r["glued"] == [] and not r["image_only"]
+
+
+def test_a_scanned_resume_is_read_with_ocr(tmp_path):
+    pytest.importorskip("rapidocr_onnxruntime")
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+
+    from ats_sim.report import Analyzer
+    from ats_sim.visual import render
+
+    text = tmp_path / "text.pdf"
+    c = canvas.Canvas(str(text), pagesize=letter)
+    c.setFont("Helvetica", 12)
+    for k, line in enumerate(["Ana Ruiz", "ana.ruiz@example.com", "EDUCATION",
+                              "B.S. in Biology, Example University, May 2026", "SKILLS", "Python, MATLAB, R"]):
+        c.drawString(72, 720 - 20 * k, line)
+    c.save()
+    render(text, scale=2)[0].save(tmp_path / "page.png")
+    scan = tmp_path / "scan.pdf"  # the same page as a picture, like a scanner makes
+    c = canvas.Canvas(str(scan), pagesize=letter)
+    c.drawImage(str(tmp_path / "page.png"), 0, 0, width=letter[0], height=letter[1])
+    c.save()
+    r = Analyzer(public_pool=False).analyze(scan, use_engines=False, with_skillner=False)
+    assert r["visual"]["image_only"]
+    assert r["parsers"]["naive"]["email"] is None
+    assert r["parsers"]["ocr"]["email"] == "ana.ruiz@example.com" and r["parsers"]["ocr"]["name"] == "Ana Ruiz"

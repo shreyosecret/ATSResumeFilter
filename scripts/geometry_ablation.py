@@ -23,11 +23,13 @@ other 6 personas in four groups none of them trained on:
                 guides (data/format_sources.json), never used in training
 
 Three seeds (persona split and initial weights). With --private-labels, a
-hand-labeled real resume is also scored; that result is printed and written
-under private/ only, never to results/.
+hand-labeled real resume is also scored, and with --real-dir every file in a
+folder of resumes saved with the Teach tab's *Export labels*; those results
+are printed and written under private/ only, never to results/.
 
     python scripts/geometry_ablation.py                     # results/geometry/
     python scripts/geometry_ablation.py --private-labels private/x.lines.json --private-file private/x.pdf
+    python scripts/geometry_ablation.py --real-dir private/real
 """
 from __future__ import annotations
 
@@ -83,19 +85,55 @@ def reference_f1(docs, personas) -> tuple[float, float]:
     return micro(rules).f1, micro(oracle).f1
 
 
+def map_labels(raw: list[str], raw_labels: list[str], lines: list[str]) -> list[str]:
+    """Labels for lines the reader joined (wrapped bullets): each joined line
+    takes the label of its first part. `raw` are the unjoined lines."""
+    out, i = [], 0
+    for line in lines:
+        out.append(raw_labels[i])
+        acc = raw[i]
+        i += 1
+        while acc != line and i < len(raw):
+            spaced = acc + " " + raw[i]
+            acc = spaced if line.startswith(spaced) else acc[:-1] + raw[i]
+            i += 1
+        if acc != line:
+            raise SystemExit("the private labels do not match the file's lines")
+    return out
+
+
 def private_score(tagger, labels_path: Path, file_path: Path) -> dict:
     from ats_sim.learn.geometry import read
 
     gold = json.loads(labels_path.read_text(encoding="utf-8"))
+    if [r.text for r in read(file_path, merge_wrapped=False)] != gold["lines"]:
+        raise SystemExit("the private labels do not match the file's lines")
     rows = read(file_path)
     lines = [r.text for r in rows]
-    if lines != gold["lines"]:
-        raise SystemExit("the private labels do not match the file's lines")
+    labels = map_labels(gold["lines"], gold["labels"], lines)
     pred = tagger.predict(lines, [r.geo for r in rows])
-    return {"line_acc": round(sum(a == b for a, b in zip(pred, gold["labels"])) / len(lines), 3)}
+    return {"line_acc": round(sum(a == b for a, b in zip(pred, labels)) / len(lines), 3)}
 
 
-def run(n_seeds: int, private: tuple[Path, Path] | None) -> tuple[pd.DataFrame, list[dict]]:
+def real_score(tagger, folder: Path) -> dict:
+    """Line accuracy on every exported file in `folder` (the Teach tab's
+    *Export labels*), pooled over lines and averaged over resumes."""
+    from ats_sim.learn.export import load
+
+    per, hits, total = [], 0, 0
+    for f in sorted(folder.glob("*.json")):
+        lines, labels, geo = load(f)
+        pred = tagger.predict(lines, geo)
+        ok = sum(a == b for a, b in zip(pred, labels))
+        per.append(ok / len(lines))
+        hits, total = hits + ok, total + len(lines)
+    if not per:
+        raise SystemExit(f"no exported label files in {folder}")
+    return {"resumes": len(per), "line_acc": round(hits / total, 3), "mean_per_resume": round(sum(per) / len(per), 3)}
+
+
+def run(n_seeds: int, private: tuple[Path, Path] | None, real_dir: Path | None = None
+        ) -> tuple[pd.DataFrame, list[dict]]:
     plist = load_personas()
     personas = {p["id"]: p for p in plist}
     print("rendering, reading and labeling ...", flush=True)
@@ -130,6 +168,10 @@ def run(n_seeds: int, private: tuple[Path, Path] | None) -> tuple[pd.DataFrame, 
             if private:
                 private_rows.append({"seed": seed, "model": model, **private_score(tagger, *private)})
                 print(f"seed {seed} {model:8s} real resume  lines {private_rows[-1]['line_acc']:.3f}", flush=True)
+            if real_dir:
+                private_rows.append({"seed": seed, "model": model, "set": str(real_dir), **real_score(tagger, real_dir)})
+                print(f"seed {seed} {model:8s} real set     lines {private_rows[-1]['line_acc']:.3f} "
+                      f"({private_rows[-1]['resumes']} resumes)", flush=True)
     return pd.DataFrame(rows), private_rows
 
 
@@ -188,6 +230,7 @@ def main() -> None:
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--private-labels", type=Path)
     ap.add_argument("--private-file", type=Path)
+    ap.add_argument("--real-dir", type=Path, help="a folder of files saved with Export labels (kept under private/)")
     ap.add_argument("--replot", action="store_true")
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
@@ -195,7 +238,7 @@ def main() -> None:
         chart(pd.read_csv(a.out / "geometry_ablation.csv"), a.out / "geometry_ablation.png")
         return
     private = (a.private_labels, a.private_file) if a.private_labels and a.private_file else None
-    df, private_rows = run(a.seeds, private)
+    df, private_rows = run(a.seeds, private, a.real_dir)
     df.to_csv(a.out / "geometry_ablation.csv", index=False)
     chart(df, a.out / "geometry_ablation.png")
     s = summarize(df)

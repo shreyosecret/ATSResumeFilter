@@ -121,7 +121,7 @@ def compare(extracted: str, visible_lines: list[str]) -> dict:
         "missing": missing,
         "missing_share": round(missing_letters / len(V), 3) if V else 0.0,
         "glued": glued,
-        "image_only": len(V) > 200 and len(E) < 0.2 * len(V),
+        "image_only": len(V) >= 60 and len(E) < 0.2 * len(V),  # a stray logo is not a page
     }
 
 
@@ -134,6 +134,9 @@ def check(path: str | Path, extracted: str) -> dict | None:
     t0 = time.time()
     lines = [line for img in render(path) for line in read_page(img)]
     out = compare(extracted, lines)
+    # What OCR read, for parsing a scanned page. OCR sets "@" apart as its own
+    # word ("ana @ example.com"); joining it back is the one cleanup applied.
+    out["text"] = re.sub(r"(\w) *@ *(\w)", r"\1@\2", "\n".join(lines))
     out["seconds"] = round(time.time() - t0, 1)
     return out
 
@@ -146,7 +149,8 @@ def risks(result: dict | None) -> list[dict]:
     if result["image_only"]:
         out.append({"level": "bad", "title": "The page is an image",
                     "detail": "Almost none of the text a reader sees is stored as text, as in a scanned resume. "
-                              "An ATS without OCR reads an empty resume; save it again from the original document."})
+                              "An ATS without OCR reads an empty resume; the 'With OCR' column shows what one that runs OCR "
+                              "would read. Save it again from the original document."})
     elif result["missing"]:
         ex = "; ".join(f"“{m[:60]}”" for m in result["missing"][:3])
         out.append({"level": "bad" if result["missing_share"] >= 0.05 else "warn",

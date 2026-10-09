@@ -151,6 +151,9 @@ async function pollStatus() {
     state.meta = await api("/api/meta");
     $("#version").textContent = `Version ${state.meta.version}`;
     route();
+    api("/api/update").then((u) => { // does nothing online unless turned on in About
+      if (u.enabled && u.newer) toast(`Version ${u.latest} of ATS Simulator is available. See About to download it.`);
+    }).catch(() => {});
     return;
   }
   if (!s.ready && s.status !== "error") setTimeout(pollStatus, 1200);
@@ -479,6 +482,7 @@ function renderLearn(body) {
         <span class="small muted" id="changed-count">${changed} label${changed === 1 ? "" : "s"} changed</span>
         <span style="flex:1"></span>
         <button class="btn ghost sm" id="model-reset" title="Forget everything taught on this computer">${icon("reset", 15)}Reset model</button>
+        <button class="btn sm" id="export-labels" title="Save these labels, with contact details masked, to share for research">${icon("download", 15)}Export labels</button>
         <button class="btn primary" id="teach">${icon("learn", 16)}Confirm and teach</button>
       </div>
     </div>
@@ -513,6 +517,20 @@ function renderLearn(body) {
       toast(`Learned from this resume. You changed ${ev.changed ?? 0} label${ev.changed === 1 ? "" : "s"}; it now labels ${Math.round(ev.accuracy_after * 100)}% of this resume the way you did. The Learned column in Parser comparison is updated.`);
       renderLearn(body);
     } catch (err) { toast(err.message); btn.disabled = false; }
+  });
+  $("#export-labels").addEventListener("click", async () => {
+    if (!confirm("Save this resume's lines and your labels to a file?\n\nYour name, email, phone numbers and links are replaced with placeholders. The rest of the text stays, because the labels describe it. Nothing is sent anywhere: you choose whether to share the file (for example with the project, to test the parser on real resumes).")) return;
+    try {
+      const out = await api("/api/corrections/export", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines: r.lines.map((x) => x.text), labels: r.edits,
+          ...(r.lines.every((x) => x.geo) ? { geo: r.lines.map((x) => x.geo) } : {}) }) });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: "application/json" }));
+      a.download = "resume labels (masked).json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      toast(`Saved to your downloads folder, with ${out.masked} contact detail${out.masked === 1 ? "" : "s"} masked. Open it to check before sharing.`);
+    } catch (err) { toast(err.message); }
   });
   $("#model-reset").addEventListener("click", async () => {
     if (!confirm("Forget everything taught on this computer and go back to the starting model?")) return;
@@ -957,13 +975,15 @@ function renderAbout(main) {
         <h3>What it does not claim</h3>
         <p>Commercial systems are proprietary. This is a simulator modeled on documented behavior, not a reproduction of Workday, Greenhouse, Lever, iCIMS or any other product.</p>
         <h3>Privacy</h3>
-        <p>Everything runs on this computer. The app only listens for connections from this machine, and uploaded resumes are read, analyzed and deleted.</p>
+        <p>Everything runs on this computer. The app only listens for connections from this machine, and uploaded resumes are read, analyzed and deleted. It goes online only if you turn on update checks below, and then only to ask GitHub for the latest version number.</p>
         <h3>What it learns</h3>
         <p>The learned parser is a small neural network that labels each line with its section. It changes only when you click <em>Confirm and teach</em> on a resume, and it is saved on this computer. It learns where sections are, never which candidates are good: learning from hiring outcomes would copy whatever bias produced them.</p>
       </div></section>
       <section class="card"><div class="card-head"><h2>This installation</h2></div><div class="card-body">
         <dl class="kv">
-          <dt>Version</dt><dd>${m ? esc(m.version) : "–"} <a class="small" href="https://github.com/shreyosecret/ATSResumeFilter/releases" target="_blank" rel="noopener">Check for updates</a></dd>
+          <dt>Version</dt><dd>${m ? esc(m.version) : "–"} <a class="small" href="https://github.com/shreyosecret/ATSResumeFilter/releases" target="_blank" rel="noopener">Releases</a><div class="small muted" id="update-line"></div></dd>
+          <dt>Updates</dt><dd><label class="switch"><input type="checkbox" id="check-updates"><span><span class="small">Check for new versions</span></span></label>
+            <div class="small muted" style="margin-top:4px">Off unless you turn it on. When on, the app asks GitHub for the latest version number; no resume data is sent.</div></dd>
           <dt>Semantic model</dt><dd>${m ? esc(m.embedding_backend || "unavailable") : "–"}</dd>
           <dt>Comparison pool</dt><dd>${m ? `${m.pool.size} resumes` : "–"}</dd>
           <dt>OpenResume</dt><dd>${m ? (m.engines.openresume ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
@@ -983,6 +1003,18 @@ function renderAbout(main) {
       : md.ready ? `<span class="badge good"><span class="dot"></span>Ready</span> <span class="small muted">${md.taught} resume${md.taught === 1 ? "" : "s"} taught here</span>`
       : `<span class="badge neutral" title="${esc(md.status)}">Loading</span>`;
   }).catch(() => {});
+  const box = $("#check-updates", main), line = $("#update-line", main);
+  const show = (u) => {
+    if (!u || !u.enabled) { line.textContent = ""; return; }
+    line.innerHTML = u.error ? esc(u.error) : u.newer ? `Version ${esc(u.latest)} is available: <a href="${esc(u.url)}" target="_blank" rel="noopener">download it</a>.` : "You have the latest version.";
+  };
+  api("/api/settings").then((st) => { box.checked = st.check_updates; if (st.check_updates) api("/api/update").then(show).catch(() => {}); }).catch(() => {});
+  box.addEventListener("change", async () => {
+    try {
+      await api("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ check_updates: box.checked }) });
+      show(box.checked ? await api("/api/update") : null);
+    } catch (err) { toast(err.message); }
+  });
 }
 
 // ------------------------------------------------------------------ boot

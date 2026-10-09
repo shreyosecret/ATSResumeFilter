@@ -31,7 +31,8 @@ FIELD_LABELS = {"name": "Name", "email": "Email", "phone": "Phone", "degree_leve
                 "field_of_study": "Field of study", "school": "School", "grad_date": "Graduation",
                 "gpa": "GPA"}
 PARSER_LABELS = {"naive": "Simple parser", "layout_aware": "Layout-aware parser", "openresume": "OpenResume",
-                 "pyresparser": "pyresparser", "ensemble": "Combined (vote)", "learned": "Learned (neural)"}
+                 "pyresparser": "pyresparser", "ensemble": "Combined (vote)", "learned": "Learned (neural)",
+                 "ocr": "With OCR (scanned)"}
 PUBLIC_CATEGORIES = ["ENGINEERING", "INFORMATION-TECHNOLOGY", "AVIATION", "AUTOMOBILE", "HEALTHCARE"]
 
 
@@ -334,6 +335,15 @@ class Analyzer:
                 result["visual"] = {"error": str(e)}
             else:
                 result["risks"] += V.risks(result["visual"])
+                if result["visual"] and result["visual"]["image_only"]:
+                    # Some systems run OCR on a scanned resume and parse what it reads; most
+                    # read the empty text layer. Show the first beside the others, kept out
+                    # of the vote like the learned parser.
+                    from .parser import parse_text
+
+                    parsed["ocr"] = parse_text(result["visual"]["text"], str(path))
+                    result["parsers"]["ocr"] = fields_of(parsed["ocr"])
+                    result["parser_labels"]["ocr"] = PARSER_LABELS["ocr"]
         if store is not None and store.ready():
             from .learn.geometry import read
             from .learn.tagger import sections_from_labels

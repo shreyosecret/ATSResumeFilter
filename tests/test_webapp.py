@@ -153,3 +153,9 @@ def test_pasted_job_description_gets_rules_read_from_it(client, tmp_path):
     assert {"Degree", "Field of study", "GPA", "Graduation", "Work authorization"} <= set(checks)
     assert checks["Work authorization"]["status"] == "pass"
     assert "| rule | the posting asks |" in j["report_md"]
+
+
+def test_the_export_endpoint(client):
+    r = client.post("/api/corrections/export", json={"lines": ["Ana Ruiz", "ana@x.com"], "labels": ["name", "contact"]})
+    assert r.status_code == 200 and "ana@x.com" not in __import__("json").dumps(r.json())
+    assert client.post("/api/corrections/export", json={"lines": ["a"], "labels": ["nope"]}).status_code == 400

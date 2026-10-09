@@ -28,13 +28,21 @@ The app is built as a single program for each operating system by GitHub Actions
 1. Download the file for your system from the [latest release](https://github.com/shreyosecret/ATSResumeFilter/releases/latest). (Builds of unreleased changes are under the **Actions** tab, in each successful *desktop app* run's **Artifacts**.)
    - **Windows:** `ATS-Simulator-Windows.zip` holds `ATS-Simulator.exe`.
    - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app`.
+   - **macOS (Intel):** `ATS-Simulator-macOS-Intel.zip` holds `ATS Simulator.app`.
    - **Linux:** `ATS-Simulator-Linux.zip` holds `ATS-Simulator`.
-2. Unzip and double-click. The builds are not signed with a paid developer certificate, so the system will warn you the first time:
+2. Unzip and double-click. The builds are not signed with a paid developer certificate (see [Signing the builds](#signing-the-builds)), so the system will warn you the first time:
    - **Windows SmartScreen:** click *More info*, then *Run anyway*.
    - **macOS:** right-click the app, choose *Open*, then confirm (or allow it in System Settings, Privacy & Security).
-3. The first launch takes about 20 seconds to open. In the background it then spends 5 to 10 minutes building the learned parser's starting model; everything else works meanwhile. Later launches are fast.
+3. The first launch takes about 20 seconds. The learned parser's starting model ships inside the download, so it is ready at once. Later launches are faster.
 
-Each download is about 300 MB. It contains Python, every library and the MiniLM language model. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows).
+Each download is about 350 to 480 MB. It contains Python, every library, the MiniLM language model and the OCR models. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows). The app never goes online unless you turn on *Check for new versions* in About; then it asks GitHub for the latest version number and nothing else.
+
+**Signing the builds**
+
+Unsigned builds work but warn on first launch. The desktop workflow signs them automatically once certificates are added as repository secrets (Settings, Secrets and variables, Actions); until then those steps do nothing. These steps have not been run with real certificates yet, so check the first signed build.
+
+- **Windows:** `WINDOWS_CERT_PFX_BASE64` (a code-signing certificate as a base64 `.pfx`) and `WINDOWS_CERT_PASSWORD`.
+- **macOS:** `APPLE_CERT_P12_BASE64` (a *Developer ID Application* certificate as a base64 `.p12`), `APPLE_CERT_PASSWORD`, `APPLE_ID`, `APPLE_TEAM_ID` and `APPLE_APP_PASSWORD` (an app-specific password), from an Apple Developer Program membership. The app is signed, notarized and stapled.
 
 **Run it from the source**
 
@@ -302,6 +310,8 @@ The app has a fourth parser that learns: a small neural network (`ats_sim/learn/
 
 **Privacy.** The model lives in `~/.ats_sim/model` (or `%APPDATA%\ats_sim\model`; set `ATS_SIM_MODEL_DIR` to move it), never in the repository. Teaching stores the updated weights and a replay buffer of hashed line features (not the text, but derived from it). *Reset model* deletes both and returns to the starting model. `ats-sim --no-learning` turns the feature off. The learned parser is shown as its own column and kept out of the combined vote, the agreement count and the risk checks, so those match results from before any teaching. `python scripts/check_resume.py my_resume.pdf --learned` adds it to the command-line report.
 
+**Sharing labels for research (optional).** *Export labels* in the Teach tab saves the resume's lines, the labels you confirmed and the page geometry to a JSON file, with the name, email addresses, phone numbers and links replaced by placeholders (`ats_sim/learn/export.py`). The rest of the text stays, since the labels describe it, so look the file over before sharing it. The app sends nothing. A folder of such files is the real-resume test set this project lacks: `python scripts/geometry_ablation.py --real-dir private/real` scores every version of the network on them and writes the result under `private/` only.
+
 ### 5. Learning a new template, one resume at a time
 
 `scripts/learning_curve.py` trains the network on the classic template only, then treats each held-out template as new: 8 personas arrive one at a time (random layout and format), and after each one we measure on the other 8 personas in all 8 layout and format combinations (64 files). Five seeds vary the persona split, the order and the initial weights. Conditions: learning from corrections (the true labels, as a user would supply), learning from its own guesses (self-training), no learning, and the heading-list parser. "Perfect sections" parses with the true line labels and is the ceiling for any section tagger, because the field rules after it have their own misses.
@@ -436,7 +446,8 @@ The report (written to `private/`, which is gitignored) shows what each parser e
 - **Third-party engines are run, not reimplemented, but through adapters.** The mapping into this project's schema (and the lenient scoring) is a choice; another mapping could move their numbers a few points. Each engine's raw output is cached under `results/_tmp/engine_cache/` for inspection.
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
 - **The visual check reads PDFs only.** A Word file has no fixed page to render. OCR misreads some characters, so differences shorter than a dozen letters are ignored, and text in a low-contrast image may be missed.
-- **Geometry is validated on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece.
+- **Scanned resumes are parsed only from OCR text**, with one cleanup (an "@" set apart by OCR is joined back). The *With OCR* column shows what such a system might read; real OCR pipelines differ.
+- **Geometry is validated on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece; *Export labels* exists to collect one.
 - **The learned parser is only as good as its corrections.** It learns section boundaries, not fields; a wrong label taught by a user is learned too (Reset undoes everything). Its experiment uses exact synthetic labels and four templates.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
 
