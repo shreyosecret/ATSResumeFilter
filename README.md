@@ -382,13 +382,15 @@ Experiments 5 and 6 were run with the text-only network, before page geometry ex
 
 ![Geometry ablation](results/geometry/geometry_ablation.png)
 
-| Lines labeled correctly | Text only | Geometry for every label | Geometry for headings (app) |
+| Lines labeled correctly (mean of 3 seeds) | Text only (app) | Geometry for every label | Geometry for headings |
 |---|---|---|---|
-| Hand-written templates | 0.92 | 0.92 | 0.92 |
-| Held-out generated formats | 0.96 | 0.95 | 0.94 |
-| Held-out designer formats | 0.92 | 0.90 | 0.88 |
-| Reference formats (public templates) | 0.90 | 0.90 | 0.89 |
-| One real resume, hand-labeled (see below) | 0.71 | 0.58 | 0.79 |
+| Hand-written templates | 0.93 | 0.94 | 0.91 |
+| Held-out generated formats | 0.97 | 0.97 | 0.96 |
+| Held-out designer formats | 0.92 | 0.92 | 0.89 |
+| Reference formats (public templates) | 0.92 | 0.92 | 0.91 |
+| One real resume, hand-labeled (see below) | **0.83** | 0.69 | 0.81 |
+
+These are from the rerun on the current reader (wrapped lines joined, font-relative word gaps). Field F1 tells the same story: text only is best or tied in every group (0.68 to 0.84), the headings version 0.006 to 0.03 lower.
 
 **What happened, in order.** The order matters more than the final table:
 
@@ -396,14 +398,14 @@ Experiments 5 and 6 were run with the text-only network, before page geometry ex
 2. **On a real resume it was much worse.** It got 0.52 of lines right, against 0.69 for text only (three seeds), on a hand-labeled two-page student resume (the author's own, kept out of the repository). Every line it got wrong was on page 2. All synthetic resumes are one page, so the page-number feature never varied in training, kept its random starting weights, and pushed every page-2 line toward "experience".
 3. **Fix:** remove page number and height on the page, and train on a second, randomly perturbed copy of each resume's geometry. This closed most of the gap on the real resume but erased the synthetic gains (the table's middle column). In other words, much of the early gain was the network recognizing this project's own renderer.
 4. **The remaining real-resume errors were a layout shortcut.** In synthetic resumes an indented bullet line in the body is almost always experience, so the publications list was filed under experience regardless of its heading.
-5. **Final design:** the text network assigns sections and a small geometry network only finds headings and the name; their heading and name probabilities are averaged. On synthetic formats it is 1 to 3 points below text only. On the real resume it is the best of the three in every seed (0.69 to 0.86).
-
-These numbers were measured before wrapped lines were joined (v1.3.1) and before the word-gap fix (experiment 8). A one-seed rerun with joined lines moved field F1 by at most 0.016 in any group for the app's version, within the spread between seeds, and raised every version's line accuracy on the real resume (headings 0.69 to 0.77).
+5. **The hybrid design:** the text network assigns sections and a small geometry network only finds headings and the name; their heading and name probabilities are averaged. On synthetic formats it was 1 to 3 points below text only, but on the real resume it was the best of the three in every seed (0.69 to 0.86), so it became the app's default.
+6. **Joining wrapped lines changed the answer.** After the reader joined wrapped bullets back together (v1.3.1) and stopped gluing words in tightly set text (experiment 8), the experiment was rerun. On the real resume, text only went from 0.71 to 0.83 and matched or beat the hybrid in every seed (0.81 to 0.85, against 0.76 to 0.85); on every synthetic group it was best or tied. The likely reason: the hybrid's advantage came from lines the text network could not label alone: the second half of a wrapped bullet ("users", "backend") has no section words in it. Once those halves were joined to their bullets, the extra network no longer helped. The app now uses text only.
 
 **What to take from it.**
 
 - A model evaluated only on synthetic data would have shipped the worst of the three versions. Geometry measured on documents from one renderer partly learns that renderer.
-- The app uses the hybrid because it is the only version that held up on a real document. That rests on one resume, which was also used to find the bugs above, so it is weak evidence. Set `ATS_SIM_TAGGER=text` to use the text-only network instead; whichever version runs, corrections in the Teach tab adapt it.
+- Fixing what the network reads mattered more than giving it more to read: joining wrapped lines improved the real resume by 12 points, more than any use of geometry did.
+- The app uses text only. That choice rests on one real resume, which was also used to find the bugs above, so it is weak evidence; the synthetic results agree with it. Set `ATS_SIM_TAGGER=headings` (or `geometry`) to use another version; whichever runs, corrections in the Teach tab adapt it. Page geometry is still measured, and still used for joining lines and by the visual check.
 - On the reference formats the heading-list parser is nearly as good (field F1 0.82, against 0.84 for the networks and a ceiling of 0.86). Real templates mostly use headings the list already knows. The networks matter most for designer formats and unusual headings (0.51 to 0.67).
 
 ### 8. Reading the page as an image: OCR vs small vision-language models
@@ -447,7 +449,7 @@ The report (written to `private/`, which is gitignored) shows what each parser e
 - **Scores are not decisions.** Real outcomes depend on recruiters, referrals and timing. Nothing here estimates anyone's chance of getting an interview.
 - **The visual check reads PDFs only.** A Word file has no fixed page to render. OCR misreads some characters, so differences shorter than a dozen letters are ignored, and text in a low-contrast image may be missed.
 - **Scanned resumes are parsed only from OCR text**, with one cleanup (an "@" set apart by OCR is joined back). The *With OCR* column shows what such a system might read; real OCR pipelines differ.
-- **Geometry is validated on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece; *Export labels* exists to collect one.
+- **The choice of network rests on one real resume.** Every other test is synthetic, and experiment 7 shows synthetic tests can reward a model for recognizing this project's renderer. A set of consented, hand-labeled real resumes is the missing piece; *Export labels* exists to collect one.
 - **The learned parser is only as good as its corrections.** It learns section boundaries, not fields; a wrong label taught by a user is learned too (Reset undoes everything). Its experiment uses exact synthetic labels and four templates.
 - **Knockout source is a modeling choice.** Knockout flips assume the candidate accepted a parse-prefilled form. If candidates type their answers, layout cannot affect knockouts at all.
 

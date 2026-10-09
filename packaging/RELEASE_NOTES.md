@@ -21,7 +21,7 @@ The first launch takes about 20 seconds. The app opens in its own window on Wind
 - **Export labels.** In *Teach the model*, save a resume's lines and your corrected labels to a file, with your name, email, phone and links replaced by placeholders. Nothing is sent: you choose whether to share it, for example to help test the parser on real resumes.
 - **Optional update check.** Turn it on in About and the app tells you when a newer version is out. It is off by default; when on, it asks GitHub for the latest version number and sends nothing else.
 - **An Intel Mac build**, alongside Apple Silicon.
-- **Experiment 7 rerun** on the current reader (joined wrapped lines, font-relative word gaps). RESULTS_PLACEHOLDER
+- **The learned parser now reads text only.** Experiment 7 was rerun on the current reader (joined wrapped lines, font-relative word gaps). The text-only network matched or beat the version that also used page layout in every test group and on a real resume (0.83 of its lines right, against 0.81), so it is now the default. Page layout is still used to join wrapped lines and in the visual check.
 - A slightly smaller download (the OCR image library without a GUI toolkit), and an automated browser test that clicks through the app on every change.
 
 ### What the app does

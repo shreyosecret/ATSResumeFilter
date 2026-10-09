@@ -3,67 +3,67 @@
   "groups": {
     "hand-written": {
       "text": {
-        "line_acc": 0.924,
-        "f1": 0.742
+        "line_acc": 0.926,
+        "f1": 0.75
       },
       "geometry": {
-        "line_acc": 0.923,
-        "f1": 0.739
+        "line_acc": 0.935,
+        "f1": 0.742
       },
       "headings": {
-        "line_acc": 0.917,
-        "f1": 0.737
+        "line_acc": 0.911,
+        "f1": 0.733
       },
-      "rules_f1": 0.669,
-      "oracle_f1": 0.752
+      "rules_f1": 0.67,
+      "oracle_f1": 0.755
     },
     "generated": {
       "text": {
-        "line_acc": 0.96,
-        "f1": 0.795
+        "line_acc": 0.973,
+        "f1": 0.805
       },
       "geometry": {
-        "line_acc": 0.953,
-        "f1": 0.796
+        "line_acc": 0.966,
+        "f1": 0.802
       },
       "headings": {
-        "line_acc": 0.938,
-        "f1": 0.791
+        "line_acc": 0.955,
+        "f1": 0.796
       },
-      "rules_f1": 0.502,
-      "oracle_f1": 0.805
+      "rules_f1": 0.508,
+      "oracle_f1": 0.808
     },
     "designer": {
       "text": {
-        "line_acc": 0.917,
-        "f1": 0.672
+        "line_acc": 0.923,
+        "f1": 0.68
       },
       "geometry": {
-        "line_acc": 0.897,
-        "f1": 0.658
+        "line_acc": 0.917,
+        "f1": 0.679
       },
       "headings": {
-        "line_acc": 0.884,
-        "f1": 0.651
+        "line_acc": 0.885,
+        "f1": 0.65
       },
-      "rules_f1": 0.507,
-      "oracle_f1": 0.684
+      "rules_f1": 0.508,
+      "oracle_f1": 0.686
     },
     "reference": {
       "text": {
-        "line_acc": 0.899,
+        "line_acc": 0.916,
         "f1": 0.843
       },
       "geometry": {
-        "line_acc": 0.901,
-        "f1": 0.848
+        "line_acc": 0.921,
+        "f1": 0.843
       },
       "headings": {
-        "line_acc": 0.892,
-        "f1": 0.838
+        "line_acc": 0.906,
+        "f1": 0.837
       },
-      "rules_f1": 0.821,
-      "oracle_f1": 0.857
+      "rules_f1": 0.823,
+      "oracle_f1": 0.858
     }
   }
 }

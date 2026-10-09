@@ -936,8 +936,8 @@ async function renderResearch(main) {
   }
   if (S.geometry && S.geometry.groups) {
     const G = S.geometry.groups, GR = [["hand-written", "Hand-written"], ["generated", "Generated"], ["designer", "Designer"], ["reference", "Public templates"]].filter(([g]) => G[g]);
-    const M = [["text", "Text only"], ["geometry", "Geometry for every label"], ["headings", "Geometry for headings (app)"]];
-    cards.push(chartCard("Reading the page", "Lines labeled correctly on formats never trained on. On one real resume the app's version did best; see the README.",
+    const M = [["text", "Text only (app)"], ["geometry", "Geometry for every label"], ["headings", "Geometry for headings"]];
+    cards.push(chartCard("Reading the page", "Lines labeled correctly on formats never trained on. Text only, the app's version, matched or beat the others here and on one real resume; see the README.",
       barChart({ categories: GR.map((g) => g[1]), max: 1, ticks: [0, 0.25, 0.5, 0.75, 1], fmt: f2, label: "Line accuracy by use of page geometry",
         series: M.map(([m, name], i) => ({ name, color: ["var(--muted)", "var(--s2)", "var(--s1)"][i], values: GR.map(([g]) => ({ v: G[g][m].line_acc })) })) }), fig("geometry_ablation.png")));
   }

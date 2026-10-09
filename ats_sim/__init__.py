@@ -1,2 +1,2 @@
 """ATS Simulator: how applicant tracking systems parse, screen and rank resumes."""
-__version__ = "1.4.0"
+__version__ = "1.5.0"

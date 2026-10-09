@@ -156,10 +156,10 @@ def test_text_only_tagger_ignores_geometry(base):
 def test_store_uses_a_bundled_starting_model(tmp_path, monkeypatch):
     import sys
 
-    from ats_sim.learn.store import CORPUS_VERSION
+    from ats_sim.learn.store import CORPUS_VERSION, tagger_mode
 
     lines = ["Ana Ruiz", "ana@x.com", "EDUCATION", "B.S. in Biology"]
-    shipped = LineTagger().fit([(lines, ["name", "contact", "heading", "education"])], epochs=2)
+    shipped = LineTagger(use_geometry=tagger_mode()).fit([(lines, ["name", "contact", "heading", "education"])], epochs=2)
     shipped.corpus_version = CORPUS_VERSION
     save(shipped, tmp_path / "bundle" / "model" / "base.joblib")
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "bundle"), raising=False)

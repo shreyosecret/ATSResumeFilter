@@ -60,7 +60,7 @@ from ats_sim.render import HELD_OUT_TEMPLATES  # noqa: E402
 
 OUT = ROOT / "results" / "geometry"
 GROUPS = ("hand-written", "generated", "designer", "reference")
-MODELS = {"text": "Text only", "geometry": "Geometry for every label", "headings": "Geometry for headings (app)"}
+MODELS = {"text": "Text only (app)", "geometry": "Geometry for every label", "headings": "Geometry for headings"}
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 COLORS = {"text": "#9a9893", "geometry": "#eb6834", "headings": "#2a78d6"}
 
