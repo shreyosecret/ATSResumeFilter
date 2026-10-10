@@ -26,14 +26,18 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 The app is built as a single program for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
 
 1. Download the file for your system from the [latest release](https://github.com/shreyosecret/ATSResumeFilter/releases/latest). (Builds of unreleased changes are under the **Actions** tab, in each successful *desktop app* run's **Artifacts**.)
-   - **Windows:** `ATS-Simulator-Windows.zip` holds `ATS-Simulator.exe`.
-   - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app`.
-   - **macOS (Intel):** `ATS-Simulator-macOS-Intel.zip` holds `ATS Simulator.app`.
-   - **Linux:** `ATS-Simulator-Linux.zip` holds `ATS-Simulator`.
+   - **Windows:** `ATS-Simulator-Windows.zip` holds an `ATS Simulator` folder with `ATS-Simulator.exe` and an `engines` folder.
+   - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app` (engines inside it).
+   - **macOS (Intel):** `ATS-Simulator-macOS-Intel.zip` holds `ATS Simulator.app` (engines inside it).
+   - **Linux:** `ATS-Simulator-Linux.zip` holds an `ATS Simulator` folder with `ATS-Simulator` and an `engines` folder.
+
+   Keep the `engines` folder next to the program: it holds the two comparison parsers (below). Without it the app still runs, with those two switched off.
 2. Unzip and double-click. The builds are not signed with a paid developer certificate (see [Signing the builds](#signing-the-builds)), so the system will warn you the first time:
    - **Windows SmartScreen:** click *More info*, then *Run anyway*.
    - **macOS:** right-click the app, choose *Open*, then confirm (or allow it in System Settings, Privacy & Security).
 3. The first launch takes about 20 seconds. The learned parser's starting model ships inside the download, so it is ready at once. Later launches are faster.
+
+**Everything is included.** The download runs every feature with no other install: the three parsers of this project (simple, layout-aware, learned), the comparison parsers OpenResume and pyresparser with their combined vote, the semantic scorer, the visual check (OCR), the deep skill scan (SkillNer with its 31,000-skill database), and a ranking pool of 252 resumes (16 fictional, 236 real from the public CC0 LiveCareer dataset). OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) are separate programs in the `engines` folder, called by the app and never linked into it; their licenses and source links are in `engines/THIRD_PARTY.md` and the build steps in [`scripts/build_engines.py`](scripts/build_engines.py). The deep skill scan uses spaCy's medium English model instead of the large one SkillNer recommends: on 11 test resumes it found 88% of the same skills (the large model would add about 400 MB).
 
 Each download is about 340 to 445 MB. It contains Python, every library, the MiniLM language model and the OCR models. The semantic scorer runs that model through onnxruntime instead of PyTorch: same weights and same output (within 2e-7), at a fraction of the size. The app opens in its own window on Windows and macOS, and in your browser on Linux. A browser-mode app quits on its own a few minutes after you close its tab. Your data, the learned model and a log file are kept in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows). The app never goes online unless you turn on *Check for new versions* in About; then it asks GitHub for the latest version number and nothing else.
 

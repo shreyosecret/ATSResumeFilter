@@ -140,6 +140,7 @@ def create_app(analyzer_kwargs: dict | None = None, start: bool = True,
             "engines": {"openresume": OpenResumeParser().available(), "pyresparser": PyresparserParser().available(),
                         "skillner": skillner_available(), "visual": _visual_available()},
             "embedding_backend": a.embedding_backend,
+            "desktop": bool(getattr(__import__("sys"), "frozen", False)),
             "pool": {"size": len(a.pool), "synthetic": a.n_synthetic, "public": len(a.pool) - a.n_synthetic},
         }
 

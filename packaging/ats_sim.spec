@@ -38,6 +38,16 @@ def tracked(folder: str, skip: tuple[str, ...]) -> list[tuple[str, str]]:
 
 
 datas = tracked("data", ("data/resumes/", "data/kaggle/")) + tracked("results", ("results/_tmp/",))
+pool = ROOT / "data" / "kaggle" / "Resume.csv"  # fetch_public_resumes.py --pool-only: the ranking pool's real resumes
+if pool.exists():
+    datas += [(str(pool), "data/kaggle")]
+else:
+    print("WARNING: data/kaggle/Resume.csv missing; the ranking pool will hold only the 16 synthetic resumes")
+skill_db = ROOT / "build" / "skillner"  # SkillNer's skill database (scripts/fetch_skillner_db.py)
+if (skill_db / "skill_db_relax_20.json").exists():
+    datas += [(str(f), "skillner") for f in skill_db.glob("*.json")]
+else:
+    print("WARNING: build/skillner missing; the deep skill scan will be unavailable")
 datas += collect_data_files("ats_sim", includes=["webapp/static/**/*"])
 onnx = ROOT / "build" / "minilm-onnx"
 if (onnx / "model.onnx").exists():
@@ -53,7 +63,8 @@ else:
 
 binaries, hiddenimports = [], collect_submodules("ats_sim")
 for pkg in ("en_core_web_sm", "spacy", "thinc", "pdfplumber", "pdfminer", "reportlab", "docx", "uvicorn",
-            "onnxruntime", "tokenizers", "webview", "rapidocr_onnxruntime", "pypdfium2", "pypdfium2_raw"):
+            "onnxruntime", "tokenizers", "webview", "rapidocr_onnxruntime", "pypdfium2", "pypdfium2_raw",
+            "skillNer", "jellyfish", "en_core_web_md"):
     try:
         d, b, h = collect_all(pkg)
     except Exception:
@@ -74,7 +85,7 @@ hiddenimports = [h for h in hiddenimports if not h.startswith("spacy.lang.") or 
                  or h.count(".") == 2 and h.split(".")[2] in ("char_classes", "lex_attrs", "norm_exceptions",
                                                               "punctuation", "tokenizer_exceptions")]
 
-for pkg in ("en_core_web_sm", "spacy", "thinc", "fastapi", "starlette", "pydantic", "uvicorn"):
+for pkg in ("en_core_web_sm", "en_core_web_md", "spacy", "thinc", "fastapi", "starlette", "pydantic", "uvicorn"):
     try:
         datas += copy_metadata(pkg)
     except Exception:
@@ -85,7 +96,7 @@ a = Analysis(
     pathex=[str(ROOT)],
     binaries=binaries,
     datas=datas,
-    hiddenimports=hiddenimports + ["sklearn.utils._typedefs", "sklearn.neural_network", "multipart"],
+    hiddenimports=hiddenimports + ["sklearn.utils._typedefs", "sklearn.neural_network", "multipart", "nltk.stem.porter"],
     excludes=["torch", "sentence_transformers", "transformers", "tensorflow", "streamlit", "IPython", "jupyter",
               "matplotlib", "skillNer", "pytest", "tkinter", "pyarrow", "PyQt5", "PyQt6", "PySide2", "PySide6"],
     noarchive=False,

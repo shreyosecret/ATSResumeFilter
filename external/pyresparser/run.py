@@ -14,7 +14,13 @@ import warnings
 
 warnings.filterwarnings("ignore")
 here = os.path.dirname(os.path.abspath(sys.executable))
-os.environ.setdefault("NLTK_DATA", os.path.join(here, "..", "nltk_data"))
+for nltk_dir in (os.path.join(here, "..", "nltk_data"), os.path.join(here, "nltk_data")):
+    if os.path.isdir(nltk_dir):  # a venv keeps it beside bin/, the desktop app beside the runner's folder
+        os.environ.setdefault("NLTK_DATA", nltk_dir)
+        import nltk  # a frozen runner has imported NLTK already, so tell it directly too
+
+        nltk.data.path.insert(0, os.path.abspath(nltk_dir))
+        break
 
 from pyresparser import ResumeParser  # noqa: E402
 

@@ -35,6 +35,21 @@ from .parser import _all_dates, extract_degree, extract_skill_items
 
 ROOT = Path(__file__).resolve().parent.parent
 EXTERNAL = ROOT / "external"
+EXE = ".exe" if os.name == "nt" else ""
+
+
+def engines_dir() -> Path | None:
+    """The folder of prebuilt engines (scripts/build_engines.py): next to the
+    desktop program, inside a macOS .app's Resources, ATS_SIM_ENGINES, or a
+    local build/engines."""
+    import sys
+
+    found = [Path(os.environ["ATS_SIM_ENGINES"])] if os.environ.get("ATS_SIM_ENGINES") else []
+    if getattr(sys, "frozen", False):
+        exe = Path(sys.executable).resolve()
+        found += [exe.parent / "engines", exe.parent.parent / "Resources" / "engines"]
+    found.append(ROOT / "build" / "engines")
+    return next((d for d in found if d.is_dir()), None)
 
 
 def _run_jsonl(cmd: list[str], files: list[str], env: dict | None = None, batch: int = 64,
@@ -100,11 +115,21 @@ class OpenResumeParser:
         self.dir = openresume_dir or os.environ.get("OPENRESUME_DIR")
         self.runner = EXTERNAL / "openresume" / "run.mjs"
 
+    @staticmethod
+    def _bundled() -> list[str] | None:
+        d = engines_dir()
+        if d and (d / f"node{EXE}").exists() and (d / "openresume" / "bundle.cjs").exists():
+            return [str(d / f"node{EXE}"), str(d / "openresume" / "parse.cjs")]
+        return None
+
     def available(self) -> bool:
-        return bool(self.dir and Path(self.dir, "src").exists() and shutil.which("node")
-                    and (EXTERNAL / "openresume" / "node_modules" / "pdfjs-dist").exists())
+        return bool(self._bundled()) or bool(
+            self.dir and Path(self.dir, "src").exists() and shutil.which("node")
+            and (EXTERNAL / "openresume" / "node_modules" / "pdfjs-dist").exists())
 
     def raw_many(self, paths: list[str | Path]) -> dict[str, dict]:
+        if cmd := self._bundled():
+            return _run_jsonl(cmd, [str(p) for p in paths])
         env = dict(os.environ, OPENRESUME_DIR=str(self.dir))
         return _run_jsonl(["node", str(self.runner)], [str(p) for p in paths], env=env)
 
@@ -141,11 +166,18 @@ class PyresparserParser:
         self.python = python or os.environ.get("PYRESPARSER_PYTHON")
         self.runner = EXTERNAL / "pyresparser" / "run.py"
 
+    @staticmethod
+    def _bundled() -> list[str] | None:
+        d = engines_dir()
+        exe = d / "pyresparser" / f"pyresparser-runner{EXE}" if d else None
+        return [str(exe)] if exe and exe.exists() else None
+
     def available(self) -> bool:
-        return bool(self.python and Path(self.python).exists())
+        return bool(self._bundled()) or bool(self.python and Path(self.python).exists())
 
     def raw_many(self, paths: list[str | Path]) -> dict[str, dict]:
-        return _run_jsonl([self.python, str(self.runner)], [str(p) for p in paths])
+        cmd = self._bundled() or [self.python, str(self.runner)]
+        return _run_jsonl(cmd, [str(p) for p in paths])
 
     def parse_many(self, paths: list[str | Path]) -> dict[str, ParsedResume]:
         return {f: self.convert(rec.get("resume"), f) for f, rec in self.raw_many(paths).items()}
@@ -178,6 +210,44 @@ ATTEMPTED = {
 
 # ------------------------------------------------------------------ SkillNer
 
+SKILLNER_FILES = ("skill_db_relax_20.json", "token_dist.json")
+
+
+def skillner_data_dir() -> Path | None:
+    """Where SkillNer's skill database is: ATS_SIM_SKILLNER_DIR, the desktop
+    bundle, the user folder, or the working directory (SkillNer's own default,
+    which it fills by downloading on first use)."""
+    import sys
+
+    from .data import user_dir
+
+    found = [Path(os.environ["ATS_SIM_SKILLNER_DIR"])] if os.environ.get("ATS_SIM_SKILLNER_DIR") else []
+    if getattr(sys, "_MEIPASS", None):
+        found.append(Path(sys._MEIPASS) / "skillner")
+    found += [user_dir() / "skillner", Path.cwd(), ROOT]
+    return next((d for d in found if all((d / f).exists() for f in SKILLNER_FILES)), None)
+
+
+def _ipython_stand_in() -> None:
+    """SkillNer imports IPython only to draw results in a notebook. Without
+    IPython installed, a stand-in for that one import lets it load."""
+    import sys
+    import types
+
+    try:
+        import IPython.core.display  # noqa: F401
+        return
+    except ImportError:
+        pass
+    display = types.ModuleType("IPython.core.display")
+    display.HTML = type("HTML", (str,), {})
+    core = types.ModuleType("IPython.core")
+    core.display = display
+    root = types.ModuleType("IPython")
+    root.core = core
+    sys.modules.update({"IPython": root, "IPython.core": core, "IPython.core.display": display})
+
+
 @lru_cache(maxsize=1)
 def _skillner():
     import warnings
@@ -186,8 +256,15 @@ def _skillner():
     from spacy.matcher import PhraseMatcher
 
     warnings.filterwarnings("ignore")
-    from skillNer.general_params import SKILL_DB
-    from skillNer.skill_extractor_class import SkillExtractor
+    _ipython_stand_in()
+    here, data = os.getcwd(), skillner_data_dir()
+    try:
+        if data:  # SkillNer reads its database from the working directory
+            os.chdir(data)
+        from skillNer.general_params import SKILL_DB
+        from skillNer.skill_extractor_class import SkillExtractor
+    finally:
+        os.chdir(here)
 
     for model in ("en_core_web_lg", "en_core_web_md", "en_core_web_sm"):
         try:
@@ -206,12 +283,14 @@ def _skillner():
 
 
 def skillner_available() -> bool:
-    try:
-        import skillNer  # noqa: F401
-        import IPython  # noqa: F401  (undeclared SkillNer dependency)
-    except ImportError:
+    import importlib.util
+
+    if importlib.util.find_spec("skillNer") is None or importlib.util.find_spec("jellyfish") is None:
         return False
-    return True
+    import sys
+
+    # The desktop app cannot download the database; a source install can on first use.
+    return skillner_data_dir() is not None or not getattr(sys, "frozen", False)
 
 
 def clean_skill_name(name: str) -> str:

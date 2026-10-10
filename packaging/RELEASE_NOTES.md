@@ -6,20 +6,20 @@ A simulator of applicant tracking systems: see how a resume is parsed, screened 
 
 | System | File | Open with |
 |---|---|---|
-| Windows 10 or 11 | `ATS-Simulator-Windows.zip` | Unzip, double-click `ATS-Simulator.exe` |
+| Windows 10 or 11 | `ATS-Simulator-Windows.zip` | Unzip, open the `ATS Simulator` folder, double-click `ATS-Simulator.exe` |
 | macOS, Apple Silicon (M1 or later) | `ATS-Simulator-macOS-AppleSilicon.zip` | Unzip, right-click `ATS Simulator.app`, choose *Open* |
 | macOS, Intel | `ATS-Simulator-macOS-Intel.zip` | Unzip, right-click `ATS Simulator.app`, choose *Open* |
-| Linux (x86-64) | `ATS-Simulator-Linux.zip` | Unzip, run `./ATS-Simulator` |
+| Linux (x86-64) | `ATS-Simulator-Linux.zip` | Unzip, run `ATS Simulator/ATS-Simulator` |
 
-The builds are not signed with a paid developer certificate, so the system warns the first time. On Windows click *More info*, then *Run anyway*. On macOS right-click, choose *Open*, then confirm. Each file is about 340 to 445 MB because it carries Python, every library and the language model; no other install is needed.
+The builds are not signed with a paid developer certificate, so the system warns the first time. On Windows click *More info*, then *Run anyway*. On macOS right-click, choose *Open*, then confirm. Everything is included and no other install is needed: Python, every library, the language models, and the comparison parsers in the `engines` folder (keep it next to the program).
 
 The first launch takes about 20 seconds. The app opens in its own window on Windows and macOS and in your browser on Linux. Data, the learned model and a log file live in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows).
 
 ### New in this version
 
-- **The learned parser has read real resumes.** Its starting model now also learns from 90 public, anonymized real resumes (the CC0 LiveCareer dataset). On 500 other real resumes it labels 89% of lines correctly, up from 79%, with no real loss on unusual designs. Before, it had only ever seen fictional resumes.
-- **Two new research experiments, both on real data.** Experiment 9 tests every parser on 2,482 real resumes, labeled automatically from their own web pages: the heading list labels 82% of lines, and only 68% of real section headings are in it ("Highlights", "Accomplishments" and "Additional Information" are the most common misses). Experiment 10 renders the fictional resumes through 54 real third-party designs (JSON Resume themes from npm): the simple parser scores below 0.5 on 40 of them.
-- **A new check: "Every letter is read twice"**, for designs that draw text twice for a bold or shadow effect, which a parser reads as "PPrriiyyaa".
+- **The download now runs every feature.** Until now it left out four: the comparison parsers OpenResume and pyresparser (and their combined vote), the deep skill scan (SkillNer, 31,000 skills), and the real resumes in the ranking pool, so a percentile rank compared you with 16 fictional people. All four are now included: the pool has 252 resumes, 236 of them real.
+- OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) ship as separate programs in an `engines` folder beside the app, with their licenses and source links in `engines/THIRD_PARTY.md`.
+- Every build is now checked in CI by running one full analysis with every feature on; a build missing any feature is not released.
 
 ### What the app does
 

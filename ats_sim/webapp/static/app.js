@@ -223,9 +223,9 @@ function renderCheck(main) {
           </div>
           <div class="divider" style="margin:4px 0"></div>
           <label class="switch"><input type="checkbox" id="engines" ${engineCount ? "checked" : "disabled"}>
-            <span class="switch-text">Compare with open-source parsers<small>${engineCount ? `OpenResume and pyresparser, combined by vote (${engineCount} installed)` : "Not installed. Run scripts/setup_external.sh to enable."}</small></span></label>
+            <span class="switch-text">Compare with open-source parsers<small>${engineCount ? `${[m.engines.openresume && "OpenResume", m.engines.pyresparser && "pyresparser"].filter(Boolean).join(" and ")}, combined by vote. Adds a few seconds.` : (m.desktop ? "Not included in this download. Keep the engines folder next to the app." : "Not installed. Run scripts/setup_external.sh to enable.")}</small></span></label>
           <label class="switch"><input type="checkbox" id="deep" ${m.engines.skillner ? "" : "disabled"}>
-            <span class="switch-text">Deep skill scan<small>${m.engines.skillner ? "SkillNer, 31,000 skills. Adds about a minute." : "SkillNer is not installed."}</small></span></label>
+            <span class="switch-text">Deep skill scan<small>${m.engines.skillner ? "SkillNer, 31,000 skills. The first scan takes about a minute to load." : (m.desktop ? "Not included in this download." : "SkillNer is not installed: pip install skillNer.")}</small></span></label>
         </div>
       </div>
       <div class="card-foot">
@@ -1007,7 +1007,7 @@ function renderAbout(main) {
           <dt>SkillNer</dt><dd>${m ? (m.engines.skillner ? '<span class="badge good"><span class="dot"></span>Installed</span>' : '<span class="badge neutral">Not installed</span>') : "–"}</dd>
         </dl>
         <div class="divider"></div>
-        <div class="small muted">Open-source components: OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) run as separate programs; SkillNer (MIT); RapidOCR and PaddleOCR models (Apache-2.0); Inter typeface (SIL Open Font License).</div>
+        <div class="small muted">Open-source components: OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) run as separate programs from the engines folder, with their licenses and source links in engines/THIRD_PARTY.md; SkillNer (MIT); RapidOCR and PaddleOCR models (Apache-2.0); Inter typeface (SIL Open Font License).</div>
       </div></section>
     </div></div>`;
   api("/api/model").then((md) => {

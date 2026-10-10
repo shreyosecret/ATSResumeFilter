@@ -4,6 +4,7 @@ license CC0 1.0) from its Hugging Face mirror, so no Kaggle account is needed.
     python scripts/fetch_public_resumes.py          # -> data/kaggle/Resume.csv (gitignored)
     python scripts/fetch_public_resumes.py --pdfs   # also the 2,484 PDFs -> data/kaggle/pdf/ (about 64 MB)
     python scripts/fetch_public_resumes.py --train-pdfs  # only those in data/livecareer_train_ids.json
+    python scripts/fetch_public_resumes.py --pool-only   # just the ranking pool's categories, text only (desktop build)
 
 The resumes are real (scraped from livecareer.com by the dataset author and
 released as CC0). They are used as anonymous distractors in ranking pools
@@ -73,8 +74,25 @@ def fetch_pdfs(workers: int = 8, only: set[str] | None = None) -> int:
     return got
 
 
+def pool_only() -> Path:
+    """Replace Resume.csv with only what the ranking pool reads: the pool's
+    categories and the ID, text and category columns (about 2 MB, not 56)."""
+    import pandas as pd
+
+    sys.path.insert(0, str(DEST.parent.parent.parent))
+    from ats_sim.report import PUBLIC_CATEGORIES
+
+    df = pd.read_csv(DEST, usecols=["ID", "Resume_str", "Category"])
+    df = df[df.Category.isin(PUBLIC_CATEGORIES)]
+    df.to_csv(DEST, index=False)
+    print(f"kept {len(df)} resumes in {', '.join(PUBLIC_CATEGORIES)}: {DEST.stat().st_size / 1e6:.1f} MB")
+    return DEST
+
+
 if __name__ == "__main__":
     main()
+    if "--pool-only" in sys.argv:
+        pool_only()
     if "--pdfs" in sys.argv:
         fetch_pdfs()
     if "--train-pdfs" in sys.argv:
