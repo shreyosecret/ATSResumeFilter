@@ -223,7 +223,7 @@ def skillner_data_dir() -> Path | None:
 
     found = [Path(os.environ["ATS_SIM_SKILLNER_DIR"])] if os.environ.get("ATS_SIM_SKILLNER_DIR") else []
     if getattr(sys, "_MEIPASS", None):
-        found.append(Path(sys._MEIPASS) / "skillner")
+        found.append(Path(sys._MEIPASS) / "skillner_db")
     found += [user_dir() / "skillner", Path.cwd(), ROOT]
     return next((d for d in found if all((d / f).exists() for f in SKILLNER_FILES)), None)
 

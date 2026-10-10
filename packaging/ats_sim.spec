@@ -45,7 +45,8 @@ else:
     print("WARNING: data/kaggle/Resume.csv missing; the ranking pool will hold only the 16 synthetic resumes")
 skill_db = ROOT / "build" / "skillner"  # SkillNer's skill database (scripts/fetch_skillner_db.py)
 if (skill_db / "skill_db_relax_20.json").exists():
-    datas += [(str(f), "skillner") for f in skill_db.glob("*.json")]
+    # not "skillner": macOS folders ignore case, and the skillNer package is already there
+    datas += [(str(f), "skillner_db") for f in skill_db.glob("*.json")]
 else:
     print("WARNING: build/skillner missing; the deep skill scan will be unavailable")
 datas += collect_data_files("ats_sim", includes=["webapp/static/**/*"])
