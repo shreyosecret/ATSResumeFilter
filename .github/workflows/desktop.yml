@@ -1,6 +1,6 @@
 name: desktop app
 
-# Builds the one-file desktop app for Windows, macOS (Apple Silicon and Intel) and Linux, starts each
+# Builds the desktop app for Windows, macOS (Apple Silicon and Intel) and Linux, starts each
 # build once to check it serves, and uploads it. Download the builds from the
 # run's "Artifacts" section. To publish a GitHub Release, push a tag like
 # v1.2.0, or run the workflow by hand (Actions, desktop app, Run workflow)
@@ -117,13 +117,12 @@ jobs:
         shell: bash
         run: |
           pyinstaller packaging/ats_sim.spec --noconfirm
-          # The engines run as separate programs: beside the app, not inside it, so
-          # the app's own start-up (which unpacks it) does not grow with them.
+          # The program and its _internal folder (dist/ATS-Simulator), with the engines
+          # beside them; they run as separate programs, called by the app.
           if [ "$RUNNER_OS" = "macOS" ]; then
             cp -R build/engines "dist/ATS Simulator.app/Contents/Resources/engines"
           else
-            mkdir -p "dist/ATS Simulator"
-            mv dist/ATS-Simulator* "dist/ATS Simulator/"
+            mv dist/ATS-Simulator "dist/ATS Simulator"
             cp -R build/engines "dist/ATS Simulator/engines"
           fi
       # Code signing switches on when the certificates are added as repository

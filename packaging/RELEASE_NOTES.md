@@ -11,15 +11,14 @@ A simulator of applicant tracking systems: see how a resume is parsed, screened 
 | macOS, Intel | `ATS-Simulator-macOS-Intel.zip` | Unzip, right-click `ATS Simulator.app`, choose *Open* |
 | Linux (x86-64) | `ATS-Simulator-Linux.zip` | Unzip, run `ATS Simulator/ATS-Simulator` |
 
-The builds are not signed with a paid developer certificate, so the system warns the first time. On Windows click *More info*, then *Run anyway*. On macOS right-click, choose *Open*, then confirm. Everything is included and no other install is needed: Python, every library, the language models, and the comparison parsers in the `engines` folder (keep it next to the program).
+The builds are not signed with a paid developer certificate, so the system warns the first time. On Windows click *More info*, then *Run anyway*. On macOS right-click, choose *Open*, then confirm. Everything is included and no other install is needed: Python, every library, the language models, and the comparison parsers in the `engines` folder. On Windows and Linux keep the `ATS Simulator` folder together: the program needs the `_internal` and `engines` folders beside it.
 
-The first launch takes about 20 seconds. The app opens in its own window on Windows and macOS and in your browser on Linux. Data, the learned model and a log file live in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows).
+The window opens in a few seconds and the models finish loading about 10 seconds later; the very first launch is slower. The app opens in its own window on Windows and macOS and in your browser on Linux. Data, the learned model and a log file live in `~/.ats_sim` (or `%APPDATA%\ats_sim` on Windows).
 
 ### New in this version
 
-- **The download now runs every feature.** Until now it left out four: the comparison parsers OpenResume and pyresparser (and their combined vote), the deep skill scan (SkillNer, 31,000 skills), and the real resumes in the ranking pool, so a percentile rank compared you with 16 fictional people. All four are now included: the pool has 252 resumes, 236 of them real.
-- OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) ship as separate programs in an `engines` folder beside the app, with their licenses and source links in `engines/THIRD_PARTY.md`.
-- Every build is now checked in CI by running one full analysis with every feature on; a build missing any feature is not released.
+- **Starts faster on Windows and Linux.** The program now ships as a folder instead of one packed file, which had to unpack about 500 MB into a temporary folder on every launch. On Linux the window can open after 2 seconds instead of 9, and the app is fully ready after 11 seconds instead of 18. The macOS app was already built this way.
+- From 1.7.0: the download runs every feature, including the comparison parsers OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) in the `engines` folder (licenses and source links in `engines/THIRD_PARTY.md`), the deep skill scan (SkillNer), and a ranking pool of 252 resumes, 236 of them real. Every build is checked in CI by one full analysis with every feature on.
 
 ### What the app does
 

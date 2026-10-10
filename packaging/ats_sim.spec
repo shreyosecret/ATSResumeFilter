@@ -4,8 +4,8 @@
 #   python scripts/build_starting_model.py --out build/model
 #   pyinstaller packaging/ats_sim.spec --noconfirm
 #
-# Produces dist/ATS-Simulator (Linux), dist/ATS-Simulator.exe (Windows) or
-# dist/ATS Simulator.app (macOS): one program, no Python needed. PyTorch is
+# Produces the folder dist/ATS-Simulator (the program ATS-Simulator[.exe] beside
+# its _internal folder) and, on macOS, dist/ATS Simulator.app; no Python needed. PyTorch is
 # left out; the semantic scorer runs the same MiniLM model through
 # onnxruntime from build/minilm-onnx when that folder exists.
 import subprocess
@@ -104,12 +104,10 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+# A folder, not one packed file: a one-file build unpacks itself (about 500 MB)
+# into a temporary folder on every launch, which was most of its start-up time.
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name=NAME, console=False, upx=False, icon=ICON)
+coll = COLLECT(exe, a.binaries, a.datas, name=NAME, upx=False)
 if sys.platform == "darwin":
-    exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name=NAME, console=False, upx=False, icon=ICON)
-    coll = COLLECT(exe, a.binaries, a.datas, name=NAME, upx=False)
     app = BUNDLE(coll, name="ATS Simulator.app", icon=ICON, bundle_identifier="io.github.atsresumefilter.simulator",
                  info_plist={"CFBundleShortVersionString": __version__, "NSHighResolutionCapable": True})
-else:
-    # One file: a single program to download and double-click.
-    exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name=NAME, console=False, upx=False,
-              runtime_tmpdir=None, icon=ICON)

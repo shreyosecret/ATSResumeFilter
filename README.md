@@ -23,19 +23,19 @@ A desktop-style app for checking a resume and exploring how screening works. It 
 
 **Download it (no Python needed)**
 
-The app is built as a single program for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
+The app is built for each operating system by GitHub Actions ([desktop app workflow](.github/workflows/desktop.yml)):
 
 1. Download the file for your system from the [latest release](https://github.com/shreyosecret/ATSResumeFilter/releases/latest). (Builds of unreleased changes are under the **Actions** tab, in each successful *desktop app* run's **Artifacts**.)
-   - **Windows:** `ATS-Simulator-Windows.zip` holds an `ATS Simulator` folder with `ATS-Simulator.exe` and an `engines` folder.
+   - **Windows:** `ATS-Simulator-Windows.zip` holds an `ATS Simulator` folder with `ATS-Simulator.exe`, its `_internal` folder and an `engines` folder.
    - **macOS (Apple Silicon):** `ATS-Simulator-macOS-AppleSilicon.zip` holds `ATS Simulator.app` (engines inside it).
    - **macOS (Intel):** `ATS-Simulator-macOS-Intel.zip` holds `ATS Simulator.app` (engines inside it).
-   - **Linux:** `ATS-Simulator-Linux.zip` holds an `ATS Simulator` folder with `ATS-Simulator` and an `engines` folder.
+   - **Linux:** `ATS-Simulator-Linux.zip` holds an `ATS Simulator` folder with `ATS-Simulator`, its `_internal` folder and an `engines` folder.
 
-   Keep the `engines` folder next to the program: it holds the two comparison parsers (below). Without it the app still runs, with those two switched off.
+   Keep the folder together: `_internal` is the app's own libraries and models, and `engines` holds the two comparison parsers (below). Without `engines` the app still runs, with those two switched off.
 2. Unzip and double-click. The builds are not signed with a paid developer certificate (see [Signing the builds](#signing-the-builds)), so the system will warn you the first time:
    - **Windows SmartScreen:** click *More info*, then *Run anyway*.
    - **macOS:** right-click the app, choose *Open*, then confirm (or allow it in System Settings, Privacy & Security).
-3. The first launch takes about 20 seconds. The learned parser's starting model ships inside the download, so it is ready at once. Later launches are faster.
+3. The window opens in a few seconds, and the models finish loading about 10 seconds later (measured on Linux; the very first launch is slower while the system reads the files for the first time). The learned parser's starting model ships inside the download, so it is ready at once.
 
 **Everything is included.** The download runs every feature with no other install: the three parsers of this project (simple, layout-aware, learned), the comparison parsers OpenResume and pyresparser with their combined vote, the semantic scorer, the visual check (OCR), the deep skill scan (SkillNer with its 31,000-skill database), and a ranking pool of 252 resumes (16 fictional, 236 real from the public CC0 LiveCareer dataset). OpenResume (AGPL-3.0) and pyresparser (GPL-3.0) are separate programs in the `engines` folder, called by the app and never linked into it; their licenses and source links are in `engines/THIRD_PARTY.md` and the build steps in [`scripts/build_engines.py`](scripts/build_engines.py). The deep skill scan uses spaCy's medium English model instead of the large one SkillNer recommends: on 11 test resumes it found 88% of the same skills (the large model would add about 400 MB).
 
